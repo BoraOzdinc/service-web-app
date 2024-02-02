@@ -208,6 +208,7 @@ export function DataTable<TData, TValue>({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="10">10</SelectItem>
                 <SelectItem value="20">20</SelectItem>
                 <SelectItem value="100">100</SelectItem>
                 <SelectItem value="500">500</SelectItem>

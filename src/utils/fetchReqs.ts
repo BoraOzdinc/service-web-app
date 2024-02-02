@@ -1,33 +1,28 @@
-import { customerRes, itemRes } from "./types";
+import { extractData } from ".";
+import { Grup, customerRes, itemRes } from "./types";
 
 export const fetchCustomerList = async () => {
-    const rawResponse = await fetch(
-        "https://app.prodigo.com.tr/Services/MusteriYonetimi/Musteriler/List",
-        {
-            headers: {
-                accept: "application/json, text/javascript, */*; q=0.01",
-                "accept-language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
-                "content-type": "application/json",
-                "sec-ch-ua": '"Not_A Brand";v="8", "Chromium";v="120", "Opera";v="106"',
-                "sec-ch-ua-mobile": "?0",
-                "sec-ch-ua-platform": '"Windows"',
-                "sec-fetch-dest": "empty",
-                "sec-fetch-mode": "cors",
-                "sec-fetch-site": "same-origin",
-                "x-csrf-token":
-                    "CfDJ8Fe8p28q9kRHrRT-7wZanmRr5nOaNFZGGGoW6wDGpQRfZjzKPg5JzbJHyISBKiRa5fQlPohZWySIU6czZe9wuX7m_j_4UqPVOAaKSxELDgCCezrPCv3Df937JqUWahlk6umrdzWNQLJUdsZ-cTiqS66xLx3Fs0OVtzT9LuaNBJUO_t18uATNnNdoBYuutErHFg",
-                "x-requested-with": "XMLHttpRequest",
-                cookie:
-                    ".AspNetCore.Antiforgery.SQBnuFbFx1I=CfDJ8Fe8p28q9kRHrRT-7wZanmSqO1S07TpCNSaqrPeYX05WYJ6-TDE6a7b6gYF2fiAQZGeVZ7rTWQsVuwT_RRNqcqp-AZ6ofFb0N3GAIGhQLFu6IE1BT9h-JJEQgcZ_kVB8x6OGEJu7dp56MvAWOFyByUI; .AspNetAuth=CfDJ8Fe8p28q9kRHrRT-7wZanmSp0TUztQCHCNyx2NqbnhsnWExR7kTwjZ8h_maauxk0YnIeES4ibfHT3wVmSke44M6kwMRP_s5Dgadd4DK3-u01XPKfRbz5HNebvgXnzeZHJqilj8A_yWN77xOoujPJ_BOozyetBKLFEJiO7c5Lr-L3ldKpvzYzLyoLFsXlQmzrJvrt0qckXLhOycH0oF025oUBNEy3MPRUOhF402_dlSrD8msyzP6N_NQMOxmbDOVUQ-nrpcNHe-nGvYXUMgmnBImXLBjVnNgbQt0WxN0T5YT5eWZwQmiqnDd8mLO2NBTdSiaPN_KsCWaEIpRQCsV-5eRPRkWlZTVDGCb53zI65FKqPpzCqF8_2h4YUvSPGioWLC8Zf9UHHyMwSIHYRA0SWMwXw9qVqBeT_0No_JrX7ZalE_8hQEu-wv6LKB4EF6dkFg; CSRF-TOKEN=CfDJ8Fe8p28q9kRHrRT-7wZanmRr5nOaNFZGGGoW6wDGpQRfZjzKPg5JzbJHyISBKiRa5fQlPohZWySIU6czZe9wuX7m_j_4UqPVOAaKSxELDgCCezrPCv3Df937JqUWahlk6umrdzWNQLJUdsZ-cTiqS66xLx3Fs0OVtzT9LuaNBJUO_t18uATNnNdoBYuutErHFg",
-                Referer: "https://app.prodigo.com.tr/MusteriYonetimi/Musteriler",
-                "Referrer-Policy": "strict-origin-when-cross-origin",
-            },
-            body: '{"Take":999999,"IncludeColumns":["MusteriKodu","MusteriUnvani","MusteriTelefon","MusteriEposta","GrupAdi","MusteriBayiAdi","FiyatTipAdi"]}',
-            method: "POST",
+    return await fetch("https://app.prodigo.com.tr/Services/MusteriYonetimi/Musteriler/List", {
+        "headers": {
+            "accept": "application/json, text/javascript, */*; q=0.01",
+            "accept-language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
+            "content-type": "application/json",
+            "sec-ch-ua": "\"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Opera\";v=\"106\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-origin",
+            "x-csrf-token": "CfDJ8J00Jn2uUtZKjY71iLN1mlWJjdA2JWuaqwFB0ftfcFlcNtfUnWPOlhh5tsRxAQDtm0vyvp4SO823sbgzIWul4AiQym12xUnS-7THjsvDjD_Qfbwr8787E85uTUe4EHr8lz7xuT322MA2obHIfobNE9xxFMSrQ-ucm_OCaA3PREhRRQecQ45-nrqP1o4Y24J2vA",
+            "x-requested-with": "XMLHttpRequest",
+            "cookie": ".AspNetCore.Antiforgery.SQBnuFbFx1I=CfDJ8J00Jn2uUtZKjY71iLN1mlXs5UfWRuNRCVvhdLytJS_-ph9Fh1YR04Xejgenz4qv8yQWpVVVs3-ji8SeS5Z8GM5_x8sA6wxZDs1I0Mtw6oFZwEznPOMLbr-2nxzIjMAFXqMuLe_g0wh5uRsxWcsxp58; .AspNetAuth=CfDJ8J00Jn2uUtZKjY71iLN1mlXSn-zGhYI8M2G31DTcRlbmUcCkKJHNqiJGJn6xM16NLd3H9yNVssdSO5Aih8w_iVTNnd0w8vN8BADf4DM00aHRNr3swlFmjHVnLbUBLh_QxNB8lwruufPw3GbpHX9XgCtKSOLPA_fxNJsjFoMdbHcOG5eQl4ofAUSjD8LwPE5Z8Q31yXZHyq7rMN943egE9yOQurHqgCCV89YeqQlHkskzlb2khNwldVEH2huWTFw89Pzr-vAnBu4pTGmUydlLQiPPK-aEPShrblxak-P7lwjqLjcLNP2wAT-_ZF_0se8MadxAzdZ2etIWRAEl62An2ZpE3LHM0ty--coX1bkmF8P7LSH1Pk1YpwWQzC6Sse1YbdDVRpX8vnKnQW0z2DrpSY6983jtAFKVmQbjRtr8EJjmH3330fZnE6NgJ4czhYc2DA; CSRF-TOKEN=CfDJ8J00Jn2uUtZKjY71iLN1mlWJjdA2JWuaqwFB0ftfcFlcNtfUnWPOlhh5tsRxAQDtm0vyvp4SO823sbgzIWul4AiQym12xUnS-7THjsvDjD_Qfbwr8787E85uTUe4EHr8lz7xuT322MA2obHIfobNE9xxFMSrQ-ucm_OCaA3PREhRRQecQ45-nrqP1o4Y24J2vA",
+            "Referer": "https://app.prodigo.com.tr/MusteriYonetimi/Musteriler",
+            "Referrer-Policy": "strict-origin-when-cross-origin"
         },
-    );
-    const content = (await rawResponse.json()) as customerRes;
-    return content;
+        "body": "{\"Take\":999999,\"IncludeColumns\":[\"MusteriKodu\",\"MusteriUnvani\",\"MusteriTelefon\",\"MusteriEposta\",\"GrupAdi\",\"MusteriBayiAdi\",\"FiyatTipAdi\"]}",
+        "method": "POST"
+
+    }).then((res) => { return res.json() as Promise<customerRes> });
 };
 
 export const fetchItems = async () => {
@@ -53,4 +48,29 @@ export const fetchItems = async () => {
     });
     const content = (await rawData.json()) as itemRes;
     return content
+}
+
+export const fetchCustomerGroups = async () => {
+    return await fetch("https://app.prodigo.com.tr/DynJS.axd/Lookup.MusteriYonetimi.MusteriGruplari.js?638424231858629500", {
+        "headers": {
+            "accept": "text/plain, */*; q=0.01",
+            "accept-language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
+            "sec-ch-ua": "\"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Opera\";v=\"106\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-origin",
+            "x-csrf-token": "CfDJ8J00Jn2uUtZKjY71iLN1mlUXU255h5G8oxTPePcJ2HYun4WtnthGBifxWZwrcKX96XDfX0hOmqY7VY-JaGiH4c8XPXA59THbVxf3z32tV5x2a0aBNJZAoKraVkeB-MH8M3bU4FBCDPrXDvXda3Ra_70jDBa4Xz39BUk7jZ7VIV0WdbzqARK0V6OUfhq75mpCAQ",
+            "x-requested-with": "XMLHttpRequest",
+            "cookie": ".AspNetCore.Antiforgery.SQBnuFbFx1I=CfDJ8J00Jn2uUtZKjY71iLN1mlXs5UfWRuNRCVvhdLytJS_-ph9Fh1YR04Xejgenz4qv8yQWpVVVs3-ji8SeS5Z8GM5_x8sA6wxZDs1I0Mtw6oFZwEznPOMLbr-2nxzIjMAFXqMuLe_g0wh5uRsxWcsxp58; .AspNetAuth=CfDJ8J00Jn2uUtZKjY71iLN1mlVLDMBqkIITMXjsBiBtOOUNsxhYcwnRXf0gmVHmBWxoM2TobDFucDCIiJTP4uUh2J1PzFhogCDkdeUf0X9UJS0VaPkhf9oCUcuQg65A2EPCEBTM72o5VJrzOiqG0dsWb-bvUHHYlXHmx4bkuOG2kDEeKc9MSXCUS7o4OYAT3fwyc5nSaTO0NtyH205sosGaUlRxaA9lUtITTljDfY53EHZc7rWixTxRY8zVsu-szbrRyPzojz0aEl4V3ycHn9jf3wWhMEUb6XKOWAhWoFa9DAzieHHACDX6KBF5L0-wSPGUdHYdK-yipm0mWiHxhJ5MvS3BvfD7i6moJmgN5wm_jyXbQf2Wvaz4kBMiIcyoN84yaxxbSYhyXdHWJzjvLTfZo7mD7-DV8FfqKOTo-rcwYzkpkHSoq-URag_qezlJg8eDlw; CSRF-TOKEN=CfDJ8J00Jn2uUtZKjY71iLN1mlUXU255h5G8oxTPePcJ2HYun4WtnthGBifxWZwrcKX96XDfX0hOmqY7VY-JaGiH4c8XPXA59THbVxf3z32tV5x2a0aBNJZAoKraVkeB-MH8M3bU4FBCDPrXDvXda3Ra_70jDBa4Xz39BUk7jZ7VIV0WdbzqARK0V6OUfhq75mpCAQ",
+            "Referer": "https://app.prodigo.com.tr/MusteriYonetimi/Musteriler",
+            "Referrer-Policy": "strict-origin-when-cross-origin"
+        },
+        "body": null,
+        "method": "GET"
+    }).then(async (res) => {
+        const data = await res.text();
+        return JSON.parse(extractData(data)) as Grup[]
+    });
 }

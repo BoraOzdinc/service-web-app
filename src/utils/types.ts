@@ -101,3 +101,9 @@ export type itemEntity = {
     UrunPazaryeriAcik: null,
     UrunIsimKodlu: string
 }
+
+export type Grup = {
+    GrupId: number;
+    GrupAdi: string;
+};
+
