@@ -70,7 +70,7 @@ export default async function RootLayout({
                         <ListItem href="/customers" title="Müşteriler">
                           Müşteri Listesi
                         </ListItem>
-                        <ListItem href="/customers" title="Ürünler">
+                        <ListItem href="/items" title="Ürünler">
                           Ürün Listesi
                         </ListItem>
                       </ul>
