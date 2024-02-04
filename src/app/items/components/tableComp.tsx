@@ -1,16 +1,16 @@
 "use client";
 import { DataTable } from "~/app/_components/tables/generic-table";
 import { columns } from "./columns";
-import { type itemRes } from "~/utils/types";
+import { type Item } from "~/utils/useItems";
 
-const ItemsTable = ({ itemList }: { itemList: itemRes }) => {
+const ItemsTable = ({ itemList }: { itemList: Item[] }) => {
   return (
     <DataTable
-      data={itemList.Entities}
+      data={itemList}
       columns={columns}
       pagination
       inputFilter={{
-        columnToFilter: "UrunIsim",
+        columnToFilter: "name",
         title: "Ürün İsmi",
       }}
     />

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 
 
 export function extractData(str: string) {
@@ -6,3 +7,4 @@ export function extractData(str: string) {
     const jsonStr = str.substring(startIndex, endIndex);
     return jsonStr;
 }
+

@@ -9,10 +9,13 @@
 
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
-import { ZodError } from "zod";
+import { z, ZodError } from "zod";
+import { type CreateNextContextOptions } from "@trpc/server/adapters/next";
 
 import { getServerAuthSession } from "~/server/auth";
 import { db } from "~/server/db";
+import { env } from "process";
+import { type Session } from "next-auth";
 
 /**
  * 1. CONTEXT
@@ -26,7 +29,7 @@ import { db } from "~/server/db";
  *
  * @see https://trpc.io/docs/server/context
  */
-export const createTRPCContext = async (opts: { headers: Headers }) => {
+export const createTRPCContext = async (opts: CreateNextContextOptions) => {
   const session = await getServerAuthSession();
 
   return {
@@ -80,17 +83,51 @@ export const createTRPCRouter = t.router;
  */
 export const publicProcedure = t.procedure;
 
-/**
- * Protected (authenticated) procedure
- *
- * If you want a query or mutation to ONLY be accessible to logged in users, use this. It verifies
- * the session is valid and guarantees `ctx.session.user` is not null.
- *
- * @see https://trpc.io/docs/procedures
- */
-export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
-  if (!ctx.session || !ctx.session.user) {
-    throw new TRPCError({ code: "UNAUTHORIZED" });
+
+const UserIdWithToken = z.object({
+  "auth": z.string().min(1),
+  authorization: z.literal(env.DISCORD_TOKEN),
+});
+
+const enforceIsInternal = t.middleware(async ({ ctx, next }) => {
+  const parsed = UserIdWithToken.safeParse(ctx.req.headers);
+  if (!parsed.success)
+    return next({ ctx: { ...ctx, internalAuthId: null } });
+
+  const authId = parsed.data.auth;
+
+  const user = await db.user.findFirst({
+    where: { accounts: { some: { providerAccountId: authId } } },
+  });
+
+  const context = user
+    ? {
+      ...ctx,
+      session: {
+        user: { ...user, authId, inOrg: true },
+        expires: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
+      } satisfies Session,
+    }
+    : { ...ctx, session: null, internalAuthId: authId };
+
+  return next({ ctx: context });
+});
+
+
+export const internalProcedure = t.procedure.use(enforceIsInternal);
+
+
+
+const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
+  if (
+    !ctx.session ||
+    !ctx.session.user ||
+    !ctx.session.user.inOrg
+  ) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Henüz Bir Organizasyonda değilsin. Yöneticin ile iletişime geç!",
+    });
   }
   return next({
     ctx: {
@@ -99,3 +136,4 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
     },
   });
 });
+export const protectedProcedure = internalProcedure.use(enforceUserIsAuthed)

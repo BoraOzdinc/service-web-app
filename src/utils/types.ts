@@ -52,55 +52,8 @@ export type customerEntity = {
     MusteriFaturaAdresi: string
 }
 
-export type itemRes = {
-    Entities: itemEntity[],
-    Values: null,
-    TotalCount: number,
-    Skip: number,
-    Take: number,
-    Error: null,
-    CustomData: null
-}
-export type itemEntity = {
-    TenantId: number,
-    UrunId: number,
-    UrunIsim: string,
-    UrunKodu: string,
-    UrunOzelMetin: null,
-    UrunCreateDate: string,
-    UrunCreateUserId: number,
-    MarkaId: null,
-    KategoriId: null,
-    TedarikciId: null,
-    AnagrupId: null,
-    UrunResimBirincil: null,
-    UrunResimGalerisi: null,
-    UrunAciklamasiKisa: null,
-    UrunAciklamasiTam: null,
-    UrunSerinoZorunlu: number,
-    UrunAlisVergiId: number,
-    UrunSatisVergiId: number,
-    UrunMinStok: number,
-    UrunEksiStokSiparis: number,
-    UrunTedarikciSiparisineAcik: number,
-    UrunUrunkabuleAcik: number,
-    UrunMusteriSiparisineAcik: number,
-    UrunSatisaAcik: number,
-    UrunEticareteAcik: number,
-    UrunSonAlisFiyati: null,
-    UrunHizmetMi: null,
-    UrunServisMi: null,
-    ToplamStok: number,
-    UrunSatisFiyati: number,
-    KategoriAdi: null,
-    MarkaAdi: null,
-    Barkodu: string,
-    TedarikciUnvani: null,
-    AnaGrupAdi: null,
-    UrunPazaryeriIsim: string,
-    UrunPazaryeriAcik: null,
-    UrunIsimKodlu: string
-}
+
+
 
 export type Grup = {
     GrupId: number;

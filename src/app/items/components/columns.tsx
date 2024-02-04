@@ -1,18 +1,54 @@
-import { ColumnDef } from "@tanstack/react-table";
-import { customerEntity, itemEntity } from "~/utils/types";
+import { type ColumnDef } from "@tanstack/react-table";
+import { type Item } from "~/utils/useItems";
 
-export const columns: ColumnDef<itemEntity>[] = [
-  { accessorKey: "UrunKodu", header: "Ürün Kodu" },
-  { accessorKey: "Barkodu", header: "Barkod" },
-  { accessorKey: "UrunIsim", header: "Ürün İsmi" },
-  { accessorKey: "AnaGrupAdi", header: "Ana Grup" },
-  { accessorKey: "KategoriAdi", header: "Kategori" },
-  { accessorKey: "MarkaAdi", header: "Marka" },
-  { accessorKey: "ToplamStok", header: "Toplam Stok" },
-  { accessorKey: "UrunSatisFiyati", header: "Satış Fiyat" },
+export const columns: ColumnDef<Item>[] = [
+  { accessorKey: "serialNo", header: "Ürün Kodu" },
+  { accessorKey: "barcode", header: "Barkod" },
+  { accessorKey: "name", header: "Ürün İsmi" },
+  { accessorKey: "brand", header: "Marka" },
+  { accessorKey: "stock", header: "Toplam Stok" },
   {
-    accessorKey: "UrunSonAlisFiyati",
-    header: "Son Alış Fiyat",
+    accessorKey: "mainDealerPrice",
+    header: "Anabayi Fiyatı",
+    cell: ({
+      row: {
+        original: { mainDealerPrice },
+      },
+    }) => {
+      return `€ ${mainDealerPrice}`;
+    },
   },
-  { accessorKey: "TedarikciUnvani", header: "Tedarikçi" },
+  {
+    accessorKey: "multiPrice",
+    header: "Toptan Fiyatı",
+    cell: ({
+      row: {
+        original: { multiPrice },
+      },
+    }) => {
+      return `€ ${multiPrice}`;
+    },
+  },
+  {
+    accessorKey: "dealerPrice",
+    header: "Bayi Fiyatı",
+    cell: ({
+      row: {
+        original: { dealerPrice },
+      },
+    }) => {
+      return `€ ${dealerPrice}`;
+    },
+  },
+  {
+    accessorKey: "singlePrice",
+    header: "Perakende Fiyatı",
+    cell: ({
+      row: {
+        original: { singlePrice },
+      },
+    }) => {
+      return `€ ${singlePrice}`;
+    },
+  },
 ];

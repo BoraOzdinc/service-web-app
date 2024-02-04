@@ -11,7 +11,7 @@ datasource db {
 }
 
 model Service {
-    id           Int       @id @default(autoincrement())
+    id           String    @id @default(cuid())
     customerName String
     companyName  String
     isDealer     Boolean
@@ -29,20 +29,26 @@ model Service {
 
     product     String
     productType Int
-    productPart ServicePart[]
+    Item        Item[]
 
-    createdBy   User   @relation(fields: [createdById], references: [id])
-    createdById String
+    Org       Org?     @relation(fields: [orgId], references: [id])
+    orgId     String?
+    Storage   Storage? @relation(fields: [storageId], references: [id])
+    storageId String?
 
     @@index([customerName])
-    @@index([createdById])
+    @@index([orgId])
+    @@index([storageId])
 }
 
-model ServicePart {
-    id       Int    @id @default(autoincrement())
+model Item {
+    id       String  @id @default(cuid())
     barcode  String
     serialNo String
     name     String
+    brand    String
+    stock    Int
+    popImage String?
 
     mainDealerPrice String
     multiPrice      String
@@ -50,9 +56,33 @@ model ServicePart {
     singlePrice     String
 
     Service   Service? @relation(fields: [serviceId], references: [id])
-    serviceId Int?
+    serviceId String?
+    Storage   Storage? @relation(fields: [storageId], references: [id])
+    storageId String?
 
     @@index([serviceId])
+    @@index([storageId])
+}
+
+model Org {
+    id      String @id @default(cuid())
+    orgName String
+
+    Users User[]
+
+    service  Service[]
+    storages Storage[]
+}
+
+model Storage {
+    id      String    @id @default(cuid())
+    name    String
+    items   Item[]
+    service Service[]
+    Org     Org?      @relation(fields: [orgId], references: [id])
+    orgId   String?
+
+    @@index([orgId])
 }
 
 // Necessary for Next auth
@@ -93,7 +123,11 @@ model User {
     image         String?
     accounts      Account[]
     sessions      Session[]
-    service       Service[]
+
+    Org   Org?    @relation(fields: [orgId], references: [id])
+    orgId String?
+
+    @@index([orgId])
 }
 
 model VerificationToken {

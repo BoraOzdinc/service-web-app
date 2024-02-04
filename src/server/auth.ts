@@ -8,6 +8,7 @@ import DiscordProvider from "next-auth/providers/discord";
 
 import { env } from "~/env";
 import { db } from "~/server/db";
+import { api } from "~/trpc/server";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -19,6 +20,8 @@ declare module "next-auth" {
   interface Session extends DefaultSession {
     user: {
       id: string;
+      authId: string
+      inOrg: boolean
       // ...other properties
       // role: UserRole;
     } & DefaultSession["user"];
@@ -37,13 +40,21 @@ declare module "next-auth" {
  */
 export const authOptions: NextAuthOptions = {
   callbacks: {
-    session: ({ session, user }) => ({
-      ...session,
-      user: {
-        ...session.user,
-        id: user.id,
-      },
-    }),
+    session: async ({ session, user }) => {
+      if (session.user) {
+
+        const organizations = (await db.org.findMany({ include: { Users: true } }))
+        const inOrg = organizations.some((o) => {
+          return o.Users.some((u) => u.id === user.id);
+        });
+
+        session.user.id = user.id;
+        session.user.inOrg = inOrg
+
+        // session.user.role = user.role; <-- put other properties on the session here
+      }
+      return session
+    },
   },
   adapter: PrismaAdapter(db),
   providers: [
