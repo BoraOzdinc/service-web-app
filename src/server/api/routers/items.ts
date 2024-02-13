@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
+import { createTRPCRouter, publicProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
 
 const addItemSchema = z.object({
@@ -19,8 +19,13 @@ const addItemSchema = z.object({
 export const itemsRouter = createTRPCRouter({
 
     getItems: publicProcedure.query(async ({ ctx }) => {
+
         const userId = ctx.session?.user.id
+        console.log("USER ID: ", userId);
+
         const orgStorages = await ctx.db.org.findMany({ where: { Users: { some: { id: userId } } }, include: { storages: { include: { items: true } } } })
+
+
         const orgItems = orgStorages
             .map((o) => {
                 return o.storages
@@ -45,6 +50,22 @@ export const itemsRouter = createTRPCRouter({
 
         const uniqueItems = Array.from(itemMap.values());
         return uniqueItems
+    }),
+    getItemWithId: publicProcedure.input(z.string().min(1)).query(async ({ ctx, input }) => {
+        if (!input) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "no payload"
+            })
+        }
+        const item = await ctx.db.item.findFirst({ where: { id: input } })
+        if (!item) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "Ürün Bulunamadı"
+            })
+        }
+        return item
     }),
     getStorages: publicProcedure.query(async ({ ctx }) => {
         const userId = ctx.session?.user.id

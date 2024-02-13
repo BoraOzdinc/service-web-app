@@ -1,13 +1,36 @@
-import { createNextApiHandler } from "@trpc/server/adapters/next";
+import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
+import { type NextRequest } from "next/server";
 
-import { createTRPCContext } from "~/server/api/trpc";
+import { env } from "~/env";
 import { appRouter } from "~/server/api/root";
+import { createTRPCContext } from "~/server/api/trpc";
 
-export default createNextApiHandler({
-  router: appRouter,
-  createContext: createTRPCContext,
-  onError: ({ path, error }) => {
-    console.error(`❌ tRPC failed on ${path ?? "<no-path>"}: ${error.message}`);
-    if (error.stack && error) console.error(error.stack);
-  },
-});
+/**
+ * This wraps the `createTRPCContext` helper and provides the required context for the tRPC API when
+ * handling a HTTP request (e.g. when you make requests from Client Components).
+ */
+const createContext = async (req: NextRequest) => {
+  return createTRPCContext({
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    headers: req.headers,
+  });
+};
+
+const handler = (req: NextRequest) =>
+  fetchRequestHandler({
+    endpoint: "/api/trpc",
+    req,
+    router: appRouter,
+    createContext: () => createContext(req),
+    onError:
+      env.NODE_ENV === "development"
+        ? ({ path, error }) => {
+          console.error(
+            `❌ tRPC failed on ${path ?? "<no-path>"}: ${error.message}`
+          );
+        }
+        : undefined,
+  });
+
+export { handler as GET, handler as POST };

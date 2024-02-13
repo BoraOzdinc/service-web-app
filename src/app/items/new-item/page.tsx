@@ -18,7 +18,6 @@ import {
 } from "~/app/_components/ui/select";
 import { Button } from "~/app/_components/ui/button";
 import { useAddItem } from "~/utils/useItems";
-import { redirect, useRouter } from "next/navigation";
 
 interface FormInput {
   productName: string;
@@ -36,7 +35,6 @@ interface FormInput {
 const NewItem = () => {
   const storages = api.items.getStorages.useQuery();
   const addItem = useAddItem();
-  const router = useRouter();
   const { control, handleSubmit, formState } = useForm<FormInput>({
     defaultValues: { stock: 0 },
   });
@@ -103,7 +101,7 @@ const NewItem = () => {
             />
           </div>
           <div>
-            <Label htmlFor="itemStorage">Markası</Label>
+            <Label htmlFor="itemStorage">Depo</Label>
             <Controller
               name="storage"
               control={control}
@@ -142,7 +140,13 @@ const NewItem = () => {
               rules={{ required: true }}
               control={control}
               render={({ field }) => (
-                <Input {...field} id="itemMainDealer" placeholder="" />
+                <Input
+                  {...field}
+                  id="itemMainDealer"
+                  type="number"
+                  step="0.01"
+                  placeholder=""
+                />
               )}
             />
           </div>
@@ -153,7 +157,13 @@ const NewItem = () => {
               rules={{ required: true }}
               control={control}
               render={({ field }) => (
-                <Input {...field} id="itemMultiPrice" placeholder="" />
+                <Input
+                  {...field}
+                  id="itemMultiPrice"
+                  type="number"
+                  step="0.01"
+                  placeholder=""
+                />
               )}
             />
           </div>
@@ -164,7 +174,13 @@ const NewItem = () => {
               rules={{ required: true }}
               control={control}
               render={({ field }) => (
-                <Input {...field} id="itemDealerPrice" placeholder="" />
+                <Input
+                  {...field}
+                  id="itemDealerPrice"
+                  type="number"
+                  step="0.01"
+                  placeholder=""
+                />
               )}
             />
           </div>
@@ -175,7 +191,13 @@ const NewItem = () => {
               rules={{ required: true }}
               control={control}
               render={({ field }) => (
-                <Input {...field} id="itemSinglePrice" placeholder="" />
+                <Input
+                  {...field}
+                  id="itemSinglePrice"
+                  type="number"
+                  step="0.01"
+                  placeholder=""
+                />
               )}
             />
           </div>

@@ -42,13 +42,15 @@ model Service {
 }
 
 model Item {
-    id       String  @id @default(cuid())
-    barcode  String
-    serialNo String
-    name     String
-    brand    String
-    stock    Int
-    popImage String?
+    id         String   @id @default(cuid())
+    createDate DateTime @default(now())
+    updateDate DateTime @updatedAt
+    barcode    String
+    serialNo   String
+    name       String
+    brand      String
+    stock      Int
+    popImage   String?
 
     mainDealerPrice String
     multiPrice      String

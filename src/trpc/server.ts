@@ -2,11 +2,8 @@
 
 import { type TRPCClientError, httpBatchLink, loggerLink } from "@trpc/client";
 import { createTRPCNext } from "@trpc/next";
-import { type TRPCClientErrorLike } from "@trpc/react-query";
-import { type inferRouterInputs, type inferRouterOutputs } from "@trpc/server";
 import { toast } from "react-hot-toast";
 import superjson from "superjson";
-import { env } from "~/env.js";
 
 import { type AppRouter } from "~/server/api/root";
 

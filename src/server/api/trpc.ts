@@ -29,6 +29,7 @@ import { type Session } from "next-auth";
  *
  * @see https://trpc.io/docs/server/context
  */
+
 export const createTRPCContext = async (opts: CreateNextContextOptions) => {
   const session = await getServerAuthSession();
 

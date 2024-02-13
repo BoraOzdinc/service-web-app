@@ -1,5 +1,5 @@
-import { ColumnDef } from "@tanstack/react-table";
-import { customerEntity } from "~/utils/types";
+import { type ColumnDef } from "@tanstack/react-table";
+import { type customerEntity } from "~/utils/types";
 
 export const columns: ColumnDef<customerEntity>[] = [
   { accessorKey: "MusteriKodu", header: "Müşteri ID" },
@@ -9,9 +9,6 @@ export const columns: ColumnDef<customerEntity>[] = [
   {
     accessorKey: "GrupAdi",
     header: "Müşteri Grubu",
-    filterFn: (row, id, value) => {
-      return false;
-    },
   },
   { accessorKey: "MusteriBayiAdi", header: "Bayi" },
   { accessorKey: "FiyatTipAdi", header: "Fiyat Tipi" },

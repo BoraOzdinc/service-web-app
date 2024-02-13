@@ -7,6 +7,7 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const client = new Client({ url: env.DATABASE_URL });
 
 export const db =
