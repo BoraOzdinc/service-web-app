@@ -1,8 +1,4 @@
-import {
-  fetchCustomerList,
-  fetchItems,
-  fetchCustomerGroups,
-} from "~/utils/fetchReqs";
+import { fetchCustomerList } from "~/utils/fetchReqs";
 import {
   Card,
   CardContent,
