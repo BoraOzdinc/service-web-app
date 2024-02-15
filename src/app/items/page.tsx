@@ -12,10 +12,27 @@ import Loader from "../_components/loader";
 import { columns } from "./components/columns";
 import { DataTable } from "../_components/tables/generic-table";
 import { useRouter } from "next/navigation";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../_components/ui/dialog";
+import { Input } from "../_components/ui/input";
+import { Label } from "../_components/ui/label";
+import { useState } from "react";
+import { useAddStorage, useDeleteStorage } from "~/utils/useItems";
+import { TrashIcon } from "lucide-react";
 
 const Items = () => {
   const ItemsData = api.items.getItems.useQuery();
-
+  const storages = api.items.getStorages.useQuery();
+  const addStorage = useAddStorage();
+  const deleteStorage = useDeleteStorage();
+  const [storageInput, setStorageInput] = useState<string>();
   const router = useRouter();
   if (ItemsData.isLoading) {
     return <Loader />;
@@ -23,11 +40,85 @@ const Items = () => {
 
   return (
     <Card className="flex w-full flex-col overflow-x-auto">
-      <CardHeader className="flex flex-row justify-between">
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Ürün Listesi</CardTitle>
-        <Link href={"/items/new-item"}>
-          <Button>Yeni ürün ekle</Button>
-        </Link>
+        <div className=" flex gap-3">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button isLoading={storages.isLoading}>Depo Ekle</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Yeni Depo</DialogTitle>
+              </DialogHeader>
+              {storages.data && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Depolar</CardTitle>
+                  </CardHeader>
+                  <CardContent className="">
+                    <ul className="flex list-disc flex-col gap-3 pl-3">
+                      {storages.data.map((s) => {
+                        return (
+                          <li key={s.id}>
+                            <div className="flex items-center gap-3">
+                              <p>{s.name}</p>
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button variant={"destructive"}>
+                                    <TrashIcon width={"15px"} />
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>Emin Misin?</DialogTitle>
+                                    <DialogDescription>
+                                      Eğer bu depoyu silersen bütün içerisindeki
+                                      stoklar ile birlikte silinecektir!
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  <DialogClose asChild>
+                                    <Button variant={"outline"}>Vazgeç</Button>
+                                  </DialogClose>
+                                  <DialogClose asChild>
+                                    <Button
+                                      onClick={() => deleteStorage.mutate(s.id)}
+                                      variant={"destructive"}
+                                    >
+                                      Sil
+                                    </Button>
+                                  </DialogClose>
+                                </DialogContent>
+                              </Dialog>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+              <div>
+                <Label>Depo Adı</Label>
+                <Input
+                  value={storageInput}
+                  onChange={(v) => setStorageInput(v.target.value)}
+                  placeholder="Depo Adı..."
+                />
+              </div>
+              <Button
+                onClick={() => addStorage.mutate(storageInput!)}
+                disabled={!storageInput}
+              >
+                Ekle
+              </Button>
+            </DialogContent>
+          </Dialog>
+
+          <Link href={"/items/new-item"}>
+            <Button>Yeni ürün ekle</Button>
+          </Link>
+        </div>
       </CardHeader>
       <CardContent className=" w-full">
         {ItemsData.data && (

@@ -42,7 +42,7 @@ export const authOptions: NextAuthOptions = {
     session: async ({ session, user }) => {
       if (session.user) {
 
-        const organizations = (await db.org.findMany({ include: { Users: true } }))
+        const organizations = (await db.org.findMany({ where: { Users: { some: { id: user.id } } }, include: { Users: true } }))
         const inOrg = organizations.some((o) => {
           return o.Users.some((u) => u.id === user.id);
         });

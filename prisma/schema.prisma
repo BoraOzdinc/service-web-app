@@ -49,7 +49,6 @@ model Item {
     serialNo   String
     name       String
     brand      String
-    stock      Int
     popImage   String?
 
     mainDealerPrice String
@@ -57,13 +56,51 @@ model Item {
     dealerPrice     String
     singlePrice     String
 
-    Service   Service? @relation(fields: [serviceId], references: [id])
-    serviceId String?
-    Storage   Storage? @relation(fields: [storageId], references: [id])
-    storageId String?
+    Service     Service[]
+    ItemHistory ItemHistory[]
+    ItemStock   ItemStock[]
+    Org         Org           @relation(fields: [orgId], references: [id])
+    orgId       String
 
-    @@index([serviceId])
+    @@index([orgId])
+}
+
+model ItemStock {
+    id     String @id @default(cuid())
+    item   Item   @relation(fields: [itemId], references: [id])
+    itemId String
+
+    storage   Storage @relation(fields: [storageId], references: [id])
+    storageId String
+    stock     Int
+
     @@index([storageId])
+    @@index([itemId])
+}
+
+model ItemHistory {
+    id          String   @id @default(cuid())
+    createDate  DateTime @default(now())
+    description String
+    item        Item     @relation(fields: [itemId], references: [id])
+    itemId      String
+
+    org   Org    @relation(fields: [orgId], references: [id])
+    orgId String
+
+    user   User   @relation(fields: [userId], references: [id])
+    userId String
+
+    fromStorage   Storage? @relation("FromStorage", fields: [fromStorageId], references: [id])
+    fromStorageId String?
+    toStorage     Storage? @relation("ToStorage", fields: [toStorageId], references: [id])
+    toStorageId   String?
+
+    @@index([itemId])
+    @@index([fromStorageId])
+    @@index([toStorageId])
+    @@index([orgId])
+    @@index([userId])
 }
 
 model Org {
@@ -72,17 +109,21 @@ model Org {
 
     Users User[]
 
-    service  Service[]
-    storages Storage[]
+    items       Item[]
+    service     Service[]
+    storages    Storage[]
+    ItemHistory ItemHistory[]
 }
 
 model Storage {
-    id      String    @id @default(cuid())
-    name    String
-    items   Item[]
-    service Service[]
-    Org     Org?      @relation(fields: [orgId], references: [id])
-    orgId   String?
+    id              String        @id @default(cuid())
+    name            String
+    service         Service[]
+    Org             Org?          @relation(fields: [orgId], references: [id])
+    orgId           String?
+    fromItemHistory ItemHistory[] @relation("FromStorage")
+    toItemHistory   ItemHistory[] @relation("ToStorage")
+    ItemStock       ItemStock[]
 
     @@index([orgId])
 }
@@ -126,8 +167,9 @@ model User {
     accounts      Account[]
     sessions      Session[]
 
-    Org   Org?    @relation(fields: [orgId], references: [id])
-    orgId String?
+    Org         Org?          @relation(fields: [orgId], references: [id])
+    orgId       String?
+    ItemHistory ItemHistory[]
 
     @@index([orgId])
 }

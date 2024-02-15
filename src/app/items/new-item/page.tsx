@@ -5,8 +5,6 @@ import {
   CardHeader,
   CardTitle,
 } from "~/app/_components/ui/card";
-import { api } from "~/trpc/server";
-import { Controller, useForm } from "react-hook-form";
 import { Label } from "~/app/_components/ui/label";
 import { Input } from "~/app/_components/ui/input";
 import {
@@ -18,8 +16,10 @@ import {
 } from "~/app/_components/ui/select";
 import { Button } from "~/app/_components/ui/button";
 import { useAddItem } from "~/utils/useItems";
+import { api } from "~/trpc/server";
+import { Controller, useForm } from "react-hook-form";
 
-interface FormInput {
+export interface FormInput {
   productName: string;
   barcode: string;
   serialNo: string;
@@ -33,8 +33,8 @@ interface FormInput {
 }
 
 const NewItem = () => {
-  const storages = api.items.getStorages.useQuery();
   const addItem = useAddItem();
+  const storages = api.items.getStorages.useQuery();
   const { control, handleSubmit, formState } = useForm<FormInput>({
     defaultValues: { stock: 0 },
   });

@@ -24,7 +24,7 @@ const inter = Poppins({
   subsets: ["latin"],
 });
 
-export const metadata = {
+const metadata = {
   title: "Service Track App",
   description: "Service Track",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
@@ -43,44 +43,43 @@ export default async function RootLayout({
         <Toaster />
         <TRPCReactProvider>
           <div className="p-3">
-            {!isAnyOrg ||
-              (session && (
-                <NavigationMenu>
-                  <NavigationMenuList>
-                    <NavigationMenuItem>
-                      <NavigationMenuTrigger>Service App</NavigationMenuTrigger>
-                      <NavigationMenuContent>
-                        <ul className="grid gap-3 p-6 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
-                          <li className="row-span-3">
-                            <NavigationMenuLink asChild>
-                              <a
-                                className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
-                                href="/"
-                              >
-                                <div className="mb-2 mt-4 text-lg font-medium">
-                                  Anasayfa
-                                </div>
-                                <p className="text-sm leading-tight text-muted-foreground">
-                                  Anasayfa
-                                </p>
-                              </a>
-                            </NavigationMenuLink>
-                          </li>
-                          <ListItem href="/service" title="Servis">
-                            Servis Takip ve İşlemler.
-                          </ListItem>
-                          <ListItem href="/customers" title="Müşteriler">
-                            Müşteri Listesi
-                          </ListItem>
-                          <ListItem href="/items" title="Ürünler">
-                            Ürün Listesi
-                          </ListItem>
-                        </ul>
-                      </NavigationMenuContent>
-                    </NavigationMenuItem>
-                  </NavigationMenuList>
-                </NavigationMenu>
-              ))}
+            {session && (
+              <NavigationMenu className="flex gap-3">
+                <NavigationMenuList>
+                  <NavigationMenuItem>
+                    <NavigationMenuTrigger>Service App</NavigationMenuTrigger>
+                    <NavigationMenuContent>
+                      <ul className="grid gap-3 p-6 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
+                        <li className="row-span-3">
+                          <NavigationMenuLink asChild>
+                            <a
+                              className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
+                              href="/"
+                            >
+                              <div className="mb-2 mt-4 text-lg font-medium">
+                                Anasayfa
+                              </div>
+                              <p className="text-sm leading-tight text-muted-foreground">
+                                Anasayfa
+                              </p>
+                            </a>
+                          </NavigationMenuLink>
+                        </li>
+                        <ListItem href="/service" title="Servis">
+                          Servis Takip ve İşlemler.
+                        </ListItem>
+                        <ListItem href="/customers" title="Müşteriler">
+                          Müşteri Listesi
+                        </ListItem>
+                        <ListItem href="/items" title="Ürünler">
+                          Ürün Listesi
+                        </ListItem>
+                      </ul>
+                    </NavigationMenuContent>
+                  </NavigationMenuItem>
+                </NavigationMenuList>
+              </NavigationMenu>
+            )}
             {isAnyOrg ? (
               <div className="flex p-3">{children}</div>
             ) : (
