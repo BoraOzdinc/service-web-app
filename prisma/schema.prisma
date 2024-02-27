@@ -1,7 +1,8 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 generator client {
-    provider = "prisma-client-js"
+    provider        = "prisma-client-js"
+    previewFeatures = ["fullTextSearch", "fullTextIndex"]
 }
 
 datasource db {
@@ -42,34 +43,106 @@ model Service {
 }
 
 model Item {
-    id         String   @id @default(cuid())
-    createDate DateTime @default(now())
-    updateDate DateTime @updatedAt
-    barcode    String
-    serialNo   String
-    name       String
-    brand      String
-    popImage   String?
+    id                 String        @id @default(cuid())
+    createDate         DateTime      @default(now())
+    updateDate         DateTime      @updatedAt
+    name               String
+    itemBarcode        itemBarcode[]
+    itemCode           String
+    isSerialNoRequired Boolean
+    serialNo           String?
+    image              String?
+    netWeight          String
+    volume             String
+    color              ItemColor     @relation(fields: [itemColorId], references: [id])
+    size               ItemSize      @relation(fields: [itemSizeId], references: [id])
+    category           ItemCategory  @relation(fields: [itemCategoryId], references: [id])
+    brand              ItemBrand     @relation(fields: [itemBrandId], references: [id])
 
     mainDealerPrice String
     multiPrice      String
     dealerPrice     String
     singlePrice     String
 
-    Service     Service[]
-    ItemHistory ItemHistory[]
-    ItemStock   ItemStock[]
-    Org         Org           @relation(fields: [orgId], references: [id])
-    orgId       String
+    Service       Service[]
+    isServiceItem Boolean
+
+    ItemHistory    ItemHistory[]
+    ItemStock      ItemStock[]
+    Org            Org           @relation(fields: [orgId], references: [id])
+    orgId          String
+    itemColorId    String
+    itemSizeId     String
+    itemCategoryId String
+    itemBrandId    String
+
+    @@index([orgId])
+    @@index([itemColorId])
+    @@index([itemSizeId])
+    @@index([itemCategoryId])
+    @@index([itemBrandId])
+}
+
+model itemBarcode {
+    id       String  @id @default(cuid())
+    barcode  String
+    unit     String
+    isMaster Boolean
+    quantity Int
+    item     Item    @relation(fields: [itemId], references: [id])
+    itemId   String
+
+    @@index([itemId])
+}
+
+model ItemColor {
+    id        String @id @default(cuid())
+    colorCode String
+    colorText String
+    Item      Item[]
+    Org       Org    @relation(fields: [orgId], references: [id])
+    orgId     String
+
+    @@index([orgId])
+}
+
+model ItemSize {
+    id       String @id @default(cuid())
+    sizeCode String
+    sizeText String
+    Item     Item[]
+    Org      Org    @relation(fields: [orgId], references: [id])
+    orgId    String
+
+    @@index([orgId])
+}
+
+model ItemCategory {
+    id   String @id @default(cuid())
+    name String
+
+    Org   Org    @relation(fields: [orgId], references: [id])
+    orgId String
+    Item  Item[]
+
+    @@index([orgId])
+}
+
+model ItemBrand {
+    id   String @id @default(cuid())
+    name String
+
+    Org   Org    @relation(fields: [orgId], references: [id])
+    orgId String
+    Item  Item[]
 
     @@index([orgId])
 }
 
 model ItemStock {
-    id     String @id @default(cuid())
-    item   Item   @relation(fields: [itemId], references: [id])
-    itemId String
-
+    id        String  @id @default(cuid())
+    item      Item    @relation(fields: [itemId], references: [id])
+    itemId    String
     storage   Storage @relation(fields: [storageId], references: [id])
     storageId String
     stock     Int
@@ -84,6 +157,7 @@ model ItemHistory {
     description String
     item        Item     @relation(fields: [itemId], references: [id])
     itemId      String
+    quantity    Int
 
     org   Org    @relation(fields: [orgId], references: [id])
     orgId String
@@ -109,10 +183,14 @@ model Org {
 
     Users User[]
 
-    items       Item[]
-    service     Service[]
-    storages    Storage[]
-    ItemHistory ItemHistory[]
+    items        Item[]
+    service      Service[]
+    storages     Storage[]
+    ItemHistory  ItemHistory[]
+    ItemColor    ItemColor[]
+    ItemSize     ItemSize[]
+    ItemCategory ItemCategory[]
+    ItemBrand    ItemBrand[]
 }
 
 model Storage {

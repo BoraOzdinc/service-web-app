@@ -25,16 +25,32 @@ import { Input } from "../_components/ui/input";
 import { Label } from "../_components/ui/label";
 import { useState } from "react";
 import { useAddStorage, useDeleteStorage } from "~/utils/useItems";
-import { TrashIcon } from "lucide-react";
+import {
+  Layers3Icon,
+  PaletteIcon,
+  RulerIcon,
+  TagsIcon,
+  TrashIcon,
+} from "lucide-react";
+import { useDebounce } from "@uidotdev/usehooks";
 
 const Items = () => {
-  const ItemsData = api.items.getItems.useQuery();
   const storages = api.items.getStorages.useQuery();
+  const brands = api.items.getBrands.useQuery();
+  const colors = api.items.getColors.useQuery();
+  const sizes = api.items.getSizes.useQuery();
+  const categories = api.items.getCategory.useQuery();
   const addStorage = useAddStorage();
   const deleteStorage = useDeleteStorage();
   const [storageInput, setStorageInput] = useState<string>();
+
+  const [searchInput, setSearchInput] = useState<string>("");
+  const debouncedSearchInput = useDebounce(searchInput, 750);
+
+  const ItemsData = api.items.getItems.useQuery(debouncedSearchInput);
   const router = useRouter();
-  if (ItemsData.isLoading) {
+
+  if (brands.isLoading) {
     return <Loader />;
   }
 
@@ -121,16 +137,56 @@ const Items = () => {
         </div>
       </CardHeader>
       <CardContent className=" w-full">
-        {ItemsData.data && (
+        {brands.data && colors.data && sizes.data && categories.data && (
           <DataTable
             data={ItemsData.data}
             columns={columns}
+            columnFilter={[
+              {
+                columnToFilter: "itemBrandId",
+                title: "Marka",
+                options: brands.data.map((b) => ({
+                  label: b.name,
+                  value: b.id,
+                })),
+                icon: <TagsIcon className="mr-2 h-5 w-5" />,
+              },
+              {
+                columnToFilter: "itemColorId",
+                title: "Renk",
+                options: colors.data.map((b) => ({
+                  label: b.colorCode,
+                  value: b.id,
+                })),
+                icon: <PaletteIcon className="mr-2 h-5 w-5" />,
+              },
+              {
+                columnToFilter: "itemSizeId",
+                title: "Beden",
+                options: sizes.data.map((b) => ({
+                  label: b.sizeCode,
+                  value: b.id,
+                })),
+                icon: <RulerIcon className="mr-2 h-5 w-5" />,
+              },
+              {
+                columnToFilter: "itemCategoryId",
+                title: "Kategori",
+                options: categories.data.map((b) => ({
+                  label: b.name,
+                  value: b.id,
+                })),
+                icon: <Layers3Icon className="mr-2 h-5 w-5" />,
+              },
+            ]}
             pagination
-            inputFilter={{
-              columnToFilter: "name",
-              title: "Ürün İsmi",
+            serverSearch={{
+              setState: setSearchInput,
+              state: searchInput,
+              title: "kod, barkod, isim",
+              isLoading: ItemsData.isLoading,
             }}
-            onRowClick={(row) => router.push(`items/${row.original.id}}`)}
+            onRowClick={(row) => router.push(`items/${row.original?.id}}`)}
           />
         )}
       </CardContent>

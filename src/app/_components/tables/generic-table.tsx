@@ -32,8 +32,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { useMemo, useState } from "react";
-import { ChevronLeftIcon, ChevronRightIcon, XIcon } from "lucide-react";
+import { Dispatch, SetStateAction, useMemo, useState } from "react";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  Loader2,
+  XIcon,
+} from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { DataTableFacetedFilter } from "./components/generic-table-option";
@@ -42,20 +47,25 @@ import { DataTableFilter } from "./components/table-date-selector";
 interface DataTableProps<TData, TValue> {
   //TODO: Subrow support
   columns: ColumnDef<TData, TValue>[];
-  data: TData[];
+  data: TData[] | undefined;
   pagination?: boolean;
   inputFilter?: { columnToFilter: string; title: string };
-  columnFilter?: [
-    {
-      title: string;
-      columnToFilter: string;
-      icon?: React.ReactNode;
-      options: {
-        label: string;
-        value: string;
-      }[];
-    },
-  ];
+  serverSearch?: {
+    setState: Dispatch<SetStateAction<string>>;
+    state: string;
+    title: string;
+    isLoading: boolean;
+  };
+  columnFilter?: {
+    title: string;
+    columnToFilter: string;
+    icon?: React.ReactNode;
+    options: {
+      label: string;
+      value: string;
+    }[];
+  }[];
+
   datePicker?: { columnToFilter: string; title: string };
   onRowClick?: (row: Row<TData>) => void;
 }
@@ -68,14 +78,16 @@ export function DataTable<TData, TValue>({
   columnFilter,
   datePicker,
   onRowClick,
+  serverSearch,
 }: DataTableProps<TData, TValue>) {
   const [pageSize, setPageSize] = useState(10);
   const [rowSelection, setRowSelection] = useState({});
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [sorting, setSorting] = useState<SortingState>([]);
+  const tableData = data ?? [];
   const table = useReactTable({
-    data,
+    data: tableData,
     columns,
     state: {
       sorting,
@@ -97,8 +109,8 @@ export function DataTable<TData, TValue>({
   });
   const pageIndex = table.getState().pagination.pageIndex;
   const pages: number[] = useMemo(
-    () => new Array<number>(Math.ceil(data.length / pageSize)).fill(0),
-    [data.length, pageSize],
+    () => new Array<number>(Math.ceil(tableData.length / pageSize)).fill(0),
+    [tableData.length, pageSize],
   );
   const isFiltered = table.getState().columnFilters.length > 0;
   const onPageUp = () => {
@@ -125,6 +137,21 @@ export function DataTable<TData, TValue>({
             }}
             className=" w-[150px] lg:w-[250px]"
           />
+        )}
+        {serverSearch && (
+          <div className="flex items-center gap-3">
+            {serverSearch.isLoading && (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            )}
+            <Input
+              placeholder={`${serverSearch.title} için arama yap`}
+              value={serverSearch.state}
+              onChange={(event) => {
+                serverSearch.setState(event.target.value);
+              }}
+              className=" w-[150px] lg:w-[250px]"
+            />
+          </div>
         )}
         {columnFilter?.map((a) => {
           return (
@@ -154,129 +181,145 @@ export function DataTable<TData, TValue>({
           </Button>
         )}
       </div>
-      <Table>
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => {
-                return (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
-                  </TableHead>
-                );
-              })}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                data-state={row.getIsSelected() && "selected"}
-              >
-                {row.getVisibleCells().map((cell) => {
-                  return (
-                    <TableCell
-                      key={cell.id}
-                      onClick={() => {
-                        if (onRowClick && cell.id !== "0_actions") {
-                          onRowClick(row);
-                        }
-                      }}
-                    >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
-                    </TableCell>
-                  );
-                })}
-              </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={columns.length} className="h-24 text-center">
-                No results.
-              </TableCell>
-            </TableRow>
+      {!serverSearch?.isLoading && (
+        <>
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
+                      </TableHead>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                  >
+                    {row.getVisibleCells().map((cell) => {
+                      return (
+                        <TableCell
+                          key={cell.id}
+                          onClick={() => {
+                            if (onRowClick && cell.id !== "0_actions") {
+                              onRowClick(row);
+                            }
+                          }}
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))
+              ) : serverSearch?.isLoading ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    Loading...
+                  </TableCell>
+                </TableRow>
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    No results.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+          {pagination && (
+            <div className=" flex items-center justify-between p-3">
+              <div className="flex flex-row items-center justify-start gap-2">
+                <Label>Items per Page</Label>
+                <Select
+                  onValueChange={(value: string) => {
+                    table.setPageSize(Number(value));
+                    setPageSize(Number(value));
+                  }}
+                  defaultValue="10"
+                >
+                  <SelectTrigger className="max-w-min">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                    <SelectItem value="500">500</SelectItem>
+                    <SelectItem value="2500">2500</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>{`${
+                  Math.min(pageIndex + 1, pageIndex) * pageSize + 1
+                }-${Math.min(
+                  Math.min(pageIndex + 1, pageIndex) * pageSize + pageSize,
+                  tableData.length,
+                )} of ${tableData.length} items`}</Label>
+              </div>
+              <div className="flex flex-row items-center justify-center gap-1">
+                <Select
+                  onValueChange={(value: string) => {
+                    table.setPageIndex(Number(value));
+                  }}
+                  defaultValue="1"
+                  value={String(pageIndex)}
+                >
+                  <SelectTrigger className="max-w-min">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pages.map((_, i) => {
+                      return (
+                        <SelectItem key={i} value={String(i)}>
+                          {i + 1}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                <Label>{`of ${pages.length} pages`}</Label>
+                <Button
+                  variant={"ghost"}
+                  onClick={onPageDown}
+                  disabled={!table.getCanPreviousPage()}
+                >
+                  <ChevronLeftIcon />
+                </Button>
+                <Button
+                  variant={"ghost"}
+                  onClick={onPageUp}
+                  disabled={!table.getCanNextPage()}
+                >
+                  <ChevronRightIcon />
+                </Button>
+              </div>
+            </div>
           )}
-        </TableBody>
-      </Table>
-      {pagination && (
-        <div className=" flex items-center justify-between p-3">
-          <div className="flex flex-row items-center justify-start gap-2">
-            <Label>Items per Page</Label>
-            <Select
-              onValueChange={(value: string) => {
-                table.setPageSize(Number(value));
-                setPageSize(Number(value));
-              }}
-              defaultValue="10"
-            >
-              <SelectTrigger className="max-w-min">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="20">20</SelectItem>
-                <SelectItem value="100">100</SelectItem>
-                <SelectItem value="500">500</SelectItem>
-                <SelectItem value="2500">2500</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>{`${
-              Math.min(pageIndex + 1, pageIndex) * pageSize + 1
-            }-${Math.min(
-              Math.min(pageIndex + 1, pageIndex) * pageSize + pageSize,
-              data.length,
-            )} of ${data.length} items`}</Label>
-          </div>
-          <div className="flex flex-row items-center justify-center gap-1">
-            <Select
-              onValueChange={(value: string) => {
-                table.setPageIndex(Number(value));
-              }}
-              defaultValue="1"
-              value={String(pageIndex)}
-            >
-              <SelectTrigger className="max-w-min">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {pages.map((_, i) => {
-                  return (
-                    <SelectItem key={i} value={String(i)}>
-                      {i + 1}
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-            <Label>{`of ${pages.length} pages`}</Label>
-            <Button
-              variant={"ghost"}
-              onClick={onPageDown}
-              disabled={!table.getCanPreviousPage()}
-            >
-              <ChevronLeftIcon />
-            </Button>
-            <Button
-              variant={"ghost"}
-              onClick={onPageUp}
-              disabled={!table.getCanNextPage()}
-            >
-              <ChevronRightIcon />
-            </Button>
-          </div>
-        </div>
+        </>
       )}
     </div>
   );

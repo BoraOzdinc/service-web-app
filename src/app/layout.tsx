@@ -16,6 +16,17 @@ import Link from "next/link";
 import React from "react";
 import { cn } from "~/lib/utils";
 import { Toaster } from "react-hot-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./_components/ui/dialog";
+import { Button } from "./_components/ui/button";
+import { Input } from "./_components/ui/input";
+import { Label } from "./_components/ui/label";
+import CreateOrgDialog from "./_components/CreateOrgDialog";
 
 const inter = Poppins({
   weight: "400",
@@ -43,7 +54,7 @@ export default async function RootLayout({
         <Toaster />
         <TRPCReactProvider>
           <div className="p-3">
-            {session && (
+            {isAnyOrg && session && (
               <NavigationMenu className="flex gap-3">
                 <NavigationMenuList>
                   <NavigationMenuItem>
@@ -77,6 +88,19 @@ export default async function RootLayout({
                       </ul>
                     </NavigationMenuContent>
                   </NavigationMenuItem>
+                  <NavigationMenuItem>
+                    <NavigationMenuTrigger>Ürünler</NavigationMenuTrigger>
+                    <NavigationMenuContent>
+                      <ul className="grid gap-3 p-6 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
+                        <ListItem href="/items" title="Ürünler">
+                          Ürün Listesi
+                        </ListItem>
+                        <ListItem href="/items/settings" title="Ürün Ayarları">
+                          Ürün Ayarları
+                        </ListItem>
+                      </ul>
+                    </NavigationMenuContent>
+                  </NavigationMenuItem>
                 </NavigationMenuList>
               </NavigationMenu>
             )}
@@ -85,6 +109,7 @@ export default async function RootLayout({
             ) : (
               <div className="flex flex-col items-center justify-center gap-3">
                 <h1>Organizasyon Bulunamadı!</h1>
+                {session && <CreateOrgDialog />}
                 <Link
                   href={session ? "/api/auth/signout" : "/api/auth/signin"}
                   className="rounded-full bg-black px-10 py-3 font-semibold text-white no-underline transition"
