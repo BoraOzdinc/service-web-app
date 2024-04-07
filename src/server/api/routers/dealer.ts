@@ -21,7 +21,7 @@ export const dealerRouter = createTRPCRouter({
             }
             const perms = ctx.session.user.permissions
 
-            if (!perms.includes(PERMS.manage_dealer_role) && !perms.includes(PERMS.admin)) {
+            if (!perms.includes(PERMS.manage_dealer_role)) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
                     message: "You don't have permission to do this!",
@@ -44,7 +44,7 @@ export const dealerRouter = createTRPCRouter({
             }
             const perms = ctx.session.user.permissions
 
-            if (!perms.includes(PERMS.manage_dealer_role) && !perms.includes(PERMS.admin)) {
+            if (!perms.includes(PERMS.manage_dealer_role)) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
                     message: "You don't have permission to do this!",
@@ -61,7 +61,7 @@ export const dealerRouter = createTRPCRouter({
         }
 
         if (!ctx.session.user.permissions.includes(PERMS.dealers_view)
-            && !ctx.session.user.permissions.includes(PERMS.admin)) {
+        ) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "You don't have permission to do this!",

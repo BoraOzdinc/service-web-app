@@ -1,5 +1,4 @@
 export const PERMS = {
-    admin: "ADMIN",
     org_item_view: "ORG_ITEMS_VIEW",
     org_storage_view: "ORG_STORAGE_VIEW",
     dealer_storage_view: "DEALER_STORAGE_VIEW",

@@ -34,7 +34,7 @@ export const organizationRouter = createTRPCRouter({
             throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid Payload!" })
         }
         const userPerms = ctx.session.user.permissions
-        if (!userPerms.includes(PERMS.view_org_role) && !userPerms.includes(PERMS.admin)) {
+        if (!userPerms.includes(PERMS.view_org_role)) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "You don't have permission to do this!",
@@ -55,7 +55,7 @@ export const organizationRouter = createTRPCRouter({
                 });
             }
             const userPerms = ctx.session.user.permissions
-            if (!userPerms.includes(PERMS.manage_org_members && PERMS.admin)) {
+            if (!userPerms.includes(PERMS.manage_org_members)) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
                     message: "You don't have permission to do this!",
@@ -99,7 +99,7 @@ export const organizationRouter = createTRPCRouter({
 
             }
             const userPerms = ctx.session.user.permissions
-            if (!userPerms.includes(PERMS.manage_org_members && PERMS.admin)) {
+            if (!userPerms.includes(PERMS.manage_org_members)) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
                     message: "You don't have permission to do this!",
@@ -147,7 +147,7 @@ export const organizationRouter = createTRPCRouter({
             }
 
             if (input.orgId) {
-                if (!userPermission.includes(PERMS.manage_org_members) && !userPermission.includes(PERMS.admin)) {
+                if (!userPermission.includes(PERMS.manage_org_members)) {
                     throw new TRPCError({
                         code: "UNAUTHORIZED",
                         message: "You don't have permission to do this!",
@@ -163,7 +163,7 @@ export const organizationRouter = createTRPCRouter({
                 }
             }
             if (input.dealerId) {
-                if (!userPermission.includes(PERMS.manage_dealer_members) && !userPermission.includes(PERMS.admin)) {
+                if (!userPermission.includes(PERMS.manage_dealer_members)) {
                     throw new TRPCError({
                         code: "UNAUTHORIZED",
                         message: "You don't have permission to do this!",
@@ -205,7 +205,7 @@ export const organizationRouter = createTRPCRouter({
             );
 
 
-            if (!orgMemberPermissions.includes(PERMS.create_dealer) && !orgMemberPermissions.includes(PERMS.admin)) {
+            if (!orgMemberPermissions.includes(PERMS.create_dealer)) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
                     message: "You don't have permission to do this!",
@@ -258,7 +258,7 @@ export const organizationRouter = createTRPCRouter({
             }
             const perms = ctx.session.user.permissions
 
-            if (!perms.includes(PERMS.manage_org_role) && !perms.includes(PERMS.admin)) {
+            if (!perms.includes(PERMS.manage_org_role)) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
                     message: "You don't have permission to do this!",
@@ -281,7 +281,7 @@ export const organizationRouter = createTRPCRouter({
             }
             const perms = ctx.session.user.permissions
 
-            if (!perms.includes(PERMS.manage_org_role) && !perms.includes(PERMS.admin)) {
+            if (!perms.includes(PERMS.manage_org_role)) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
                     message: "You don't have permission to do this!",
