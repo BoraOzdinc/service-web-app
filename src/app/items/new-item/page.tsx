@@ -67,7 +67,7 @@ const NewItem = () => {
   function onSubmitForm(data: FormInput) {
     addItem.mutate({
       ...data,
-      storageId: data.storageId === "" ? undefined : data.storageId,
+      storageId: data.storageId === "empty" ? undefined : data.storageId,
     });
   }
 
@@ -241,7 +241,7 @@ const NewItem = () => {
                               <SelectValue placeholder="Depo Seçiniz" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value={""}>Seçiniz...</SelectItem>
+                              <SelectItem value={"empty"}>Seçin</SelectItem>
                               {storages.data?.map((s) => {
                                 return (
                                   <SelectItem key={s.id} value={s.id}>
