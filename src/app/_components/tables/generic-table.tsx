@@ -32,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { Dispatch, SetStateAction, useMemo, useState } from "react";
+import { type Dispatch, type SetStateAction, useMemo, useState } from "react";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -43,6 +43,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { DataTableFacetedFilter } from "./components/generic-table-option";
 import { DataTableFilter } from "./components/table-date-selector";
+import { type DateRange } from "react-day-picker";
 
 interface DataTableProps<TData, TValue> {
   //TODO: Subrow support
@@ -85,6 +86,7 @@ export function DataTable<TData, TValue>({
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [sorting, setSorting] = useState<SortingState>([]);
+  const [date, setDate] = useState<DateRange | undefined>();
   const tableData = data ?? [];
   const table = useReactTable({
     data: tableData,
@@ -168,12 +170,17 @@ export function DataTable<TData, TValue>({
           <DataTableFilter
             column={table.getColumn(datePicker.columnToFilter)}
             title={datePicker.title}
+            date={date}
+            setDate={setDate}
           />
         )}
         {isFiltered && (
           <Button
             variant="ghost"
-            onClick={() => table.resetColumnFilters()}
+            onClick={() => {
+              table.resetColumnFilters();
+              setDate(undefined);
+            }}
             className="px-2 lg:px-3"
           >
             Reset
@@ -214,7 +221,7 @@ export function DataTable<TData, TValue>({
                         <TableCell
                           key={cell.id}
                           onClick={() => {
-                            if (onRowClick && cell.id !== "0_actions") {
+                            if (onRowClick && !cell.id.includes("action")) {
                               onRowClick(row);
                             }
                           }}

@@ -19,7 +19,7 @@ interface Props {
   name: string;
   value: string;
   onChange: (...event: unknown[]) => void;
-  onBlur: Noop;
+  onBlur?: Noop;
 }
 export default function ComboBox({
   data,

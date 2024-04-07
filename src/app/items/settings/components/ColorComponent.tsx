@@ -24,7 +24,7 @@ import { useState } from "react";
 import { useAddColor } from "~/utils/useItems";
 
 const ColorComp = () => {
-  const colors = api.items.getColors.useQuery();
+  const colors = api.items.getColors.useQuery(undefined, { retry: false });
   const colorsData = colors.data ?? [];
   const [colorCode, setColorCode] = useState<string>("");
   const [color, setColor] = useState<string>("");

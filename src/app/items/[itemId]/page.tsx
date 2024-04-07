@@ -1,6 +1,6 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import Loader from "~/app/_components/loader";
 import { api } from "~/trpc/server";
 import { type FormInput } from "../new-item/page";
@@ -32,13 +32,6 @@ import {
   FormMessage,
 } from "~/app/_components/ui/form";
 import ComboBox from "~/app/_components/ComboBox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/app/_components/ui/select";
 import { Checkbox } from "~/app/_components/ui/checkbox";
 import { columns as itemBarcodeColumns } from "./components/itemBarcodeColumns";
 import {
@@ -50,6 +43,12 @@ import {
   DialogTrigger,
 } from "~/app/_components/ui/dialog";
 import { useState } from "react";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "~/app/_components/ui/tabs";
 
 const ItemDetail = () => {
   const params = useParams<{ itemId: string }>();
@@ -66,131 +65,141 @@ const ItemDetail = () => {
   const { data: itemData, isLoading: isItemLoading } =
     api.items.getItemWithId.useQuery(itemId);
 
-  function onSubmitForm(data: FormInput) {
+  async function onSubmitForm(data: FormInput) {
     update.mutate({ itemId: itemId, ...data });
     router.refresh();
   }
+
   if (isItemLoading) {
     return <Loader />;
   }
   return (
-    <Card className="w-full">
-      <CardHeader className="flex flex-row justify-between">
-        <CardTitle>Ürün Detayları</CardTitle>
-      </CardHeader>
-      <CardContent className="flex w-full gap-3">
-        <div className="flex w-full flex-col gap-3 ">
-          <Card>
-            <CardHeader>
-              <CardTitle>Stoklar</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              {itemData?.ItemStock.map((i) => {
-                return (
-                  <div
-                    key={i.id}
-                    className="flex flex-row justify-between border border-black p-2"
-                  >
-                    <p>{i.storage.name}</p>
-                    <p>{i.stock}</p>
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Barkodlar</CardTitle>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button>Barkod Ekle</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Yeni Barkod</DialogTitle>
-                  </DialogHeader>
-                  <div>
-                    <Label>Barkod</Label>
-                    <Input
-                      value={barcode}
-                      onChange={(a) => {
-                        setBarcode(a.target.value);
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <Label>Birim</Label>
-                    <Input
-                      value={unit}
-                      onChange={(a) => {
-                        setUnit(a.target.value);
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <Label>Bir Birimdeki Adet</Label>
-                    <Input
-                      value={quantity}
-                      type="number"
-                      onChange={(a) => {
-                        setQuantity(a.target.value);
-                      }}
-                    />
-                  </div>
-                  <div className="items-top flex space-x-2">
-                    <Checkbox
-                      id="isMaster"
-                      onClick={(a) => {
-                        setIsMaster(!isMaster);
-                      }}
-                      checked={isMaster}
-                    />
-                    <div className="grid gap-1.5 leading-none">
-                      <label
-                        htmlFor="isMaster"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        Ana Barkod
-                      </label>
-                      <p className="text-sm text-muted-foreground">
-                        Ana Barkod olarak seçtiğinizde ürün listesinde bu barkod
-                        görünür.
-                      </p>
-                    </div>
-                  </div>
-                  <DialogClose asChild>
-                    <Button
-                      isLoading={addBarcode.isLoading}
-                      disabled={
-                        barcode.length < 1 ||
-                        quantity.length < 1 ||
-                        unit.length < 1
-                      }
-                      onClick={() => {
-                        addBarcode.mutate({
-                          barcode: barcode,
-                          quantity: quantity,
-                          unit: unit,
-                          isMaster: isMaster,
-                          itemId: itemId,
-                        });
-                      }}
+    <div className="flex flex-col gap-3 ">
+      <CardTitle>Ürün Detayları</CardTitle>
+      <Tabs defaultValue="item_details">
+        <TabsList className="w-full">
+          <TabsTrigger value="item_details">Ürün Detayları</TabsTrigger>
+          <TabsTrigger value="item_history">Ürün Geçmişi</TabsTrigger>
+        </TabsList>
+        <TabsContent value="item_details" className="flex flex-col gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Stoklar</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3">
+                {itemData?.ItemStock.map((i) => {
+                  return (
+                    <div
+                      key={i.id}
+                      className="flex flex-row justify-between border border-black p-2"
                     >
-                      Onayla
-                    </Button>
-                  </DialogClose>
-                </DialogContent>
-              </Dialog>
-            </CardHeader>
-            <CardContent>
-              {itemData?.itemBarcode && (
-                <DataTable
-                  data={itemData.itemBarcode}
-                  columns={itemBarcodeColumns}
-                />
-              )}
-            </CardContent>
-          </Card>
+                      <p>{i.storage.name}</p>
+                      <p>{i.stock}</p>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Barkodlar</CardTitle>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button>Barkod Ekle</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Yeni Barkod</DialogTitle>
+                    </DialogHeader>
+                    <div>
+                      <Label>Barkod</Label>
+                      <Input
+                        value={barcode}
+                        onChange={(a) => {
+                          setBarcode(a.target.value);
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <Label>Birim</Label>
+                      <Input
+                        value={unit}
+                        onChange={(a) => {
+                          setUnit(a.target.value);
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <Label>Bir Birimdeki Adet</Label>
+                      <Input
+                        value={quantity}
+                        type="number"
+                        onChange={(a) => {
+                          setQuantity(a.target.value);
+                        }}
+                      />
+                    </div>
+                    <div className="items-top flex space-x-2">
+                      <Checkbox
+                        id="isMaster"
+                        onClick={() => {
+                          setIsMaster(!isMaster);
+                        }}
+                        checked={isMaster}
+                      />
+                      <div className="grid gap-1.5 leading-none">
+                        <label
+                          htmlFor="isMaster"
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          Ana Barkod
+                        </label>
+                        <p className="text-sm text-muted-foreground">
+                          Ana Barkod olarak seçtiğinizde ürün listesinde bu
+                          barkod görünür.
+                        </p>
+                      </div>
+                    </div>
+                    <DialogClose asChild>
+                      <Button
+                        isLoading={addBarcode.isLoading}
+                        disabled={
+                          barcode.length < 1 ||
+                          quantity.length < 1 ||
+                          unit.length < 1
+                        }
+                        onClick={() => {
+                          addBarcode.mutate({
+                            barcode: barcode,
+                            quantity: quantity,
+                            unit: unit,
+                            isMaster: isMaster,
+                            itemId: itemId,
+                          });
+                        }}
+                      >
+                        Onayla
+                      </Button>
+                    </DialogClose>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent className="overflow-scroll sm:overflow-hidden">
+                {itemData?.itemBarcode && (
+                  <DataTable
+                    data={itemData.itemBarcode}
+                    columns={itemBarcodeColumns}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </div>
+          {itemData && (
+            <ItemDetailForm itemData={itemData} onSubmitForm={onSubmitForm} />
+          )}
+        </TabsContent>
+        <TabsContent value="item_history">
           {itemData && (
             <DataTable
               pagination
@@ -199,14 +208,9 @@ const ItemDetail = () => {
               columns={historyColumns}
             />
           )}
-        </div>
-        <div className="flex w-full flex-col">
-          {itemData && (
-            <ItemDetailForm itemData={itemData} onSubmitForm={onSubmitForm} />
-          )}
-        </div>
-      </CardContent>
-    </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 
@@ -223,20 +227,20 @@ const ItemDetailForm = ({
   const brands = api.items.getBrands.useQuery();
   const form = useForm<FormInput>({
     defaultValues: {
-      itemBrandId: itemData.brand.id,
-      productName: itemData.name,
-      dealerPrice: itemData.dealerPrice,
-      mainDealerPrice: itemData.mainDealerPrice,
-      multiPrice: itemData.multiPrice,
-      itemCode: itemData.itemCode,
-      singlePrice: itemData.singlePrice,
-      itemColorId: itemData.itemColorId,
-      itemCategoryId: itemData.itemCategoryId,
-      itemSizeId: itemData.itemSizeId,
-      netWeight: itemData.netWeight,
-      volume: itemData.volume,
-      isSerialNoRequired: itemData.isSerialNoRequired,
-      isServiceItem: itemData.isServiceItem,
+      itemBrandId: itemData?.brand.id,
+      productName: itemData?.name,
+      dealerPrice: itemData?.dealerPrice ?? undefined,
+      mainDealerPrice: itemData?.mainDealerPrice ?? undefined,
+      multiPrice: itemData?.multiPrice ?? undefined,
+      itemCode: itemData?.itemCode,
+      singlePrice: itemData?.singlePrice ?? undefined,
+      itemColorId: itemData?.itemColorId,
+      itemCategoryId: itemData?.itemCategoryId,
+      itemSizeId: itemData?.itemSizeId,
+      netWeight: itemData?.netWeight ?? undefined,
+      volume: itemData?.volume ?? undefined,
+      isSerialNoRequired: itemData?.isSerialNoRequired,
+      isServiceItem: itemData?.isServiceItem,
     },
   });
   return (
@@ -250,7 +254,7 @@ const ItemDetailForm = ({
               control={form.control}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Ürün İsmi</FormLabel>
+                  <FormLabel>Ürün İsmi*</FormLabel>
                   <FormControl>
                     <Input placeholder="Ürün" {...field} />
                   </FormControl>
@@ -264,7 +268,7 @@ const ItemDetailForm = ({
               control={form.control}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Ürün Kodu</FormLabel>
+                  <FormLabel>Ürün Kodu*</FormLabel>
                   <FormControl>
                     <Input placeholder="Kod" {...field} />
                   </FormControl>
@@ -278,7 +282,7 @@ const ItemDetailForm = ({
               control={form.control}
               render={({ field }) => (
                 <FormItem className="flex flex-col gap-1 pt-[0.35rem]">
-                  <FormLabel>Ürün Rengi</FormLabel>
+                  <FormLabel>Ürün Rengi*</FormLabel>
                   <FormControl>
                     <ComboBox
                       data={colors.data?.map((d) => ({
@@ -301,7 +305,7 @@ const ItemDetailForm = ({
               control={form.control}
               render={({ field }) => (
                 <FormItem className="flex flex-col gap-1 pt-[0.35rem]">
-                  <FormLabel>Ürün Bedeni</FormLabel>
+                  <FormLabel>Ürün Bedeni*</FormLabel>
                   <FormControl>
                     <ComboBox
                       data={sizes.data?.map((d) => ({
@@ -324,7 +328,7 @@ const ItemDetailForm = ({
               control={form.control}
               render={({ field }) => (
                 <FormItem className="flex flex-col gap-1 pt-[0.35rem]">
-                  <FormLabel>Ürün Kategorisi</FormLabel>
+                  <FormLabel>Ürün Kategorisi*</FormLabel>
                   <FormControl>
                     <ComboBox
                       data={categories.data?.map((d) => ({
@@ -347,7 +351,7 @@ const ItemDetailForm = ({
               control={form.control}
               render={({ field }) => (
                 <FormItem className="flex flex-col gap-1 pt-[0.35rem]">
-                  <FormLabel>Ürün Markası</FormLabel>
+                  <FormLabel>Ürün Markası*</FormLabel>
                   <FormControl>
                     <ComboBox
                       data={brands.data?.map((d) => ({
@@ -366,7 +370,6 @@ const ItemDetailForm = ({
             />
             <FormField
               name="mainDealerPrice"
-              rules={{ required: true }}
               control={form.control}
               render={({ field }) => (
                 <FormItem>
@@ -386,7 +389,6 @@ const ItemDetailForm = ({
             />
             <FormField
               name="multiPrice"
-              rules={{ required: true }}
               control={form.control}
               render={({ field }) => (
                 <FormItem>
@@ -406,7 +408,6 @@ const ItemDetailForm = ({
             />
             <FormField
               name="dealerPrice"
-              rules={{ required: true }}
               control={form.control}
               render={({ field }) => (
                 <FormItem>
@@ -426,7 +427,6 @@ const ItemDetailForm = ({
             />
             <FormField
               name="singlePrice"
-              rules={{ required: true }}
               control={form.control}
               render={({ field }) => (
                 <FormItem>

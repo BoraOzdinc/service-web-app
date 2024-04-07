@@ -14,7 +14,7 @@ export type Storage = RouterOutputs["items"]["getStorages"][number]
 
 export type ItemHistory = RouterOutputs["items"]["getItemWithId"]["ItemHistory"][number]
 
-
+export type ItemAcceptHistory = RouterOutputs["items"]["getItemAcceptHistory"][number]
 
 export const useAddItem = () => {
     const utils = api.useUtils();
@@ -70,6 +70,25 @@ export const useAddBarcode = () => {
         onError(error) {
             toast.error(String(error.data?.zodError ?? error.message), {
                 id: "item.addBarcode",
+            });
+        },
+    });
+};
+export const useUpdateBarcode = () => {
+    const utils = api.useUtils();
+    return api.items.updateBarcode.useMutation({
+        onSuccess: async (_d,) => {
+            toast.success("Barkod Düzenlendi", { id: "item.updateBarcode" });
+            await utils.items.getItemWithId.invalidate()
+        },
+        onMutate: () => {
+            toast.loading("Barkod Düzenleniyor", {
+                id: "item.updateBarcode",
+            });
+        },
+        onError(error) {
+            toast.error(String(error.data?.zodError ?? error.message), {
+                id: "item.updateBarcode",
             });
         },
     });
@@ -136,7 +155,7 @@ export const useUpdateItem = () => {
     return api.items.updateItem.useMutation({
         onSuccess: async (_d,) => {
             toast.success("Ürün Güncellendi", { id: "item.updateItem" });
-            await utils.items.invalidate()
+            await utils.items.getItemWithId.invalidate()
         },
         onMutate: () => {
             toast.loading("Ürün Güncelleniyor", {
@@ -185,6 +204,25 @@ export const useDeleteStorage = () => {
         onError(error) {
             toast.error(String(error.data?.zodError ?? error.message), {
                 id: "item.deleteStorage",
+            });
+        },
+    });
+};
+export const useItemAccept = () => {
+    const utils = api.useUtils();
+    return api.items.itemAccept.useMutation({
+        onSuccess: async (_d,) => {
+            toast.success("Ürünler Kabul Edildi!", { id: "item.itemAccept" });
+            await utils.items.getItemAcceptHistory.invalidate();
+        },
+        onMutate: () => {
+            toast.loading("Kabul Ediliyor...", {
+                id: "item.itemAccept",
+            });
+        },
+        onError(error) {
+            toast.error(String(error.data?.zodError ?? error.message), {
+                id: "item.itemAccept",
             });
         },
     });

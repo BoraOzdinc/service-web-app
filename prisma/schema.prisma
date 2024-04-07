@@ -1,49 +1,120 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 generator client {
-    provider        = "prisma-client-js"
-    previewFeatures = ["fullTextSearch", "fullTextIndex"]
+    provider = "prisma-client-js"
 }
 
 datasource db {
-    provider     = "mysql"
-    url          = env("DATABASE_URL")
-    relationMode = "prisma"
+    provider = "mongodb"
+    url      = env("DATABASE_URL")
 }
 
-model Service {
-    id           String    @id @default(cuid())
-    customerName String
-    companyName  String
-    isDealer     Boolean
-    adress       String
-    phoneNumber  String
-    state        Int
-    status       String
-    email        String    @unique
-    createdAt    DateTime  @default(now())
-    updatedAt    DateTime  @updatedAt
-    warrantyDate DateTime?
+model DealerView {
+    id       String @id @default(auto()) @map("_id") @db.ObjectId
+    dealer   Dealer @relation(fields: [dealerId], references: [id])
+    item     Item   @relation(fields: [itemId], references: [id])
+    itemId   String @db.ObjectId
+    stock    Int
+    dealerId String @db.ObjectId
 
-    customerMessage String
-    serviceNote     String
+    @@unique([dealerId, itemId])
+    @@index([itemId])
+}
 
-    product     String
-    productType Int
-    Item        Item[]
+model Dealer {
+    id   String @id @default(auto()) @map("_id") @db.ObjectId
+    name String
 
-    Org       Org?     @relation(fields: [orgId], references: [id])
-    orgId     String?
-    Storage   Storage? @relation(fields: [storageId], references: [id])
-    storageId String?
+    org   Org    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+    orgId String @db.ObjectId
 
-    @@index([customerName])
+    dealerStorages Storage[]
+
+    items        Item[]
+    ItemHistory  ItemHistory[]
+    ItemColor    ItemColor[]
+    ItemSize     ItemSize[]
+    ItemCategory ItemCategory[]
+    ItemBrand    ItemBrand[]
+
+    members DealerMember[]
+    views   DealerView[]
+
+    roles             MemberRole[]
+    ItemAcceptHistory ItemAcceptHistory[]
+    ItemAcceptDetail  ItemAcceptDetail[]
+
     @@index([orgId])
-    @@index([storageId])
+}
+
+model DealerMember {
+    id     String @id @default(auto()) @map("_id") @db.ObjectId
+    user   User   @relation(fields: [userId], references: [id])
+    dealer Dealer @relation(fields: [dealerId], references: [id])
+
+    roles   MemberRole[] @relation("asDealerRole", fields: [rolesId], references: [id])
+    rolesId String[]     @db.ObjectId
+
+    dealerId    String        @db.ObjectId
+    userId      String        @db.ObjectId
+    ItemHistory ItemHistory[]
+
+    @@unique([userId])
+    @@index([dealerId, userId])
+}
+
+model OrgMember {
+    id    String @id @default(auto()) @map("_id") @db.ObjectId
+    user  User   @relation(fields: [userId], references: [id])
+    org   Org    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+    orgId String @db.ObjectId
+
+    roles   MemberRole[] @relation(fields: [rolesId], references: [id])
+    rolesId String[]     @db.ObjectId
+
+    userId String @db.ObjectId
+
+    @@unique([userId])
+    @@index([orgId, userId])
+}
+
+model MemberRole {
+    id            String             @id @default(auto()) @map("_id") @db.ObjectId
+    name          String
+    permissions   MemberPermission[] @relation(fields: [permissionIds], references: [id])
+    permissionIds String[]           @db.ObjectId
+
+    OrgMembers      OrgMember[]    @relation(fields: [orgMembersId], references: [id])
+    orgMembersId    String[]       @db.ObjectId
+    DealerMembers   DealerMember[] @relation("asDealerRole", fields: [dealerMembersId], references: [id])
+    dealerMembersId String[]       @db.ObjectId
+
+    Dealer   Dealer? @relation(fields: [dealerId], references: [id])
+    dealerId String? @db.ObjectId
+    Org      Org?    @relation(fields: [orgId], references: [id])
+    orgId    String? @db.ObjectId
+
+    @@index([orgMembersId])
+}
+
+model MemberPermission {
+    id          String @id @default(auto()) @map("_id") @db.ObjectId
+    name        String
+    description String
+
+    assignableTo MemberType[]
+
+    MemberRole    MemberRole[] @relation(fields: [MemberRoleIds], references: [id])
+    MemberRoleIds String[]     @db.ObjectId
+}
+
+enum MemberType {
+    Dealer
+    Organization
 }
 
 model Item {
-    id                 String        @id @default(cuid())
+    id                 String        @id @default(auto()) @map("_id") @db.ObjectId
     createDate         DateTime      @default(now())
     updateDate         DateTime      @updatedAt
     name               String
@@ -52,29 +123,35 @@ model Item {
     isSerialNoRequired Boolean
     serialNo           String?
     image              String?
-    netWeight          String
-    volume             String
+    netWeight          String?
+    volume             String?
     color              ItemColor     @relation(fields: [itemColorId], references: [id])
     size               ItemSize      @relation(fields: [itemSizeId], references: [id])
     category           ItemCategory  @relation(fields: [itemCategoryId], references: [id])
     brand              ItemBrand     @relation(fields: [itemBrandId], references: [id])
 
-    mainDealerPrice String
-    multiPrice      String
-    dealerPrice     String
-    singlePrice     String
+    mainDealerPrice String?
+    multiPrice      String?
+    dealerPrice     String?
+    singlePrice     String?
 
-    Service       Service[]
     isServiceItem Boolean
 
-    ItemHistory    ItemHistory[]
-    ItemStock      ItemStock[]
-    Org            Org           @relation(fields: [orgId], references: [id])
-    orgId          String
-    itemColorId    String
-    itemSizeId     String
-    itemCategoryId String
-    itemBrandId    String
+    ItemHistory ItemHistory[]
+    ItemStock   ItemStock[]
+
+    itemColorId    String       @db.ObjectId
+    itemSizeId     String       @db.ObjectId
+    itemCategoryId String       @db.ObjectId
+    itemBrandId    String       @db.ObjectId
+    DealerView     DealerView[]
+
+    Org   Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+    orgId String? @db.ObjectId
+
+    Dealer           Dealer?            @relation(fields: [dealerId], references: [id])
+    dealerId         String?            @db.ObjectId
+    ItemAcceptDetail ItemAcceptDetail[]
 
     @@index([orgId])
     @@index([itemColorId])
@@ -84,67 +161,75 @@ model Item {
 }
 
 model itemBarcode {
-    id       String  @id @default(cuid())
+    id       String  @id @default(auto()) @map("_id") @db.ObjectId
     barcode  String
     unit     String
     isMaster Boolean
     quantity Int
     item     Item    @relation(fields: [itemId], references: [id])
-    itemId   String
+    itemId   String  @db.ObjectId
 
     @@index([itemId])
 }
 
 model ItemColor {
-    id        String @id @default(cuid())
+    id        String  @id @default(auto()) @map("_id") @db.ObjectId
     colorCode String
     colorText String
     Item      Item[]
-    Org       Org    @relation(fields: [orgId], references: [id])
-    orgId     String
+    Org       Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+    orgId     String? @db.ObjectId
+    Dealer    Dealer? @relation(fields: [dealerId], references: [id])
+    dealerId  String? @db.ObjectId
 
     @@index([orgId])
 }
 
 model ItemSize {
-    id       String @id @default(cuid())
+    id       String  @id @default(auto()) @map("_id") @db.ObjectId
     sizeCode String
     sizeText String
     Item     Item[]
-    Org      Org    @relation(fields: [orgId], references: [id])
-    orgId    String
+    Org      Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+    orgId    String? @db.ObjectId
+    Dealer   Dealer? @relation(fields: [dealerId], references: [id])
+    dealerId String? @db.ObjectId
 
     @@index([orgId])
 }
 
 model ItemCategory {
-    id   String @id @default(cuid())
+    id   String @id @default(auto()) @map("_id") @db.ObjectId
     name String
 
-    Org   Org    @relation(fields: [orgId], references: [id])
-    orgId String
-    Item  Item[]
+    Org      Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+    orgId    String? @db.ObjectId
+    Item     Item[]
+    Dealer   Dealer? @relation(fields: [dealerId], references: [id])
+    dealerId String? @db.ObjectId
 
     @@index([orgId])
 }
 
 model ItemBrand {
-    id   String @id @default(cuid())
+    id   String @id @default(auto()) @map("_id") @db.ObjectId
     name String
 
-    Org   Org    @relation(fields: [orgId], references: [id])
-    orgId String
-    Item  Item[]
+    Org      Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+    orgId    String? @db.ObjectId
+    Item     Item[]
+    Dealer   Dealer? @relation(fields: [dealerId], references: [id])
+    dealerId String? @db.ObjectId
 
     @@index([orgId])
 }
 
 model ItemStock {
-    id        String  @id @default(cuid())
-    item      Item    @relation(fields: [itemId], references: [id])
-    itemId    String
-    storage   Storage @relation(fields: [storageId], references: [id])
-    storageId String
+    id        String  @id @default(auto()) @map("_id") @db.ObjectId
+    item      Item    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+    itemId    String  @db.ObjectId
+    storage   Storage @relation(fields: [storageId], references: [id], onDelete: Cascade)
+    storageId String  @db.ObjectId
     stock     Int
 
     @@index([storageId])
@@ -152,73 +237,119 @@ model ItemStock {
 }
 
 model ItemHistory {
-    id          String   @id @default(cuid())
-    createDate  DateTime @default(now())
+    id          String             @id @default(auto()) @map("_id") @db.ObjectId
+    createDate  DateTime           @default(now())
+    action      ItemHistoryActions
     description String
-    item        Item     @relation(fields: [itemId], references: [id])
-    itemId      String
+    item        Item               @relation(fields: [itemId], references: [id])
+    itemId      String             @db.ObjectId
     quantity    Int
 
-    org   Org    @relation(fields: [orgId], references: [id])
-    orgId String
+    org       Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+    orgId     String? @db.ObjectId
+    createdBy String
 
-    user   User   @relation(fields: [userId], references: [id])
-    userId String
-
-    fromStorage   Storage? @relation("FromStorage", fields: [fromStorageId], references: [id])
-    fromStorageId String?
-    toStorage     Storage? @relation("ToStorage", fields: [toStorageId], references: [id])
-    toStorageId   String?
+    fromStorage    Storage?      @relation("FromStorage", fields: [fromStorageId], references: [id])
+    fromStorageId  String?       @db.ObjectId
+    toStorage      Storage?      @relation("ToStorage", fields: [toStorageId], references: [id])
+    toStorageId    String?       @db.ObjectId
+    Dealer         Dealer?       @relation(fields: [dealerId], references: [id])
+    dealerId       String?       @db.ObjectId
+    DealerMember   DealerMember? @relation(fields: [dealerMemberId], references: [id])
+    dealerMemberId String?       @db.ObjectId
 
     @@index([itemId])
     @@index([fromStorageId])
     @@index([toStorageId])
     @@index([orgId])
-    @@index([userId])
+}
+
+enum ItemHistoryActions {
+    AddItem
+}
+
+model ItemAcceptHistory {
+    id         String   @id @default(auto()) @map("_id") @db.ObjectId
+    createDate DateTime @default(now())
+
+    items ItemAcceptDetail[]
+
+    storage   Storage @relation(fields: [storageId], references: [id])
+    storageId String  @db.ObjectId
+    name      String
+
+    org      Org?    @relation(fields: [orgId], references: [id])
+    orgId    String? @db.ObjectId
+    dealer   Dealer? @relation(fields: [dealerId], references: [id])
+    dealerId String? @db.ObjectId
+}
+
+model ItemAcceptDetail {
+    id       String @id @default(auto()) @map("_id") @db.ObjectId
+    item     Item   @relation(fields: [itemId], references: [id])
+    itemId   String @db.ObjectId
+    quantity Int
+
+    ItemAcceptHistory   ItemAcceptHistory? @relation(fields: [itemAcceptHistoryId], references: [id])
+    itemAcceptHistoryId String?            @db.ObjectId
+    Dealer              Dealer?            @relation(fields: [dealerId], references: [id])
+    dealerId            String?            @db.ObjectId
+    Org                 Org?               @relation(fields: [orgId], references: [id])
+    orgId               String?            @db.ObjectId
 }
 
 model Org {
-    id      String @id @default(cuid())
+    id      String @id @default(auto()) @map("_id") @db.ObjectId
     orgName String
 
-    Users User[]
+    storages Storage[]
 
     items        Item[]
-    service      Service[]
-    storages     Storage[]
     ItemHistory  ItemHistory[]
     ItemColor    ItemColor[]
     ItemSize     ItemSize[]
     ItemCategory ItemCategory[]
     ItemBrand    ItemBrand[]
+    dealers      Dealer[]
+    OrgMember    OrgMember[]
+
+    roles             MemberRole[]
+    ItemAcceptHistory ItemAcceptHistory[]
+    ItemAcceptDetail  ItemAcceptDetail[]
 }
 
 model Storage {
-    id              String        @id @default(cuid())
-    name            String
-    service         Service[]
-    Org             Org?          @relation(fields: [orgId], references: [id])
-    orgId           String?
+    id    String  @id @default(auto()) @map("_id") @db.ObjectId
+    name  String
+    Org   Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+    orgId String? @db.ObjectId
+
+    ItemStock ItemStock[]
+
     fromItemHistory ItemHistory[] @relation("FromStorage")
     toItemHistory   ItemHistory[] @relation("ToStorage")
-    ItemStock       ItemStock[]
+
+    Dealer            Dealer?             @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+    dealerId          String?             @db.ObjectId
+    ItemAcceptHistory ItemAcceptHistory[]
 
     @@index([orgId])
+    @@index([dealerId])
 }
 
 // Necessary for Next auth
 model Account {
-    id                String  @id @default(cuid())
-    userId            String
+    id                String  @id @default(auto()) @map("_id") @db.ObjectId
+    userId            String  @db.ObjectId
     type              String
     provider          String
     providerAccountId String
-    refresh_token     String? @db.Text
-    access_token      String? @db.Text
+    refresh_token     String?
+    access_token      String?
     expires_at        Int?
     token_type        String?
     scope             String?
-    id_token          String? @db.Text
+    id_token          String?
     session_state     String?
     user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -227,35 +358,33 @@ model Account {
 }
 
 model Session {
-    id           String   @id @default(cuid())
+    id           String   @id @default(auto()) @map("_id") @db.ObjectId
     sessionToken String   @unique
-    userId       String
-    expires      DateTime
-    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId       String   @db.ObjectId
+    expires      DateTime @map("expiresAt")
+    user         User     @relation(fields: [userId], references: [id])
 
-    @@index([userId])
-}
-
-model User {
-    id            String    @id @default(cuid())
-    name          String?
-    email         String?   @unique
-    emailVerified DateTime?
-    image         String?
-    accounts      Account[]
-    sessions      Session[]
-
-    Org         Org?          @relation(fields: [orgId], references: [id])
-    orgId       String?
-    ItemHistory ItemHistory[]
-
-    @@index([orgId])
+    @@map("sessions")
 }
 
 model VerificationToken {
+    id         String   @id @default(auto()) @map("_id") @db.ObjectId
     identifier String
     token      String   @unique
-    expires    DateTime
+    expires    DateTime @map("expiresAt")
 
     @@unique([identifier, token])
+    @@map("verification_tokens")
+}
+
+model User {
+    id               String         @id @default(auto()) @map("_id") @db.ObjectId
+    name             String?
+    email            String         @unique
+    emailVerified    DateTime?
+    image            String?
+    accounts         Account[]
+    sessions         Session[]
+    dealerMembership DealerMember[]
+    OrgMember        OrgMember[]
 }

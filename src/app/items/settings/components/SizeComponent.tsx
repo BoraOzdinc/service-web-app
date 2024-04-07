@@ -24,7 +24,7 @@ import { useState } from "react";
 import { useAddSize } from "~/utils/useItems";
 
 const SizeComp = () => {
-  const sizes = api.items.getSizes.useQuery();
+  const sizes = api.items.getSizes.useQuery(undefined, { retry: false });
   const sizesData = sizes.data ?? [];
   const [sizeCode, setSizeCode] = useState<string>("");
   const [size, setSize] = useState<string>("");

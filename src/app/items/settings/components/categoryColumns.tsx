@@ -1,9 +1,8 @@
 import { type ColumnDef } from "@tanstack/react-table";
+import {type RouterOutputs } from "~/trpc/shared";
 
-export const columns: ColumnDef<{
-  id: string;
-  name: string;
-  orgId: string;
-}>[] = [
+type categoryType = RouterOutputs["items"]["getCategory"][number]
+
+export const columns: ColumnDef<categoryType>[] = [
   { accessorKey: "name", header: "Kategori" },
 ];

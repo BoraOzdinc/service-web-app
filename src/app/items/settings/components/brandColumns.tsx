@@ -1,7 +1,8 @@
 import { type ColumnDef } from "@tanstack/react-table";
+import { type RouterOutputs } from "~/trpc/shared";
 
-export const columns: ColumnDef<{
-  id: string;
-  name: string;
-  orgId: string;
-}>[] = [{ accessorKey: "name", header: "Marka" }];
+type brandType = RouterOutputs["items"]["getBrands"][number];
+
+export const columns: ColumnDef<brandType>[] = [
+  { accessorKey: "name", header: "Marka" },
+];

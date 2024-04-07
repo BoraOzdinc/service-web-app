@@ -11,22 +11,14 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "~/app/_components/ui/navigation-menu";
-import { getServerAuthSession } from "~/server/auth";
+import { auth } from "~/server/auth";
 import Link from "next/link";
 import React from "react";
 import { cn } from "~/lib/utils";
 import { Toaster } from "react-hot-toast";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "./_components/ui/dialog";
-import { Button } from "./_components/ui/button";
-import { Input } from "./_components/ui/input";
-import { Label } from "./_components/ui/label";
-import CreateOrgDialog from "./_components/CreateOrgDialog";
+import NextAuthProvider from "./context/NextAuthProvider";
+import NavbarRoutes from "./config/navbarRoutes";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const inter = Poppins({
   weight: "400",
@@ -35,6 +27,7 @@ const inter = Poppins({
   subsets: ["latin"],
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const metadata = {
   title: "Service Track App",
   description: "Service Track",
@@ -46,80 +39,67 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getServerAuthSession();
-  const isAnyOrg = session?.user.inOrg;
+  const session = await auth();
+  console.log(session);
+
+  const isAnyOrg = session?.user.orgId ?? session?.user.dealerId;
   return (
     <html lang="en">
       <body className={`font-sans ${inter.className}`}>
-        <Toaster />
-        <TRPCReactProvider>
-          <div className="p-3">
-            {isAnyOrg && session && (
-              <NavigationMenu className="flex gap-3">
-                <NavigationMenuList>
-                  <NavigationMenuItem>
-                    <NavigationMenuTrigger>Service App</NavigationMenuTrigger>
-                    <NavigationMenuContent>
-                      <ul className="grid gap-3 p-6 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
-                        <li className="row-span-3">
-                          <NavigationMenuLink asChild>
-                            <a
-                              className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
-                              href="/"
-                            >
-                              <div className="mb-2 mt-4 text-lg font-medium">
-                                Anasayfa
-                              </div>
-                              <p className="text-sm leading-tight text-muted-foreground">
-                                Anasayfa
-                              </p>
-                            </a>
-                          </NavigationMenuLink>
-                        </li>
-                        <ListItem href="/service" title="Servis">
-                          Servis Takip ve İşlemler.
-                        </ListItem>
-                        <ListItem href="/customers" title="Müşteriler">
-                          Müşteri Listesi
-                        </ListItem>
-                        <ListItem href="/items" title="Ürünler">
-                          Ürün Listesi
-                        </ListItem>
-                      </ul>
-                    </NavigationMenuContent>
-                  </NavigationMenuItem>
-                  <NavigationMenuItem>
-                    <NavigationMenuTrigger>Ürünler</NavigationMenuTrigger>
-                    <NavigationMenuContent>
-                      <ul className="grid gap-3 p-6 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
-                        <ListItem href="/items" title="Ürünler">
-                          Ürün Listesi
-                        </ListItem>
-                        <ListItem href="/items/settings" title="Ürün Ayarları">
-                          Ürün Ayarları
-                        </ListItem>
-                      </ul>
-                    </NavigationMenuContent>
-                  </NavigationMenuItem>
-                </NavigationMenuList>
-              </NavigationMenu>
-            )}
-            {isAnyOrg ? (
-              <div className="flex p-3">{children}</div>
-            ) : (
-              <div className="flex flex-col items-center justify-center gap-3">
-                <h1>Organizasyon Bulunamadı!</h1>
-                {session && <CreateOrgDialog />}
-                <Link
-                  href={session ? "/api/auth/signout" : "/api/auth/signin"}
-                  className="rounded-full bg-black px-10 py-3 font-semibold text-white no-underline transition"
-                >
-                  {session ? "Sign out" : "Sign in"}
-                </Link>
-              </div>
-            )}
-          </div>
-        </TRPCReactProvider>
+        <NextAuthProvider session={session}>
+          <Toaster />
+          <TRPCReactProvider>
+            <div className="p-3">
+              {isAnyOrg && session && (
+                <NavigationMenu className="flex gap-3">
+                  <NavigationMenuList>
+                    {NavbarRoutes(session).map((parent) => {
+                      return (
+                        <NavigationMenuItem key={parent.title}>
+                          <NavigationMenuTrigger>
+                            {parent.title}
+                          </NavigationMenuTrigger>
+                          <NavigationMenuContent>
+                            <ul className="grid gap-3 p-6 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
+                              {parent.children.map((children) => {
+                                if (children.isVisible) {
+                                  return (
+                                    <ListItem
+                                      key={children.title}
+                                      title={children.title}
+                                      href={children.route}
+                                    >
+                                      {children.description}
+                                    </ListItem>
+                                  );
+                                }
+                              })}
+                            </ul>
+                          </NavigationMenuContent>
+                        </NavigationMenuItem>
+                      );
+                    })}
+                  </NavigationMenuList>
+                </NavigationMenu>
+              )}
+              {isAnyOrg ? (
+                <div className="flex items-center justify-center p-3">
+                  {children}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-3">
+                  <Link
+                    href={session ? "/api/auth/signout" : "/api/auth/signin"}
+                    className="rounded-full bg-black px-10 py-3 font-semibold text-white no-underline transition"
+                  >
+                    {session ? "Sign out" : "Sign in"}
+                  </Link>
+                </div>
+              )}
+            </div>
+          </TRPCReactProvider>
+        </NextAuthProvider>
+        <SpeedInsights />
       </body>
     </html>
   );

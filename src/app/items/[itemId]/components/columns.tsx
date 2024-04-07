@@ -31,10 +31,10 @@ export const columns: ColumnDef<ItemHistory>[] = [
     header: "işlemi yapan",
     cell: ({
       row: {
-        original: { user },
+        original: { createdBy },
       },
     }) => {
-      return user.name;
+      return createdBy;
     },
   },
 ];

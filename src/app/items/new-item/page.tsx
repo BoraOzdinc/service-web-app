@@ -2,10 +2,10 @@
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "~/app/_components/ui/card";
-import { Label } from "~/app/_components/ui/label";
 import { Input } from "~/app/_components/ui/input";
 import {
   Select,
@@ -17,7 +17,7 @@ import {
 import { Button } from "~/app/_components/ui/button";
 import { useAddItem } from "~/utils/useItems";
 import { api } from "~/trpc/server";
-import { Controller, ControllerRenderProps, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import ComboBox from "~/app/_components/ComboBox";
 import {
   Form,
@@ -65,13 +65,19 @@ const NewItem = () => {
   });
 
   function onSubmitForm(data: FormInput) {
-    console.log(data);
-    addItem.mutate({ ...data });
+    addItem.mutate({
+      ...data,
+      storageId: data.storageId === "" ? undefined : data.storageId,
+    });
   }
+
   return (
     <Card className="h-full w-screen">
       <CardHeader>
         <CardTitle>Yeni Ürün Ekle</CardTitle>
+        <CardDescription>
+          Yıldız (*) ile işaretli bölmeler zorunludur.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -84,7 +90,7 @@ const NewItem = () => {
                   control={form.control}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Ürün İsmi</FormLabel>
+                      <FormLabel>Ürün İsmi*</FormLabel>
                       <FormControl>
                         <Input placeholder="Ürün" {...field} />
                       </FormControl>
@@ -98,7 +104,7 @@ const NewItem = () => {
                   control={form.control}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Ürün Barkodu</FormLabel>
+                      <FormLabel>Ürün Barkodu*</FormLabel>
                       <FormControl>
                         <Input placeholder="Barkod" {...field} />
                       </FormControl>
@@ -112,7 +118,7 @@ const NewItem = () => {
                   control={form.control}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Ürün Kodu</FormLabel>
+                      <FormLabel>Ürün Kodu*</FormLabel>
                       <FormControl>
                         <Input placeholder="Kod" {...field} />
                       </FormControl>
@@ -126,7 +132,7 @@ const NewItem = () => {
                   control={form.control}
                   render={({ field }) => (
                     <FormItem className="flex flex-col gap-1 pt-[0.35rem]">
-                      <FormLabel>Ürün Rengi</FormLabel>
+                      <FormLabel>Ürün Rengi*</FormLabel>
                       <FormControl>
                         <ComboBox
                           data={colors.data?.map((d) => ({
@@ -149,7 +155,7 @@ const NewItem = () => {
                   control={form.control}
                   render={({ field }) => (
                     <FormItem className="flex flex-col gap-1 pt-[0.35rem]">
-                      <FormLabel>Ürün Bedeni</FormLabel>
+                      <FormLabel>Ürün Bedeni*</FormLabel>
                       <FormControl>
                         <ComboBox
                           data={sizes.data?.map((d) => ({
@@ -172,7 +178,7 @@ const NewItem = () => {
                   control={form.control}
                   render={({ field }) => (
                     <FormItem className="flex flex-col gap-1 pt-[0.35rem]">
-                      <FormLabel>Ürün Kategorisi</FormLabel>
+                      <FormLabel>Ürün Kategorisi*</FormLabel>
                       <FormControl>
                         <ComboBox
                           data={categories.data?.map((d) => ({
@@ -195,7 +201,7 @@ const NewItem = () => {
                   control={form.control}
                   render={({ field }) => (
                     <FormItem className="flex flex-col gap-1 pt-[0.35rem]">
-                      <FormLabel>Ürün Markası</FormLabel>
+                      <FormLabel>Ürün Markası*</FormLabel>
                       <FormControl>
                         <ComboBox
                           data={brands.data?.map((d) => ({
@@ -214,48 +220,49 @@ const NewItem = () => {
                 />
                 <FormField
                   name="storageId"
-                  rules={{ required: true }}
                   control={form.control}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Depo</FormLabel>
-                      <FormControl>
-                        <Select
-                          onValueChange={field.onChange}
-                          name={field.name}
-                          value={field.value}
-                          disabled={storages.isLoading}
-                        >
-                          <SelectTrigger
-                            onBlur={field.onBlur}
-                            disabled={field.disabled}
-                            ref={field.ref}
-                            id="itemStorage"
+                  render={({ field }) => {
+                    return (
+                      <FormItem>
+                        <FormLabel>Depo</FormLabel>
+                        <FormControl>
+                          <Select
+                            onValueChange={field.onChange}
+                            name={field.name}
+                            value={field.value}
+                            disabled={storages.isLoading}
                           >
-                            <SelectValue placeholder="Depo Seçiniz" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {storages.data?.map((s) => {
-                              return (
-                                <SelectItem key={s.id} value={s.id}>
-                                  {s.name}
-                                </SelectItem>
-                              );
-                            })}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                            <SelectTrigger
+                              onBlur={field.onBlur}
+                              disabled={field.disabled}
+                              ref={field.ref}
+                              id="itemStorage"
+                            >
+                              <SelectValue placeholder="Depo Seçiniz" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value={""}>Seçiniz...</SelectItem>
+                              {storages.data?.map((s) => {
+                                return (
+                                  <SelectItem key={s.id} value={s.id}>
+                                    {s.name}
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
                 <FormField
                   name="mainDealerPrice"
-                  rules={{ required: true }}
                   control={form.control}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Anabayi Satış Fiyatı</FormLabel>
+                      <FormLabel>Anabayi Satış Fiyatı (€)</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -271,11 +278,10 @@ const NewItem = () => {
                 />
                 <FormField
                   name="multiPrice"
-                  rules={{ required: true }}
                   control={form.control}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Toptan Satış Fiyatı</FormLabel>
+                      <FormLabel>Toptan Satış Fiyatı (€)</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -291,11 +297,10 @@ const NewItem = () => {
                 />
                 <FormField
                   name="dealerPrice"
-                  rules={{ required: true }}
                   control={form.control}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Bayi Satış Fiyatı</FormLabel>
+                      <FormLabel>Bayi Satış Fiyatı (€)</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -311,11 +316,10 @@ const NewItem = () => {
                 />
                 <FormField
                   name="singlePrice"
-                  rules={{ required: true }}
                   control={form.control}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Perekende Satış Fiyatı</FormLabel>
+                      <FormLabel>Perekende Satış Fiyatı (€)</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -331,8 +335,8 @@ const NewItem = () => {
                 />
                 <FormField
                   name="stock"
-                  rules={{ required: true }}
                   control={form.control}
+                  rules={{ required: Boolean(form.watch("storageId")) }}
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Stok</FormLabel>

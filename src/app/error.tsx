@@ -1,18 +1,27 @@
 "use client"; // Error components must be Client Components
 
 import { useEffect } from "react";
+import { type IError } from "~/trpc/react";
+import Unauthorized from "./_components/unauthorized";
 
 export default function Error({
   error,
   reset,
 }: {
-  error: Error & { digest?: string };
+  error: IError;
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log the error to an error reporting service
     console.error(error);
   }, [error]);
+
+  if (error?.data?.code === "UNAUTHORIZED") {
+    return (
+      <div className="flex items-center justify-center">
+        <Unauthorized />
+      </div>
+    );
+  }
 
   return (
     <div>

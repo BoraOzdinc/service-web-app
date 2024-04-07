@@ -10,8 +10,29 @@ import { getUrl, transformer } from "./shared";
 
 export const api = createTRPCReact<AppRouter>();
 
+export interface IError {
+  message: string;
+  code: number;
+  data: {
+    code: string;
+    httpStatus: number;
+    stack: string;
+    path: string;
+  };
+}
+
 export function TRPCReactProvider(props: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            retry: false,
+            useErrorBoundary: true,
+          },
+        },
+      }),
+  );
 
   const [trpcClient] = useState(() =>
     api.createClient({
@@ -26,7 +47,7 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
           url: getUrl(),
         }),
       ],
-    })
+    }),
   );
 
   return (

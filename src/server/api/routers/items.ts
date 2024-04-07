@@ -1,304 +1,881 @@
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
+import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
+import { PERMS } from "../../../_constants/perms"
+
+
+export const nonEmptyString = z.string().trim().min(1).max(150);
 
 const addItemSchema = z.object({
-    productName: z.string().min(1),
-    barcode: z.string().min(1),
-    itemCode: z.string().min(1),
-    itemBrandId: z.string().min(1),
-    storageId: z.string().min(1),
-    itemColorId: z.string().min(1),
-    itemSizeId: z.string().min(1),
-    itemCategoryId: z.string().min(1),
-    mainDealerPrice: z.string().min(1),
-    multiPrice: z.string().min(1),
-    dealerPrice: z.string().min(1),
-    singlePrice: z.string().min(1),
-    stock: z.number(),
+    productName: nonEmptyString,
+    barcode: nonEmptyString,
+    itemCode: nonEmptyString,
+    itemBrandId: nonEmptyString,
+    storageId: z.string().optional(),
+    itemColorId: nonEmptyString,
+    itemSizeId: nonEmptyString,
+    itemCategoryId: nonEmptyString,
+    mainDealerPrice: z.string().optional(),
+    multiPrice: z.string().optional(),
+    dealerPrice: z.string().optional(),
+    singlePrice: z.string().optional(),
+    stock: z.number().optional(),
     isSerialNoRequired: z.boolean(),
     isServiceItem: z.boolean(),
-    netWeight: z.string().min(1),
-    volume: z.string().min(1),
-})
+    netWeight: z.string().optional(),
+    volume: z.string().optional(),
+});
 
 export const itemsRouter = createTRPCRouter({
-
-    getItems: protectedProcedure.input(z.string()).query(async ({ ctx, input }) => {
-
-        const userId = ctx.session?.user.id
-        console.log("USER ID: ", userId);
-
-        const org = await ctx.db.org.findFirst({ where: { Users: { some: { id: userId } } } })
-
-        if (!org) {
-            throw new TRPCError({ code: "NOT_FOUND", message: "Organizasyon Bulunamadı" })
-        }
-
-        const orgItems = await ctx.db.item.findMany({ where: { orgId: org.id }, include: { ItemStock: { select: { stock: true } }, color: true, size: true, category: true, itemBarcode: true, brand: true } });
-
-        const list = orgItems.filter((o) => (o.itemBarcode.find((b) => b.barcode.toLowerCase().includes(input.toLowerCase())) ?? o.itemCode.toLowerCase().includes(input.toLowerCase())) || o.name.toLowerCase().includes(input.toLowerCase())).map((o) => {
-            const totalStock = o.ItemStock.reduce((sum, s) => sum + s.stock, 0) ?? 0;
-            return { ...o, totalStock: totalStock };
-        });
-
-        return list
-    }),
-    getItemWithId: protectedProcedure.input(z.string().min(1)).query(async ({ ctx, input }) => {
-        if (!input) {
-            throw new TRPCError({
-                code: "BAD_REQUEST",
-                message: "no payload"
-            })
-        }
-        const item = await ctx.db.item.findFirst({ where: { id: input }, include: { ItemHistory: { include: { fromStorage: true, toStorage: true, item: true, org: true, user: true } }, ItemStock: { include: { storage: true, item: true } }, Org: true, Service: true, brand: true, category: true, itemBarcode: true, color: true, size: true } })
-        if (!item) {
-            throw new TRPCError({
-                code: "NOT_FOUND",
-                message: "Ürün Bulunamadı"
-            })
-        }
-        return item
-    }),
-    getStorages: protectedProcedure.query(async ({ ctx }) => {
-        const userId = ctx.session?.user.id
-        const org = await ctx.db.org.findMany({ where: { Users: { some: { id: userId } } }, include: { storages: true } })
-        const storages = org.map((o) => {
-            return o.storages.map((s) => { return s })
-        }).flat()
-        return storages
-    }),
-    getOrganizations: protectedProcedure.query(async ({ ctx }) => {
-        const userId = ctx.session?.user.id
-        const org = await ctx.db.org.findMany({ where: { Users: { some: { id: userId } } } })
-        return org
-    }),
-    addStorage: protectedProcedure.input(z.string().min(1)).mutation(async ({ ctx, input }) => {
-        const userId = ctx.session?.user.id
-        const org = await ctx.db.org.findFirst({ where: { Users: { some: { id: userId } } } })
-        if (!org) {
-            throw new TRPCError({ code: "NOT_FOUND", message: "Organizasyon Bulunamadı" })
-        }
-        return await ctx.db.storage.create({ data: { name: input, orgId: org.id } })
-    }),
-    deleteStorage: protectedProcedure.input(z.string().min(1)).mutation(async ({ ctx, input }) => {
-        await ctx.db.itemStock.deleteMany({ where: { storageId: input } });
-        await ctx.db.storage.delete({ where: { id: input }, });
-    }),
-    addItem: protectedProcedure.input(addItemSchema).mutation(async ({ ctx, input }) => {
-        const sameBarcodedItem = await ctx.db.itemBarcode.findFirst({ where: { barcode: input.barcode } })
-        if (sameBarcodedItem) {
-            throw new TRPCError({ code: "BAD_REQUEST", message: "Aynı Barkoda Sahip Başka Bir Ürün Bulundu!" })
-        }
-        const userId = ctx.session?.user.id
-        if (!userId) {
-            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Kullanıcı Bulunamadı!" })
-        }
-        const org = await ctx.db.org.findFirst({ where: { Users: { some: { id: userId } } } })
-        if (!org) {
-            throw new TRPCError({ code: "NOT_FOUND", message: "Organizasyon Bulunamadı!" })
-        }
-        const storage = await ctx.db.storage.findFirst({ where: { id: input.storageId } })
-        if (!storage) {
-            throw new TRPCError({
-                code: "INTERNAL_SERVER_ERROR",
-                message: "Depo Bulunamadı!"
-            })
-        }
-
-        const item = await ctx.db.item.create({
-            data: {
-                orgId: org.id,
-                itemBrandId: input.itemBrandId,
-                name: input.productName,
-                itemCode: input.itemCode,
-                dealerPrice: input.dealerPrice,
-                mainDealerPrice: input.mainDealerPrice,
-                multiPrice: input.multiPrice,
-                singlePrice: input.singlePrice,
-                isSerialNoRequired: input.isSerialNoRequired,
-                isServiceItem: input.isServiceItem,
-                itemColorId: input.itemColorId,
-                itemSizeId: input.itemSizeId,
-                netWeight: input.netWeight,
-                volume: input.volume,
-                itemCategoryId: input.itemCategoryId,
+    getItems: protectedProcedure
+        .input(z.object({ dealerId: z.string().optional(), orgId: z.string().optional(), searchInput: z.string() }))
+        .query(async ({ ctx, input }) => {
+            if (!input) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Invalid Payload",
+                });
             }
-        })
-        const itemBarcode = await ctx.db.itemBarcode.create({ data: { isMaster: true, barcode: input.barcode, quantity: 1, unit: "Adet", itemId: item.id } })
-        const itemStock = await ctx.db.itemStock.create({ data: { stock: input.stock, itemId: item.id, storageId: storage.id } })
+            const userPerms = ctx.session.user.permissions
 
+            if (Boolean(ctx.session.user.dealerId)) {
+                if (!userPerms.includes(PERMS.item_view)) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
+            }
+            if (Boolean(ctx.session.user.orgId)) {
+                if (!userPerms.includes(PERMS.dealer_item_view) && !userPerms.includes(PERMS.item_view)) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
+            }
+            if (input.dealerId) {
+                const ItemList = await ctx.db.item.findMany({
+                    where: { dealerId: input.dealerId },
+                    include: {
+                        ItemStock: { select: { stock: true, storage: true } },
+                        color: true,
+                        size: true,
+                        category: true,
+                        itemBarcode: true,
+                        brand: true,
+                    }
+                })
 
-        if (!item) {
-            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Error with Item" })
-        }
-        await ctx.db.itemHistory.create({ data: { quantity: 1, description: "Eşya Ekleme", itemId: item.id, orgId: org.id, userId: userId, toStorageId: storage.id } })
-        return [item, itemStock, itemBarcode]
-    }),
-    updateItem: protectedProcedure.input(z.object({
-        itemId: z.string().min(1),
-        productName: z.string().min(1),
-        itemCode: z.string().min(1),
-        itemBrandId: z.string().min(1),
-        itemColorId: z.string().min(1),
-        itemSizeId: z.string().min(1),
-        itemCategoryId: z.string().min(1),
-        mainDealerPrice: z.string().min(1),
-        multiPrice: z.string().min(1),
-        dealerPrice: z.string().min(1),
-        singlePrice: z.string().min(1),
-        netWeight: z.string().min(1),
-        volume: z.string().min(1),
-        isServiceItem: z.boolean(),
-        isSerialNoRequired: z.boolean()
-    })).mutation(async ({ ctx, input }) => {
-        const userId = ctx.session?.user.id;
-        if (!userId) {
-            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "user not found" });
-        }
-        const org = await ctx.db.org.findFirst({ where: { Users: { some: { id: userId } } } });
-        if (!org) {
-            throw new TRPCError({ code: "NOT_FOUND", message: "Organizasyon Bulunamadı" });
-        }
-        const item = await ctx.db.item.findFirst({ where: { id: input.itemId }, include: { ItemStock: true } });
-        if (!item) {
+                return ItemList.filter((o) => (o.itemBarcode.find((b) => b.barcode.toLowerCase().includes(input.searchInput.toLowerCase())) ?? o.itemCode.toLowerCase().includes(input.searchInput.toLowerCase())) || o.name.toLowerCase().includes(input.searchInput.toLowerCase())).map((o) => {
+                    const totalStock = o.ItemStock.reduce((sum, s) => sum + s.stock, 0) ?? 0;
+                    return { ...o, totalStock: totalStock };
+                });
+            }
+            if (input.orgId) {
+                const ItemList = await ctx.db.item.findMany({
+                    where: { orgId: input.orgId },
+                    include: {
+                        ItemStock: { select: { stock: true, storage: true } },
+                        color: true,
+                        size: true,
+                        category: true,
+                        itemBarcode: true,
+                        brand: true,
+                    }
+                })
+
+                return ItemList.filter((o) => (o.itemBarcode.find((b) => b.barcode.toLowerCase().includes(input.searchInput.toLowerCase())) ?? o.itemCode.toLowerCase().includes(input.searchInput.toLowerCase())) || o.name.toLowerCase().includes(input.searchInput.toLowerCase())).map((o) => {
+                    const totalStock = o.ItemStock.reduce((sum, s) => sum + s.stock, 0) ?? 0;
+                    return { ...o, totalStock: totalStock };
+                });
+            }
             throw new TRPCError({
-                code: "NOT_FOUND",
-                message: "Ürün Bulunamadı"
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
+        }),
+    getItemWithId: protectedProcedure
+        .input(nonEmptyString)
+        .query(async ({ ctx, input }) => {
+            if (!input) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Invalid Payload",
+                });
+            }
+            const userPerms = ctx.session.user.permissions
+
+            if (Boolean(ctx.session.user.dealerId)) {
+                if (!userPerms.includes(PERMS.item_view)) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
+            }
+            if (Boolean(ctx.session.user.orgId)) {
+                if (!userPerms.includes(PERMS.dealer_item_view) && !userPerms.includes(PERMS.item_view)) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
+            }
+            const item = await ctx.db.item.findFirst({
+                where: { id: input },
+                include: {
+                    brand: true,
+                    category: true,
+                    color: true,
+                    itemBarcode: true,
+                    ItemHistory: { include: { fromStorage: true, toStorage: true, item: true, org: true, } },
+                    ItemStock: { include: { storage: true } },
+                    size: true,
+                }
+            })
+            if (!item) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this!",
+                });
+            }
+
+            const stockMap = new Map<string, number>();
+
+            item.ItemStock.forEach((stock) => {
+                const { storageId, stock: currentStock } = stock;
+                if (stockMap.has(storageId)) {
+                    // If storageId already exists in the map, add to the existing stock
+                    stockMap.set(storageId, stockMap.get(storageId)! + currentStock);
+                } else {
+                    // Otherwise, initialize the stock for this storageId
+                    stockMap.set(storageId, currentStock);
+                }
+            });
+
+            // Create an array of unique storage objects with combined stock
+            const uniqueStoragesWithStocks: typeof item.ItemStock = Array.from(stockMap.entries()).map(([storageId, stock]) => {
+                const existingStorage = item.ItemStock.find((stock) => stock.storageId === storageId);
+                return {
+                    ...existingStorage!,
+                    stock,
+                };
+            });
+            const updatedItemData = { ...item, ItemStock: uniqueStoragesWithStocks }
+
+
+            return updatedItemData
+
+        }),
+    getStorages: protectedProcedure.query(async ({ ctx }) => {
+
+        const userPerms = ctx.session.user.permissions
+
+        if (!userPerms.includes(PERMS.item_view)) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
             });
         }
-        const updatedItem = await ctx.db.item.update({
-            where: { id: input.itemId },
-            data: {
-                name: input.productName,
-                itemCode: input.itemCode,
-                itemBrandId: input.itemBrandId,
-                itemColorId: input.itemColorId,
-                itemCategoryId: input.itemCategoryId,
-                itemSizeId: input.itemSizeId,
-                netWeight: input.netWeight,
-                volume: input.volume,
-                isSerialNoRequired: input.isSerialNoRequired,
-                isServiceItem: input.isServiceItem,
-                mainDealerPrice: input.mainDealerPrice,
-                multiPrice: input.multiPrice,
-                dealerPrice: input.dealerPrice,
-                singlePrice: input.singlePrice
-            }
+
+        if (ctx.session.user.orgId) {
+
+            const Storages = await ctx.db.storage.findMany({
+                where: { orgId: ctx.session.user.orgId },
+            });
+
+            return Storages
+        }
+        if (ctx.session.user.dealerId) {
+
+            const Storages = await ctx.db.storage.findMany({
+                where: { dealerId: ctx.session.user.dealerId },
+            });
+
+            return Storages
+        }
+        throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Neither org member or dealer member",
         });
-        await ctx.db.itemHistory.create({ data: { quantity: 1, description: "Eşya Güncelleme", itemId: item.id, orgId: org.id, userId: userId } });
-        return updatedItem;
     }),
+    addStorage: protectedProcedure
+        .input(
+            z.object({
+                name: nonEmptyString,
+            }),
+        )
+        .mutation(async ({ ctx, input }) => {
+            const userPerms = ctx.session.user.permissions
+
+            if (ctx.session.user.orgId) {
+                if (!userPerms.includes(PERMS.manage_storage)) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
+                return await ctx.db.storage.create({
+                    data: { name: input.name, orgId: ctx.session.user.orgId },
+                });
+            }
+            if (ctx.session.user.dealerId) {
+                if (!userPerms.includes(PERMS.manage_storage)) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
+                return await ctx.db.storage.create({
+                    data: { name: input.name, dealerId: ctx.session.user.dealerId },
+                });
+            }
+
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "Neither org member or dealer member",
+            });
+        }),
+    deleteStorage: protectedProcedure
+        .input(nonEmptyString)
+        .mutation(async ({ ctx, input }) => {
+            const userPerms = ctx.session.user.permissions
+
+            if (ctx.session.user.orgId) {
+                if (!userPerms.includes(PERMS.manage_storage)) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
+                return await ctx.db.storage.delete({
+                    where: { id: input }
+                });
+            }
+            if (ctx.session.user.dealerId) {
+                if (!userPerms.includes(PERMS.manage_storage)) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
+                return await ctx.db.storage.delete({
+                    where: { id: input }
+                });
+            }
+
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "Neither org member or dealer member",
+            });
+        }),
+    addItem: protectedProcedure
+        .input(addItemSchema)
+        .mutation(async ({ ctx, input }) => {
+            const userPerms = ctx.session.user.permissions
+
+            if (!userPerms.includes(PERMS.manage_items)) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this!",
+                });
+            }
+            if (ctx.session.user.orgId) {
+                const sameBarcodedItem = await ctx.db.itemBarcode.findFirst({
+                    where: {
+                        barcode: input.barcode,
+                        item: {
+                            orgId: ctx.session.user.orgId
+                        }
+                    },
+                    include: { item: true }
+                });
+                if (sameBarcodedItem) {
+                    throw new TRPCError({
+                        code: "BAD_REQUEST",
+                        message: "Aynı barkoda sahip bir ürün var!",
+                    });
+                }
+                const item = await ctx.db.item.create({
+                    data: {
+                        orgId: ctx.session.user.orgId,
+                        itemBrandId: input.itemBrandId,
+                        name: input.productName,
+                        itemCode: input.itemCode,
+                        dealerPrice: input.dealerPrice,
+                        mainDealerPrice: input.mainDealerPrice,
+                        multiPrice: input.multiPrice,
+                        singlePrice: input.singlePrice,
+                        isSerialNoRequired: input.isSerialNoRequired,
+                        isServiceItem: input.isServiceItem,
+                        itemColorId: input.itemColorId,
+                        itemSizeId: input.itemSizeId,
+                        netWeight: input.netWeight,
+                        volume: input.volume,
+                        itemCategoryId: input.itemCategoryId,
+                    },
+                });
+                const itemBarcode = await ctx.db.itemBarcode.create({
+                    data: {
+                        isMaster: true,
+                        barcode: input.barcode,
+                        quantity: 1,
+                        unit: "Adet",
+                        itemId: item.id,
+                    },
+                });
+                if (input.storageId && input.stock) {
+                    const storage = await ctx.db.storage.findFirst({
+                        where: { id: input.storageId },
+                    });
+                    if (!storage) {
+                        throw new TRPCError({
+                            code: "BAD_REQUEST",
+                            message: "Depo Bulunamadı!",
+                        });
+                    }
+                    await ctx.db.itemStock.create({
+                        data: { stock: input.stock, itemId: item.id, storageId: storage.id },
+                    });
+                }
+                return [item, itemBarcode];
+            }
+            if (ctx.session.user.dealerId) {
+                const sameBarcodedItem = await ctx.db.itemBarcode.findFirst({
+                    where: {
+                        barcode: input.barcode,
+                        item: {
+                            dealerId: ctx.session.user.dealerId
+                        }
+                    },
+                    include: { item: true }
+                });
+                if (sameBarcodedItem) {
+                    throw new TRPCError({
+                        code: "BAD_REQUEST",
+                        message: "Aynı barkoda sahip bir ürün var!",
+                    });
+                }
+                const item = await ctx.db.item.create({
+                    data: {
+                        dealerId: ctx.session.user.dealerId,
+                        itemBrandId: input.itemBrandId,
+                        name: input.productName,
+                        itemCode: input.itemCode,
+                        dealerPrice: input.dealerPrice,
+                        mainDealerPrice: input.mainDealerPrice,
+                        multiPrice: input.multiPrice,
+                        singlePrice: input.singlePrice,
+                        isSerialNoRequired: input.isSerialNoRequired,
+                        isServiceItem: input.isServiceItem,
+                        itemColorId: input.itemColorId,
+                        itemSizeId: input.itemSizeId,
+                        netWeight: input.netWeight,
+                        volume: input.volume,
+                        itemCategoryId: input.itemCategoryId,
+                    },
+                });
+                const itemBarcode = await ctx.db.itemBarcode.create({
+                    data: {
+                        isMaster: true,
+                        barcode: input.barcode,
+                        quantity: 1,
+                        unit: "Adet",
+                        itemId: item.id,
+                    },
+                });
+                if (input.storageId && input.stock) {
+                    const storage = await ctx.db.storage.findFirst({
+                        where: { id: input.storageId },
+                    });
+                    if (!storage) {
+                        throw new TRPCError({
+                            code: "BAD_REQUEST",
+                            message: "Depo Bulunamadı!",
+                        });
+                    }
+                    await ctx.db.itemStock.create({
+                        data: { stock: input.stock, itemId: item.id, storageId: storage.id },
+                    });
+                }
+                return [item, itemBarcode];
+            }
+
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
+
+        }),
+    updateItem: protectedProcedure
+        .input(
+            z.object({
+                itemId: z.string().min(1),
+                productName: nonEmptyString,
+                itemCode: nonEmptyString,
+                itemBrandId: nonEmptyString,
+                storageId: z.string().optional(),
+                itemColorId: nonEmptyString,
+                itemSizeId: nonEmptyString,
+                itemCategoryId: nonEmptyString,
+                mainDealerPrice: z.string().optional(),
+                multiPrice: z.string().optional(),
+                dealerPrice: z.string().optional(),
+                singlePrice: z.string().optional(),
+                stock: z.number().optional(),
+                isSerialNoRequired: z.boolean(),
+                isServiceItem: z.boolean(),
+                netWeight: z.string().optional(),
+                volume: z.string().optional(),
+            }),
+        )
+        .mutation(async ({ ctx, input }) => {
+            const userPerms = ctx.session.user.permissions
+
+            if (!userPerms.includes(PERMS.manage_items)) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this!",
+                });
+            }
+            if (ctx.session.user.orgId) {
+                const item = await ctx.db.item.update({
+                    where: { id: input.itemId },
+                    data: {
+                        orgId: ctx.session.user.orgId,
+                        itemBrandId: input.itemBrandId,
+                        name: input.productName,
+                        itemCode: input.itemCode,
+                        dealerPrice: input.dealerPrice,
+                        mainDealerPrice: input.mainDealerPrice,
+                        multiPrice: input.multiPrice,
+                        singlePrice: input.singlePrice,
+                        isSerialNoRequired: input.isSerialNoRequired,
+                        isServiceItem: input.isServiceItem,
+                        itemColorId: input.itemColorId,
+                        itemSizeId: input.itemSizeId,
+                        netWeight: input.netWeight,
+                        volume: input.volume,
+                        itemCategoryId: input.itemCategoryId,
+                    },
+                });
+
+                return item
+            }
+            if (ctx.session.user.dealerId) {
+                const item = await ctx.db.item.update({
+                    where: { id: input.itemId },
+                    data: {
+                        dealerId: ctx.session.user.dealerId,
+                        itemBrandId: input.itemBrandId,
+                        name: input.productName,
+                        itemCode: input.itemCode,
+                        dealerPrice: input.dealerPrice,
+                        mainDealerPrice: input.mainDealerPrice,
+                        multiPrice: input.multiPrice,
+                        singlePrice: input.singlePrice,
+                        isSerialNoRequired: input.isSerialNoRequired,
+                        isServiceItem: input.isServiceItem,
+                        itemColorId: input.itemColorId,
+                        itemSizeId: input.itemSizeId,
+                        netWeight: input.netWeight,
+                        volume: input.volume,
+                        itemCategoryId: input.itemCategoryId,
+                    },
+                });
+                return item
+            }
+
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
+        }),
     getColors: protectedProcedure.query(async ({ ctx }) => {
-        const userId = ctx.session?.user.id;
-        if (!userId) {
-            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "user not found" });
+        const userPerms = ctx.session.user.permissions
+        if (ctx.session.user.orgId) {
+            if (!userPerms.includes(PERMS.item_setting_view)) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this!",
+                });
+            }
+            return await ctx.db.itemColor.findMany({ where: { orgId: ctx.session.user.orgId } })
         }
-        const org = await ctx.db.org.findFirst({ where: { Users: { some: { id: userId } } } });
-        if (!org) {
-            throw new TRPCError({ code: "NOT_FOUND", message: "Organizasyon Bulunamadı" });
+
+        if (ctx.session.user.dealerId) {
+            if (!userPerms.includes(PERMS.item_setting_view)) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this!",
+                });
+            }
+            return await ctx.db.itemColor.findMany({ where: { dealerId: ctx.session.user.dealerId } })
         }
-        const colors = await ctx.db.itemColor.findMany({ where: { orgId: org.id } })
-        return colors
+        throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "You don't have permission to do this!",
+        });
     }),
-    addColor: protectedProcedure.input(z.object({ colorCode: z.string().min(1), colorText: z.string().min(1) })).mutation(async ({ ctx, input }) => {
-        const userId = ctx.session?.user.id;
-        if (!userId) {
-            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "user not found" });
-        }
-        const org = await ctx.db.org.findFirst({ where: { Users: { some: { id: userId } } } });
-        if (!org) {
-            throw new TRPCError({ code: "NOT_FOUND", message: "Organizasyon Bulunamadı" });
-        }
-        return await ctx.db.itemColor.create({ data: { colorCode: input.colorCode, colorText: input.colorText, orgId: org.id } })
-    }),
+    addColor: protectedProcedure
+        .input(
+            z.object({ colorCode: z.string().min(1), colorText: z.string().min(1) }),
+        )
+        .mutation(async ({ ctx, input }) => {
+            const userPerms = ctx.session.user.permissions
+            if (ctx.session.user.orgId) {
+                if (!userPerms.includes(PERMS.manage_item_setting)) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
+                return await ctx.db.itemColor.create({ data: { orgId: ctx.session.user.orgId, colorCode: input.colorCode, colorText: input.colorText } })
+            }
+
+            if (ctx.session.user.dealerId) {
+                if (!userPerms.includes(PERMS.manage_item_setting)) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
+                return await ctx.db.itemColor.create({ data: { dealerId: ctx.session.user.dealerId, colorCode: input.colorCode, colorText: input.colorText } })
+            }
+        }),
     getSizes: protectedProcedure.query(async ({ ctx }) => {
-        const userId = ctx.session?.user.id;
-        if (!userId) {
-            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "user not found" });
+        const userPerms = ctx.session.user.permissions
+        if (ctx.session.user.orgId) {
+            if (!userPerms.includes(PERMS.item_setting_view)) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this!",
+                });
+            }
+            return await ctx.db.itemSize.findMany({ where: { orgId: ctx.session.user.orgId } })
         }
-        const org = await ctx.db.org.findFirst({ where: { Users: { some: { id: userId } } } });
-        if (!org) {
-            throw new TRPCError({ code: "NOT_FOUND", message: "Organizasyon Bulunamadı" });
+
+        if (ctx.session.user.dealerId) {
+            if (!userPerms.includes(PERMS.item_setting_view)) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this!",
+                });
+            }
+            return await ctx.db.itemSize.findMany({ where: { dealerId: ctx.session.user.dealerId } })
         }
-        const colors = await ctx.db.itemSize.findMany({ where: { orgId: org.id } })
-        return colors
+        throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "You don't have permission to do this!",
+        });
     }),
-    addSize: protectedProcedure.input(z.object({ sizeCode: z.string().min(1), sizeText: z.string().min(1) })).mutation(async ({ ctx, input }) => {
-        const userId = ctx.session?.user.id;
-        if (!userId) {
-            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "user not found" });
-        }
-        const org = await ctx.db.org.findFirst({ where: { Users: { some: { id: userId } } } });
-        if (!org) {
-            throw new TRPCError({ code: "NOT_FOUND", message: "Organizasyon Bulunamadı" });
-        }
-        return await ctx.db.itemSize.create({ data: { sizeCode: input.sizeCode, sizeText: input.sizeText, orgId: org.id } })
-    }),
+    addSize: protectedProcedure
+        .input(
+            z.object({ sizeCode: z.string().min(1), sizeText: z.string().min(1) }),
+        )
+        .mutation(async ({ ctx, input }) => {
+            const userPerms = ctx.session.user.permissions
+            if (ctx.session.user.orgId) {
+                if (!userPerms.includes(PERMS.manage_item_setting)) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
+                return await ctx.db.itemSize.create({ data: { orgId: ctx.session.user.orgId, sizeCode: input.sizeCode, sizeText: input.sizeText } })
+            }
+
+            if (ctx.session.user.dealerId) {
+                if (!userPerms.includes(PERMS.manage_item_setting)) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
+                return await ctx.db.itemSize.create({ data: { dealerId: ctx.session.user.dealerId, sizeCode: input.sizeCode, sizeText: input.sizeText } })
+            }
+        }),
     getCategory: protectedProcedure.query(async ({ ctx }) => {
-        const userId = ctx.session?.user.id;
-        if (!userId) {
-            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "user not found" });
+        const userPerms = ctx.session.user.permissions
+        if (ctx.session.user.orgId) {
+            if (!userPerms.includes(PERMS.item_setting_view)) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this!",
+                });
+            }
+            return await ctx.db.itemCategory.findMany({ where: { orgId: ctx.session.user.orgId } })
         }
-        const org = await ctx.db.org.findFirst({ where: { Users: { some: { id: userId } } } });
-        if (!org) {
-            throw new TRPCError({ code: "NOT_FOUND", message: "Organizasyon Bulunamadı" });
+
+        if (ctx.session.user.dealerId) {
+            if (!userPerms.includes(PERMS.item_setting_view)) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this!",
+                });
+            }
+            return await ctx.db.itemCategory.findMany({ where: { dealerId: ctx.session.user.dealerId } })
         }
-        const categories = await ctx.db.itemCategory.findMany({ where: { orgId: org.id } })
-        return categories
+        throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "You don't have permission to do this!",
+        });
     }),
-    addCategory: protectedProcedure.input(z.string().min(1)).mutation(async ({ ctx, input }) => {
-        const userId = ctx.session?.user.id;
-        if (!userId) {
-            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "user not found" });
-        }
-        const org = await ctx.db.org.findFirst({ where: { Users: { some: { id: userId } } } });
-        if (!org) {
-            throw new TRPCError({ code: "NOT_FOUND", message: "Organizasyon Bulunamadı" });
-        }
-        return await ctx.db.itemCategory.create({ data: { name: input, orgId: org.id } })
-    }),
+    addCategory: protectedProcedure
+        .input(z.string().min(1))
+        .mutation(async ({ ctx, input }) => {
+            const userPerms = ctx.session.user.permissions
+            if (ctx.session.user.orgId) {
+                if (!userPerms.includes(PERMS.manage_item_setting)) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
+                return await ctx.db.itemCategory.create({ data: { orgId: ctx.session.user.orgId, name: input } })
+            }
+
+            if (ctx.session.user.dealerId) {
+                if (!userPerms.includes(PERMS.manage_item_setting)) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
+                return await ctx.db.itemCategory.create({ data: { dealerId: ctx.session.user.dealerId, name: input } })
+            }
+        }),
     getBrands: protectedProcedure.query(async ({ ctx }) => {
-        const userId = ctx.session?.user.id;
-        if (!userId) {
-            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "user not found" });
-        }
-        const org = await ctx.db.org.findFirst({ where: { Users: { some: { id: userId } } } });
-        if (!org) {
-            throw new TRPCError({ code: "NOT_FOUND", message: "Organizasyon Bulunamadı" });
-        }
-        return await ctx.db.itemBrand.findMany({ where: { orgId: org.id } })
-
-    }),
-    addBrands: protectedProcedure.input(z.string().min(1)).mutation(async ({ ctx, input }) => {
-        const userId = ctx.session?.user.id;
-        if (!userId) {
-            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "user not found" });
-        }
-        const org = await ctx.db.org.findFirst({ where: { Users: { some: { id: userId } } } });
-        if (!org) {
-            throw new TRPCError({ code: "NOT_FOUND", message: "Organizasyon Bulunamadı" });
-        }
-        return await ctx.db.itemBrand.create({ data: { name: input, orgId: org.id } })
-    }),
-    addBarcode: protectedProcedure.input(z.object({ itemId: z.string().min(1), barcode: z.string().min(1), unit: z.string().min(1), quantity: z.string().min(1), isMaster: z.boolean() })).mutation(async ({ ctx, input }) => {
-        const userId = ctx.session?.user.id;
-        if (!userId) {
-            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "user not found" });
-        }
-        const org = await ctx.db.org.findFirst({ where: { Users: { some: { id: userId } } } });
-        if (!org) {
-            throw new TRPCError({ code: "NOT_FOUND", message: "Organizasyon Bulunamadı" });
-        }
-        const getBarcode = await ctx.db.itemBarcode.findFirst({ where: { barcode: input.barcode } })
-        if (getBarcode) {
-            throw new TRPCError({ code: "CONFLICT", message: "Bu barkod kullanılıyor!" });
+        const userPerms = ctx.session.user.permissions
+        if (ctx.session.user.orgId) {
+            if (!userPerms.includes(PERMS.item_setting_view)) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this!",
+                });
+            }
+            return await ctx.db.itemBrand.findMany({ where: { orgId: ctx.session.user.orgId } })
         }
 
-        const masterBarcode = await ctx.db.itemBarcode.findFirst({ where: { isMaster: true, itemId: input.itemId } })
-        if (masterBarcode) {
-            await ctx.db.itemBarcode.update({ where: { id: masterBarcode.id }, data: { isMaster: false } })
+        if (ctx.session.user.dealerId) {
+            if (!userPerms.includes(PERMS.item_setting_view)) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this!",
+                });
+            }
+            return await ctx.db.itemBrand.findMany({ where: { dealerId: ctx.session.user.dealerId } })
         }
-        return await ctx.db.itemBarcode.create({ data: { barcode: input.barcode, isMaster: input.isMaster, unit: input.unit, quantity: +input.quantity, itemId: input.itemId } })
+        throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "You don't have permission to do this!",
+        });
+    }),
+    addBrands: protectedProcedure
+        .input(z.string().min(1))
+        .mutation(async ({ ctx, input }) => {
+            const userPerms = ctx.session.user.permissions
+            if (ctx.session.user.orgId) {
+                if (!userPerms.includes(PERMS.manage_item_setting)) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
+                return await ctx.db.itemBrand.create({ data: { orgId: ctx.session.user.orgId, name: input } })
+            }
+
+            if (ctx.session.user.dealerId) {
+                if (!userPerms.includes(PERMS.manage_item_setting)) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
+                return await ctx.db.itemBrand.create({ data: { dealerId: ctx.session.user.dealerId, name: input } })
+            }
+        }),
+    addBarcode: protectedProcedure
+        .input(
+            z.object({
+                itemId: z.string().min(1),
+                barcode: z.string().min(1),
+                unit: z.string().min(1),
+                quantity: z.string().min(1),
+                isMaster: z.boolean(),
+            }),
+        )
+        .mutation(async ({ ctx, input }) => {
+            const userPerms = ctx.session.user.permissions
+
+            if (!userPerms.includes(PERMS.manage_items)) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this!",
+                });
+            }
+            const getBarcode = await ctx.db.itemBarcode.findFirst({
+                where: { barcode: input.barcode },
+            });
+            if (getBarcode) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Bu barkod kullanılıyor!",
+                });
+            }
+
+            const masterBarcode = await ctx.db.itemBarcode.findFirst({
+                where: { isMaster: true, itemId: input.itemId },
+            });
+            if (input.isMaster && masterBarcode) {
+                await ctx.db.itemBarcode.update({
+                    where: { id: masterBarcode.id },
+                    data: { isMaster: false },
+                });
+            }
+            return await ctx.db.itemBarcode.create({
+                data: {
+                    barcode: input.barcode,
+                    isMaster: input.isMaster,
+                    unit: input.unit,
+                    quantity: +input.quantity,
+                    itemId: input.itemId,
+                },
+            });
+        }),
+    updateBarcode: protectedProcedure.input(z.object({
+        barcodeId: z.string().min(1),
+        barcode: z.string().min(1),
+        unit: z.string().min(1),
+        quantity: z.string().min(1),
+        isMaster: z.boolean(),
+    })).mutation(async ({ input, ctx }) => {
+        const userPerms = ctx.session.user.permissions
+
+        if (!userPerms.includes(PERMS.manage_items)) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
+        }
+        const barcode = await ctx.db.itemBarcode.findUnique({ where: { id: input.barcodeId } })
+        if (!barcode) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Barkod Bulunamadı!",
+            });
+        }
+        const masterBarcode = await ctx.db.itemBarcode.findFirst({
+            where: { isMaster: true, itemId: barcode.itemId },
+        });
+        if (input.isMaster && masterBarcode) {
+            await ctx.db.itemBarcode.update({
+                where: { id: masterBarcode.id },
+                data: { isMaster: false },
+            });
+        }
+        return await ctx.db.itemBarcode.update({
+            where: { id: input.barcodeId },
+            data: {
+                barcode: input.barcode,
+                isMaster: input.isMaster,
+                quantity: Number(input.quantity),
+                unit: input.unit
+            }
+        })
+    }),
+    itemAccept: protectedProcedure
+        .input(
+            /* {
+                storageId:string
+                items:[
+                    {
+                        itemId:string,
+                        quantity:number
+                    }
+                ]
+            }*/
+            z.object({
+                storageId: nonEmptyString,
+                items: z.object({
+                    itemId: nonEmptyString,
+                    quantity: z.number().min(1),
+                }).array().min(1)
+            }))
+        .mutation(async ({ ctx, input }) => {
+            if (!input) {
+                new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Invalid Payload!"
+                })
+            }
+            const userPerms = ctx.session.user.permissions
+
+            if (!userPerms.includes(PERMS.item_accept)) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this!",
+                });
+            }
+
+            const storage = await ctx.db.storage.findFirst({
+                where: {
+                    AND: [{
+                        OR: [
+                            { orgId: ctx.session.user.orgId },
+                            { dealerId: ctx.session.user.dealerId }]
+                    },
+                    { id: input.storageId }]
+                }
+            })
+            if (!storage) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this!",
+                });
+            }
+            const itemStocks = await ctx.db.itemStock.createMany({
+                data: input.items.map((i) => ({ itemId: i.itemId, stock: i.quantity, storageId: storage.id })),
+
+            })
+
+            const history = await ctx.db.itemAcceptHistory.create({
+                data: {
+                    orgId: ctx.session.user.orgId,
+                    dealerId: ctx.session.user.dealerId,
+                    name: ctx.session.user.name ?? ctx.session.user.email ?? "Bilinmeyen Kullanıcı",
+                    storageId: storage.id,
+                }
+            })
+            await ctx.db.itemAcceptDetail.createMany({
+                data: input.items.map(i => ({
+                    itemId: i.itemId,
+                    itemAcceptHistoryId: history.id,
+                    quantity: i.quantity,
+                }))
+
+            })
+            return itemStocks
+        }),
+    getItemAcceptHistory: protectedProcedure.query(async ({ ctx }) => {
+        const userPerms = ctx.session.user.permissions
+
+        if (!userPerms.includes(PERMS.item_accept_history_view)) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
+        }
+        return await ctx.db.itemAcceptHistory.findMany({
+            where: {
+                OR: [
+                    { orgId: ctx.session.user.orgId },
+                    { dealerId: ctx.session.user.dealerId }
+                ]
+            },
+            orderBy: { createDate: "desc" },
+            include: { items: { include: { item: true } }, storage: true }
+        })
     })
-})
+});

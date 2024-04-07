@@ -1,0 +1,133 @@
+import { type ColumnDef } from "@tanstack/react-table";
+import { type RouterOutputs } from "~/trpc/shared";
+
+export type dealerItemType = RouterOutputs["items"]["getItems"][number];
+
+export const columns: ColumnDef<dealerItemType>[] = [
+  { accessorKey: "itemCode", header: "Ürün Kodu" },
+  {
+    accessorKey: "itemBarcode",
+    header: "Barkod",
+    cell: ({
+      row: {
+        original: { itemBarcode },
+      },
+    }) => {
+      return itemBarcode.map((b) => {
+        if (!b.isMaster) {
+          return "-";
+        }
+        return b.barcode;
+      })[0];
+    },
+  },
+  { accessorKey: "name", header: "Ürün İsmi" },
+  {
+    accessorKey: "itemColorId",
+    header: "Renk",
+    filterFn: (row, id, value: Array<string>) => {
+      return value.includes(row.getValue(id));
+    },
+    cell: ({
+      row: {
+        original: {
+          color: { colorCode, colorText },
+        },
+      },
+    }) => {
+      return `${colorCode} ${colorText}`;
+    },
+  },
+  {
+    accessorKey: "itemSizeId",
+    header: "Beden",
+    filterFn: (row, id, value: Array<string>) => {
+      return value.includes(row.getValue(id));
+    },
+    cell: ({
+      row: {
+        original: {
+          size: { sizeCode },
+        },
+      },
+    }) => {
+      return sizeCode;
+    },
+  },
+  {
+    accessorKey: "itemCategoryId",
+    header: "Kategori",
+    filterFn: (row, id, value: Array<string>) => {
+      return value.includes(row.getValue(id));
+    },
+    cell: ({
+      row: {
+        original: {
+          category: { name },
+        },
+      },
+    }) => {
+      return name;
+    },
+  },
+  {
+    accessorKey: "itemBrandId",
+    header: "Marka",
+    filterFn: (row, id, value: Array<string>) => {
+      return value.includes(row.getValue(id));
+    },
+    cell: ({
+      row: {
+        original: { brand },
+      },
+    }) => {
+      return brand.name;
+    },
+  },
+
+  {
+    accessorKey: "mainDealerPrice",
+    header: "Anabayi Fiyatı",
+    cell: ({
+      row: {
+        original: { mainDealerPrice },
+      },
+    }) => {
+      return `€ ${mainDealerPrice}`;
+    },
+  },
+  {
+    accessorKey: "multiPrice",
+    header: "Toptan Fiyatı",
+    cell: ({
+      row: {
+        original: { multiPrice },
+      },
+    }) => {
+      return `€ ${multiPrice}`;
+    },
+  },
+  {
+    accessorKey: "dealerPrice",
+    header: "Bayi Fiyatı",
+    cell: ({
+      row: {
+        original: { dealerPrice },
+      },
+    }) => {
+      return `€ ${dealerPrice}`;
+    },
+  },
+  {
+    accessorKey: "singlePrice",
+    header: "Perakende Fiyatı",
+    cell: ({
+      row: {
+        original: { singlePrice },
+      },
+    }) => {
+      return `€ ${singlePrice}`;
+    },
+  },
+  { accessorKey: "totalStock", header: "Toplam Stok" },
+];

@@ -4,11 +4,12 @@ import {
   type DefaultSession,
   type NextAuthOptions,
 } from "next-auth";
-import DiscordProvider from "next-auth/providers/discord";
-import EmailProvider from "next-auth/providers/email";
+import type { GetServerSidePropsContext, NextApiRequest, NextApiResponse } from "next"
 
-import { env } from "~/env";
+import GoogleProvider from "next-auth/providers/google";
+
 import { db } from "~/server/db";
+
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -21,7 +22,9 @@ declare module "next-auth" {
     user: {
       id: string;
       authId: string
-      inOrg: boolean
+      orgId: string | undefined
+      dealerId: string | undefined
+      permissions: string[]
       // ...other properties
       // role: UserRole;
     } & DefaultSession["user"];
@@ -43,13 +46,41 @@ export const authOptions: NextAuthOptions = {
     session: async ({ session, user }) => {
       if (session.user) {
 
-        const organizations = (await db.org.findMany({ where: { Users: { some: { id: user.id } } }, include: { Users: true } }))
-        const inOrg = organizations.some((o) => {
-          return o.Users.some((u) => u.id === user.id);
+        session.user.dealerId = undefined
+        session.user.orgId = undefined
+
+        const orgMember = await db.orgMember.findUnique({
+          where: { userId: session.user.id ?? user.id },
+          include: {
+            roles: { include: { permissions: true } },
+          },
         });
+        if (orgMember) {
+          const orgMemberPermissions = orgMember.roles.flatMap((role) =>
+            role.permissions.map((p) => p.name),
+          );
+          session.user.permissions = orgMemberPermissions
+          session.user.orgId = orgMember.orgId
+        }
+        const dealerMember = await db.dealerMember.findFirst({
+          where: { userId: session.user.id ?? user.id },
+          include: {
+            roles: { include: { permissions: true } },
+            dealer: { include: { dealerStorages: true } },
+            user: true
+          },
+        });
+        console.log(dealerMember);
+
+        if (dealerMember) {
+          const dealerMemberPermissions = dealerMember.roles.flatMap((role) =>
+            role.permissions.map((p) => p.name),
+          );
+          session.user.permissions = dealerMemberPermissions
+          session.user.dealerId = dealerMember.dealerId
+        }
 
         session.user.id = user.id;
-        session.user.inOrg = inOrg
 
         // session.user.role = user.role; <-- put other properties on the session here
       }
@@ -58,17 +89,17 @@ export const authOptions: NextAuthOptions = {
   },
   adapter: PrismaAdapter(db),
   providers: [
-    EmailProvider({
-      server: {
-        host: process.env.EMAIL_SERVER_HOST,
-        port: process.env.EMAIL_SERVER_PORT,
-        auth: {
-          user: process.env.EMAIL_SERVER_USER,
-          pass: process.env.EMAIL_SERVER_PASSWORD,
-        },
-      },
-      from: process.env.EMAIL_FROM
-    }),
+    GoogleProvider({
+      clientId: process.env.GOOGLE_ID ?? "",
+      clientSecret: process.env.GOOGLE_SECRET ?? "",
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code"
+        }
+      }
+    })
     /**
      * ...add more providers here.
      *
@@ -86,4 +117,6 @@ export const authOptions: NextAuthOptions = {
  *
  * @see https://next-auth.js.org/configuration/nextjs
  */
-export const getServerAuthSession = () => getServerSession(authOptions);
+export function auth(...args: [GetServerSidePropsContext["req"], GetServerSidePropsContext["res"]] | [NextApiRequest, NextApiResponse] | []) {
+  return getServerSession(...args, authOptions)
+}

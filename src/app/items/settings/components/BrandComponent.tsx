@@ -24,7 +24,7 @@ import { useState } from "react";
 import { useAddBrand } from "~/utils/useItems";
 
 const BrandComp = () => {
-  const brands = api.items.getBrands.useQuery();
+  const brands = api.items.getBrands.useQuery(undefined, { retry: false });
   const brandsData = brands.data ?? [];
   const [brand, setBrand] = useState<string>("");
   const addBrand = useAddBrand();

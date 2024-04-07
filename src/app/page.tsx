@@ -1,10 +1,10 @@
 import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
-import { getServerAuthSession } from "~/server/auth";
+import { auth } from "~/server/auth";
 
 export default async function Home() {
   noStore();
-  const session = await getServerAuthSession();
+  const session = await auth();
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-12 px-4 py-16">

@@ -24,7 +24,9 @@ import { useState } from "react";
 import { useAddCategory } from "~/utils/useItems";
 
 const CategoryComp = () => {
-  const categories = api.items.getCategory.useQuery();
+  const categories = api.items.getCategory.useQuery(undefined, {
+    retry: false,
+  });
   const categoriesData = categories.data ?? [];
   const [category, setCategory] = useState<string>("");
   const addCategory = useAddCategory();

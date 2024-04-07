@@ -72,7 +72,6 @@ export const columns: ColumnDef<Item>[] = [
     accessorKey: "itemBrandId",
     header: "Marka",
     filterFn: (row, id, value: Array<string>) => {
-      console.log(row.getValue(id));
       return value.includes(row.getValue(id));
     },
     cell: ({
@@ -92,7 +91,7 @@ export const columns: ColumnDef<Item>[] = [
         original: { mainDealerPrice },
       },
     }) => {
-      return `€ ${mainDealerPrice}`;
+      return mainDealerPrice ? `€ ${mainDealerPrice}` : "-";
     },
   },
   {
@@ -103,7 +102,7 @@ export const columns: ColumnDef<Item>[] = [
         original: { multiPrice },
       },
     }) => {
-      return `€ ${multiPrice}`;
+      return multiPrice ? `€ ${multiPrice}` : "-";
     },
   },
   {
@@ -114,19 +113,28 @@ export const columns: ColumnDef<Item>[] = [
         original: { dealerPrice },
       },
     }) => {
-      return `€ ${dealerPrice}`;
+      return dealerPrice ? `€ ${dealerPrice}` : "-";
     },
   },
   {
     accessorKey: "singlePrice",
     header: "Perakende Fiyatı",
+
     cell: ({
       row: {
         original: { singlePrice },
       },
     }) => {
-      return `€ ${singlePrice}`;
+      return singlePrice ? `€ ${singlePrice}` : "-";
     },
   },
-  { accessorKey: "totalStock", header: "Toplam Stok" },
+  {
+    accessorKey: "totalStock",
+    header: "Toplam Stok",
+    filterFn: (row, id, value: Array<string>) => {
+      return Boolean(
+        row.original.ItemStock.find((i) => value.includes(i.storage.id)),
+      );
+    },
+  },
 ];

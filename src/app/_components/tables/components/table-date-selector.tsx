@@ -10,13 +10,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "../../ui/popover";
 interface DataTableFacetedFilterProps<TData, TValue> {
   column?: Column<TData, TValue>;
   title: string;
+  date: DateRange | undefined;
+  setDate: React.Dispatch<React.SetStateAction<DateRange | undefined>>;
 }
 export function DataTableFilter<TData, TValue>({
   column,
   title,
+  date,
+  setDate,
 }: DataTableFacetedFilterProps<TData, TValue>) {
-  const [date, setDate] = React.useState<DateRange | undefined>();
-
   const format = (date: Date) =>
     date.toLocaleString(undefined, {
       day: "numeric",
