@@ -3,7 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { loggerLink, unstable_httpBatchStreamLink } from "@trpc/client";
 import { createTRPCReact } from "@trpc/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { type AppRouter } from "~/server/api/root";
 import { getUrl, transformer } from "./shared";
@@ -20,6 +20,12 @@ export interface IError {
     path: string;
   };
 }
+
+export const useHydrated = () => {
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+  return hydrated;
+};
 
 export function TRPCReactProvider(props: { children: React.ReactNode }) {
   const [queryClient] = useState(

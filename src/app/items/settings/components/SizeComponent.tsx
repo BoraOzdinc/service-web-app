@@ -1,5 +1,4 @@
 "use client";
-import { Loader2Icon } from "lucide-react";
 import { DataTable } from "~/app/_components/tables/generic-table";
 import { Button } from "~/app/_components/ui/button";
 import {
@@ -25,7 +24,6 @@ import { useAddSize } from "~/utils/useItems";
 
 const SizeComp = () => {
   const sizes = api.items.getSizes.useQuery(undefined, { retry: false });
-  const sizesData = sizes.data ?? [];
   const [sizeCode, setSizeCode] = useState<string>("");
   const [size, setSize] = useState<string>("");
   const addSize = useAddSize();
@@ -33,10 +31,8 @@ const SizeComp = () => {
   return (
     <Card className=" w-full">
       <CardHeader className="flex flex-row items-center justify-between">
-        <div className="flex items-center gap-3">
           <CardTitle>Ürün Bedenleri</CardTitle>
-          {sizes.isLoading && <Loader2Icon className="h-5 w-5 animate-spin" />}
-        </div>
+          
         <Dialog>
           <DialogTrigger asChild>
             <Button
@@ -87,7 +83,7 @@ const SizeComp = () => {
         </Dialog>
       </CardHeader>
       <CardContent className="overflow-x-auto">
-        <DataTable data={sizesData} columns={columns} />
+        <DataTable data={sizes.data} columns={columns} isLoading={sizes.isLoading} />
       </CardContent>
     </Card>
   );

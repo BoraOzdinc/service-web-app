@@ -10,24 +10,36 @@ import {
 import { api } from "~/trpc/server";
 //import { useItemAccept } from "~/utils/useItems";
 import { columns as itemAcceptHistoryColumns } from "./components/itemAcceptListColumns";
+import { Button } from "~/app/_components/ui/button";
+import { useRouter } from "next/navigation";
 
 const ItemAccept = () => {
   //const itemAccept = useItemAccept();
-  const { data: itemAcceptHistory } = api.items.getItemAcceptHistory.useQuery();
+  const router = useRouter();
+  const { data: itemAcceptHistory, isLoading } =
+    api.items.getItemAcceptHistory.useQuery();
   return (
     <Card className="flex w-full flex-col">
-      <CardHeader>
-        <CardTitle>Ürün Kabul</CardTitle>
-        <CardDescription>Ürün Kabul Geçmiş Listesi</CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div className="flex flex-col gap-1">
+          <CardTitle>Ürün Kabul</CardTitle>
+          <CardDescription>Ürün Kabul Geçmiş Listesi</CardDescription>
+        </div>
+        <Button
+          onClick={() => {
+            router.push("item-accept/new");
+          }}
+        >
+          Yeni Ürün Kabul
+        </Button>
       </CardHeader>
       <CardContent>
-        {itemAcceptHistory ? (
-          <DataTable
-            columns={itemAcceptHistoryColumns}
-            data={itemAcceptHistory}
-            datePicker={{ title: "Tarih", columnToFilter: "createDate" }}
-          />
-        ) : null}
+        <DataTable
+          columns={itemAcceptHistoryColumns}
+          data={itemAcceptHistory}
+          isLoading={isLoading}
+          datePicker={{ title: "Tarih", columnToFilter: "createDate" }}
+        />
         {/* <Button
           onClick={() => {
             itemAccept.mutate({

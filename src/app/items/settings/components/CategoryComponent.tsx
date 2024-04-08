@@ -1,5 +1,4 @@
 "use client";
-import { Loader2Icon } from "lucide-react";
 import { DataTable } from "~/app/_components/tables/generic-table";
 import { Button } from "~/app/_components/ui/button";
 import {
@@ -27,19 +26,14 @@ const CategoryComp = () => {
   const categories = api.items.getCategory.useQuery(undefined, {
     retry: false,
   });
-  const categoriesData = categories.data ?? [];
   const [category, setCategory] = useState<string>("");
   const addCategory = useAddCategory();
 
   return (
     <Card className=" w-full">
       <CardHeader className="flex flex-row items-center justify-between">
-        <div className="flex items-center gap-3">
-          <CardTitle>Ürün Kategorileri</CardTitle>
-          {categories.isLoading && (
-            <Loader2Icon className="h-5 w-5 animate-spin" />
-          )}
-        </div>
+        <CardTitle>Ürün Kategorileri</CardTitle>
+
         <Dialog>
           <DialogTrigger asChild>
             <Button
@@ -78,7 +72,11 @@ const CategoryComp = () => {
         </Dialog>
       </CardHeader>
       <CardContent className=" w-full overflow-x-auto ">
-        <DataTable data={categoriesData} columns={columns} />
+        <DataTable
+          data={categories.data }
+          columns={columns}
+          isLoading={categories.isLoading}
+        />
       </CardContent>
     </Card>
   );

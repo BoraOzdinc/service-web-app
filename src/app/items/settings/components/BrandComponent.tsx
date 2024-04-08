@@ -1,5 +1,4 @@
 "use client";
-import { Loader2Icon } from "lucide-react";
 import { DataTable } from "~/app/_components/tables/generic-table";
 import { Button } from "~/app/_components/ui/button";
 import {
@@ -25,17 +24,14 @@ import { useAddBrand } from "~/utils/useItems";
 
 const BrandComp = () => {
   const brands = api.items.getBrands.useQuery(undefined, { retry: false });
-  const brandsData = brands.data ?? [];
   const [brand, setBrand] = useState<string>("");
   const addBrand = useAddBrand();
 
   return (
     <Card className=" w-full">
       <CardHeader className="flex flex-row items-center justify-between">
-        <div className="flex items-center gap-3">
-          <CardTitle>Ürün Markaları</CardTitle>
-          {brands.isLoading && <Loader2Icon className="h-5 w-5 animate-spin" />}
-        </div>
+        <CardTitle>Ürün Markaları</CardTitle>
+
         <Dialog>
           <DialogTrigger asChild>
             <Button
@@ -74,7 +70,11 @@ const BrandComp = () => {
         </Dialog>
       </CardHeader>
       <CardContent className=" w-full overflow-x-auto ">
-        <DataTable data={brandsData} columns={columns} />
+        <DataTable
+          data={brands.data }
+          columns={columns}
+          isLoading={brands.isLoading}
+        />
       </CardContent>
     </Card>
   );

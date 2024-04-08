@@ -46,16 +46,15 @@ import { DataTableFilter } from "./components/table-date-selector";
 import { type DateRange } from "react-day-picker";
 
 interface DataTableProps<TData, TValue> {
-  //TODO: Subrow support
   columns: ColumnDef<TData, TValue>[];
   data: TData[] | undefined;
+  isLoading?: boolean;
   pagination?: boolean;
   inputFilter?: { columnToFilter: string; title: string };
   serverSearch?: {
     setState: Dispatch<SetStateAction<string>>;
     state: string;
     title: string;
-    isLoading: boolean;
   };
   columnFilter?: {
     title: string;
@@ -80,6 +79,7 @@ export function DataTable<TData, TValue>({
   datePicker,
   onRowClick,
   serverSearch,
+  isLoading,
 }: DataTableProps<TData, TValue>) {
   const [pageSize, setPageSize] = useState(10);
   const [rowSelection, setRowSelection] = useState({});
@@ -123,7 +123,8 @@ export function DataTable<TData, TValue>({
   };
   return (
     <div className="min-w-max rounded-md border">
-      <div className=" flex flex-row items-start justify-start gap-3 p-3">
+      <div className=" flex flex-row items-center justify-start gap-3 p-3">
+        {isLoading && <Loader2 className="h-6 w-6 animate-spin" />}
         {inputFilter && (
           <Input
             placeholder={`${inputFilter.title} için arama yap`}
@@ -142,9 +143,6 @@ export function DataTable<TData, TValue>({
         )}
         {serverSearch && (
           <div className="flex items-center gap-3">
-            {serverSearch.isLoading && (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            )}
             <Input
               placeholder={`${serverSearch.title} için arama yap`}
               value={serverSearch.state}
@@ -188,7 +186,7 @@ export function DataTable<TData, TValue>({
           </Button>
         )}
       </div>
-      {!serverSearch?.isLoading && (
+      {!isLoading && (
         <>
           <Table>
             <TableHeader>
@@ -235,13 +233,13 @@ export function DataTable<TData, TValue>({
                     })}
                   </TableRow>
                 ))
-              ) : serverSearch?.isLoading ? (
+              ) : isLoading ? (
                 <TableRow>
                   <TableCell
                     colSpan={columns.length}
                     className="h-24 text-center"
                   >
-                    Loading...
+                    Yükleniyor...
                   </TableCell>
                 </TableRow>
               ) : (
@@ -250,7 +248,7 @@ export function DataTable<TData, TValue>({
                     colSpan={columns.length}
                     className="h-24 text-center"
                   >
-                    No results.
+                    Kayıt Bulunamadı.
                   </TableCell>
                 </TableRow>
               )}

@@ -186,12 +186,11 @@ const ItemDetail = () => {
                 </Dialog>
               </CardHeader>
               <CardContent className="overflow-scroll sm:overflow-hidden">
-                {itemData?.itemBarcode && (
-                  <DataTable
-                    data={itemData.itemBarcode}
-                    columns={itemBarcodeColumns}
-                  />
-                )}
+                <DataTable
+                  data={itemData?.itemBarcode}
+                  columns={itemBarcodeColumns}
+                  isLoading={!itemData?.itemBarcode}
+                />
               </CardContent>
             </Card>
           </div>
@@ -200,14 +199,13 @@ const ItemDetail = () => {
           )}
         </TabsContent>
         <TabsContent value="item_history">
-          {itemData && (
-            <DataTable
-              pagination
-              datePicker={{ columnToFilter: "createDate", title: "Tarih" }}
-              data={itemData.ItemHistory}
-              columns={historyColumns}
-            />
-          )}
+          <DataTable
+            pagination
+            datePicker={{ columnToFilter: "createDate", title: "Tarih" }}
+            data={itemData?.ItemHistory}
+            columns={historyColumns}
+            isLoading={!itemData}
+          />
         </TabsContent>
       </Tabs>
     </div>

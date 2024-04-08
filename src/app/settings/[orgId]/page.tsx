@@ -112,7 +112,8 @@ const OrganizationSettings = () => {
           <CardContent className="overflow-x-scroll md:overflow-x-hidden">
             <DataTable
               data={orgMembers}
-              columns={memberColumns ?? []}
+              isLoading={isOrgMembersLoading}
+              columns={memberColumns}
               pagination
             />
           </CardContent>
@@ -135,7 +136,11 @@ const OrganizationSettings = () => {
             />
           </CardHeader>
           <CardContent className="overflow-x-scroll md:overflow-x-hidden">
-            <DataTable data={orgRoles} columns={orgRolesColumns} />
+            <DataTable
+              data={orgRoles}
+              isLoading={isOrgRolesLoading}
+              columns={orgRolesColumns}
+            />
           </CardContent>
         </Card>
       </div>

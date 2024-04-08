@@ -160,8 +160,9 @@ const Items = () => {
       </CardHeader>
       <CardContent className=" w-full">
         <DataTable
-          data={ItemsData.data ?? []}
+          data={ItemsData.data}
           columns={columns}
+          isLoading={ItemsData.isLoading}
           columnFilter={[
             {
               columnToFilter: "itemBrandId",
@@ -228,7 +229,6 @@ const Items = () => {
             setState: setSearchInput,
             state: searchInput,
             title: "kod, barkod, isim",
-            isLoading: ItemsData.isLoading,
           }}
           onRowClick={(row) => router.push(`items/${row.original?.id}}`)}
         />

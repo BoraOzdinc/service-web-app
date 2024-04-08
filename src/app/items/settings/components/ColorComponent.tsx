@@ -25,7 +25,6 @@ import { useAddColor } from "~/utils/useItems";
 
 const ColorComp = () => {
   const colors = api.items.getColors.useQuery(undefined, { retry: false });
-  const colorsData = colors.data ?? [];
   const [colorCode, setColorCode] = useState<string>("");
   const [color, setColor] = useState<string>("");
   const addColor = useAddColor();
@@ -88,7 +87,11 @@ const ColorComp = () => {
         </Dialog>
       </CardHeader>
       <CardContent className=" w-full overflow-x-auto ">
-        <DataTable data={colorsData} columns={columns} />
+        <DataTable
+          data={colors.data }
+          columns={columns}
+          isLoading={colors.isLoading}
+        />
       </CardContent>
     </Card>
   );

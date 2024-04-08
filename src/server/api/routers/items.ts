@@ -95,6 +95,74 @@ export const itemsRouter = createTRPCRouter({
                 message: "You don't have permission to do this!",
             });
         }),
+    getItemsInStorage: protectedProcedure
+        .input(z.object({ dealerId: z.string().optional(), orgId: z.string().optional(), searchInput: z.string(), storageId: nonEmptyString }))
+        .query(async ({ ctx, input }) => {
+            if (!input) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Invalid Payload",
+                });
+            }
+            const userPerms = ctx.session.user.permissions
+
+            if (Boolean(ctx.session.user.dealerId)) {
+                if (!userPerms.includes(PERMS.item_view)) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
+            }
+            if (Boolean(ctx.session.user.orgId)) {
+                if (!userPerms.includes(PERMS.dealer_item_view) && !userPerms.includes(PERMS.item_view)) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
+            }
+            if (input.dealerId) {
+                const ItemList = await ctx.db.item.findMany({
+                    where: { dealerId: input.dealerId, ItemStock: { some: { storageId: input.storageId } } },
+                    include: {
+                        ItemStock: { select: { stock: true, storage: true } },
+                        color: true,
+                        size: true,
+                        category: true,
+                        itemBarcode: true,
+                        brand: true,
+                    }
+                })
+
+                return ItemList.filter((o) => (o.itemBarcode.find((b) => b.barcode.toLowerCase().includes(input.searchInput.toLowerCase())) ?? o.itemCode.toLowerCase().includes(input.searchInput.toLowerCase())) || o.name.toLowerCase().includes(input.searchInput.toLowerCase())).map((o) => {
+                    const totalStock = o.ItemStock.reduce((sum, s) => sum + s.stock, 0) ?? 0;
+                    return { ...o, totalStock: totalStock };
+                });
+            }
+            if (input.orgId) {
+                const ItemList = await ctx.db.item.findMany({
+                    where: { orgId: input.orgId, ItemStock: { some: { storageId: input.storageId } } },
+                    include: {
+                        ItemStock: { select: { stock: true, storage: true } },
+                        color: true,
+                        size: true,
+                        category: true,
+                        itemBarcode: true,
+                        brand: true,
+                    }
+                })
+
+                return ItemList.filter((o) => (o.itemBarcode.find((b) => b.barcode.toLowerCase().includes(input.searchInput.toLowerCase())) ?? o.itemCode.toLowerCase().includes(input.searchInput.toLowerCase())) || o.name.toLowerCase().includes(input.searchInput.toLowerCase())).map((o) => {
+                    const totalStock = o.ItemStock.reduce((sum, s) => sum + s.stock, 0) ?? 0;
+                    return { ...o, totalStock: totalStock };
+                });
+            }
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
+        }),
     getItemWithId: protectedProcedure
         .input(nonEmptyString)
         .query(async ({ ctx, input }) => {

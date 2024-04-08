@@ -70,7 +70,7 @@ export const columns: ColumnDef<ItemAcceptHistory>[] = [
             <DialogHeader>
               <DialogTitle>Ürünler</DialogTitle>
             </DialogHeader>
-            <DataTable data={items} columns={itemsColumns} />
+            <DataTable data={items} columns={itemsColumns} isLoading={!items} />
           </DialogContent>
         </Dialog>
       );

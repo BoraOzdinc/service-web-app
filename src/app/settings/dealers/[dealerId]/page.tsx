@@ -160,7 +160,8 @@ const DealerDetails = () => {
                 <CardContent className="overflow-x-scroll md:overflow-x-hidden">
                   <DataTable
                     data={dealerMembers.data}
-                    columns={memberColumns ?? []}
+                    isLoading={dealerMembers.isLoading}
+                    columns={memberColumns}
                     pagination
                   />
                 </CardContent>
@@ -191,6 +192,7 @@ const DealerDetails = () => {
                 <CardContent className="overflow-x-scroll md:overflow-x-hidden">
                   <DataTable
                     data={dealerRoles.data}
+                    isLoading={dealerRoles.isLoading}
                     columns={dealerRolesColumns}
                   />
                 </CardContent>
@@ -212,6 +214,7 @@ const DealerDetails = () => {
                 <DataTable
                   data={dealerItems.data}
                   columns={dealerItemsColumns}
+                  isLoading={dealerItems.isLoading}
                   columnFilter={[
                     {
                       columnToFilter: "itemBrandId",
@@ -264,7 +267,6 @@ const DealerDetails = () => {
                     setState: setSearchInput,
                     state: searchInput,
                     title: "kod, barkod, isim",
-                    isLoading: dealerItems.isLoading,
                   }}
                   pagination
                 />
