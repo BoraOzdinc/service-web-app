@@ -32,6 +32,7 @@ const BarcodeScanner = ({
           stopStream={false}
           videoConstraints={{
             noiseSuppression: true,
+            facingMode: "environment",
           }}
           onUpdate={(err, result) => {
             if (result) {
