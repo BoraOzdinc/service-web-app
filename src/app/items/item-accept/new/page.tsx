@@ -39,6 +39,7 @@ import { api } from "~/trpc/server";
 import { columns } from "./components/columns";
 import { useMediaDevices } from "react-media-devices";
 import BarcodeScannerComponent from "react-barcode-scanner-updated";
+import BarcodeScanner from "~/app/_components/BarcodeScanner";
 
 const NewItemAccept = () => {
   const hydrated = useHydrated();
@@ -48,10 +49,8 @@ const NewItemAccept = () => {
   >();
   const [open, setOpen] = useState(false);
   const [data, setData] = useState("");
-  const [searchInput, setSearchInput] = useState<string>("");
-  const debouncedSearchInput = useDebounce(searchInput, 750);
-  /*   const storages = api.items.getStorages.useQuery();
-
+  const storages = api.items.getStorages.useQuery();
+  /*  
   const ItemsData = api.items.getItemsInStorage.useQuery(
     {
       storageId: selectedStorageId!,
@@ -70,7 +69,7 @@ const NewItemAccept = () => {
       <CardHeader>
         <CardTitle>Yeni Ürün Kabul</CardTitle>
       </CardHeader>
-      {/* <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
@@ -102,17 +101,11 @@ const NewItemAccept = () => {
             </DialogClose>
           </DialogFooter>
         </DialogContent>
-      </Dialog> */}
+      </Dialog>
       <CardContent className=" w-full overflow-scroll sm:overflow-auto">
-        <BarcodeScannerComponent
-          width={500}
-          height={500}
-          onUpdate={(err, result) => {
-            if (result) setData(result.getText());
-            else setData("Not Found");
-          }}
-        />
-        <p>hjkgvlhgkjghkj{data}</p>
+        <BarcodeScanner setData={setData} />
+
+        <p>{data}</p>
         {/* <DataTable
           data={ItemsData.data}
           columns={columns}
