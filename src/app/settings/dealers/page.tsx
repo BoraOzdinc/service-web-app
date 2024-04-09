@@ -10,10 +10,36 @@ import {
   CardTitle,
 } from "~/app/_components/ui/card";
 import { Button } from "~/app/_components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTrigger,
+} from "~/app/_components/ui/dialog";
+import { useSession } from "next-auth/react";
+import { PERMS } from "~/_constants/perms";
+import { Input } from "~/app/_components/ui/input";
+import { useState } from "react";
+import { Label } from "~/app/_components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/app/_components/ui/select";
+import { useCreateDealer } from "~/utils/useDealer";
+import { PriceTypes } from "~/_constants";
 
 const Dealers = () => {
+  const { data: session } = useSession();
   const { data: dealers, isLoading: dealersLoading } =
     api.dealer.getDealers.useQuery(undefined, { retry: false });
+  const createDealer = useCreateDealer();
+  const [newDealerName, setNewDealerName] = useState<string>("");
+  const [newDealerType, setNewDealerType] = useState<string>("");
 
   if (dealersLoading || !dealers) {
     return <Loader />;
@@ -26,7 +52,54 @@ const Dealers = () => {
           <CardTitle>Bayiileriniz</CardTitle>
           <CardDescription>Yönetmek istediğiniz bayii seçin</CardDescription>
         </div>
-        <Button>Yeni Bayii Oluştur</Button>
+        {session?.user.permissions.includes(PERMS.create_dealer) ? (
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button>Yeni Bayii Oluştur</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>Yeni Bayii</DialogHeader>
+              <div>
+                <Label>Bayii İsmi</Label>
+                <Input
+                  value={newDealerName}
+                  onChange={(e) => setNewDealerName(e.target.value)}
+                  placeholder="Bayii ismi"
+                />
+              </div>
+              <Select onValueChange={setNewDealerType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Fiyat Tipi" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PriceTypes.map((p) => (
+                    <SelectItem value={p.value} key={p.value}>
+                      {p.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant={"outline"}>İptal</Button>
+                </DialogClose>
+                <DialogClose asChild>
+                  <Button
+                    onClick={() =>
+                      createDealer.mutate({
+                        name: newDealerName,
+                        price_type: newDealerType,
+                      })
+                    }
+                    disabled={!newDealerName || !newDealerType}
+                  >
+                    Kaydet
+                  </Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        ) : null}
       </CardHeader>
       <CardContent className="grid w-full grid-cols-1 gap-3 md:grid-cols-3">
         {dealers.map((d) => {

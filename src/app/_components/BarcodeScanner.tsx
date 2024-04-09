@@ -4,24 +4,33 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
-import { Dispatch, SetStateAction, useState } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import toast from "react-hot-toast";
+import { Input } from "./ui/input";
+import { ScanBarcodeIcon } from "lucide-react";
 
 const BarcodeScanner = ({
   setData,
+  open,
+  setOpen,
 }: {
   setData: Dispatch<SetStateAction<string>>;
+  open: boolean;
+  setOpen: Dispatch<SetStateAction<boolean>>;
 }) => {
-  const [open, setOpen] = useState(false);
+  const [barcode, setBarcode] = useState<string>("");
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger>Open</DialogTrigger>
+      <DialogTrigger asChild>
+        <Button>
+          <ScanBarcodeIcon className="h-6 w-6" />
+        </Button>
+      </DialogTrigger>
       <DialogContent className="flex flex-col items-center justify-center">
         <DialogHeader>
           <DialogTitle>Barkod Okut</DialogTitle>
@@ -42,9 +51,20 @@ const BarcodeScanner = ({
             }
           }}
         />
-        <DialogFooter>
+        <Input
+          type="number"
+          placeholder="Barkod"
+          value={barcode}
+          onChange={(e) => setBarcode(e.target.value)}
+        />
+        <DialogFooter className="flex flex-row gap-3">
           <DialogClose asChild>
             <Button variant="outline">İptal</Button>
+          </DialogClose>
+          <DialogClose asChild>
+            <Button disabled={!barcode} onClick={() => setData(barcode)}>
+              Kaydet
+            </Button>
           </DialogClose>
         </DialogFooter>
       </DialogContent>

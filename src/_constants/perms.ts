@@ -1,23 +1,4 @@
 export const PERMS = {
-    org_item_view: "ORG_ITEMS_VIEW",
-    org_storage_view: "ORG_STORAGE_VIEW",
-    dealer_storage_view: "DEALER_STORAGE_VIEW",
-    org_storage_create: "ORG_STORAGE_CREATE",
-    org_storage_delete: "ORG_STORAGE_DELETE",
-    dealer_storage_delete: "DEALER_STORAGE_DELETE",
-    org_create_item: "ORG_CREATE_ITEM",
-    dealer_create_item: "DEALER_CREATE_ITEM",
-    org_update_item: "ORG_UPDATE_ITEM",
-    dealer_update_item: "DEALER_UPDATE_ITEM",
-    org_item_setting_view: "ORG_ITEM_SETTING_VIEW",
-    dealer_item_setting_view: "DEALER_ITEM_SETTING_VIEW",
-    org_item_setting_create: "ORG_ITEM_SETTING_CREATE",
-    dealer_item_setting_create: "DEALER_ITEM_SETTING_CREATE",
-    add_org_member: "ORG_MEMBER_CREATE",
-    add_dealer_member: "DEALER_MEMBER_CREATE",
-    add_org_role: "ORG_ROLE_CREATE",
-    update_dealer_member: "DEALER_MEMBER_UPDATE",
-
     item_view: "ITEM_VIEW",
     dealer_item_view: "DEALER_ITEM_VIEW",
     view_org_members: "ORG_MEMBER_VIEW",
@@ -35,5 +16,6 @@ export const PERMS = {
     manage_item_setting: "MANAGE_ITEM_SETTING",
     manage_items: "MANAGE_ITEMS",
     item_accept: "ACCEPT_ITEMS",
-    item_accept_history_view: "ACCEPT_ITEMS_VIEW"
+    item_accept_history_view: "ACCEPT_ITEMS_VIEW",
+    customers_view: "CUSTOMERS_VIEW"
 } as const;

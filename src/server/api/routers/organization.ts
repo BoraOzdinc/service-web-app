@@ -3,6 +3,7 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { PERMS } from "../../../_constants/perms";
 import { TRPCError } from "@trpc/server";
 import { nonEmptyString } from "./items";
+import { $Enums } from "@prisma/client";
 
 export const organizationRouter = createTRPCRouter({
 
@@ -185,34 +186,29 @@ export const organizationRouter = createTRPCRouter({
             });
         }),
 
-    createDealer: protectedProcedure.input(nonEmptyString).mutation(async ({ ctx, input }) => {
-        const userId = ctx.session.user.id;
-        if (!input) {
+    createDealer: protectedProcedure.input(z.object({ name: nonEmptyString, price_type: nonEmptyString })).mutation(async ({ ctx, input }) => {
+        const priceEnum = z.nativeEnum($Enums.PriceType);
+        type priceEnum = z.infer<typeof priceEnum>;
+        const userPerms = ctx.session.user.permissions
+        const priceType = priceEnum.parse(input.price_type)
+        if (!input || !priceType) {
             throw new TRPCError({
                 code: "BAD_REQUEST",
                 message: "Invalid Payload",
             });
         }
-        const orgMember = await ctx.db.orgMember.findUnique({
-            where: { userId: userId },
-            include: {
-                roles: { include: { permissions: true } },
-            },
-        });
-        if (orgMember) {
-            const orgMemberPermissions = orgMember.roles.flatMap((role) =>
-                role.permissions.map((p) => p.name),
-            );
+        if (ctx.session.user.orgId) {
 
-
-            if (!orgMemberPermissions.includes(PERMS.create_dealer)) {
+            if (!userPerms.includes(PERMS.create_dealer)) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
                     message: "You don't have permission to do this!",
                 });
             }
-            return await ctx.db.dealer.create({ data: { name: input, orgId: orgMember.orgId } })
-
+            const dealer = await ctx.db.dealer.create({ data: { name: input.name, orgId: ctx.session.user.orgId, priceType: priceType } })
+            const permissions = await ctx.db.memberPermission.findMany({ where: { assignableTo: { has: "Dealer" } } })
+            await ctx.db.memberRole.create({ data: { name: "Bayii Yöneticisi", dealerId: dealer.id, permissionIds: permissions.map(p => p.id) } })
+            return dealer
         }
         throw new TRPCError({
             code: "UNAUTHORIZED",

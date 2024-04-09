@@ -95,8 +95,8 @@ export const itemsRouter = createTRPCRouter({
                 message: "You don't have permission to do this!",
             });
         }),
-    getItemsInStorage: protectedProcedure
-        .input(z.object({ dealerId: z.string().optional(), orgId: z.string().optional(), searchInput: z.string(), storageId: nonEmptyString }))
+    getItemWithBarcode: protectedProcedure
+        .input(z.object({ dealerId: z.string().optional(), orgId: z.string().optional(), barcode: nonEmptyString }))
         .query(async ({ ctx, input }) => {
             if (!input) {
                 throw new TRPCError({
@@ -106,57 +106,37 @@ export const itemsRouter = createTRPCRouter({
             }
             const userPerms = ctx.session.user.permissions
 
-            if (Boolean(ctx.session.user.dealerId)) {
-                if (!userPerms.includes(PERMS.item_view)) {
-                    throw new TRPCError({
-                        code: "UNAUTHORIZED",
-                        message: "You don't have permission to do this!",
-                    });
-                }
-            }
-            if (Boolean(ctx.session.user.orgId)) {
-                if (!userPerms.includes(PERMS.dealer_item_view) && !userPerms.includes(PERMS.item_view)) {
-                    throw new TRPCError({
-                        code: "UNAUTHORIZED",
-                        message: "You don't have permission to do this!",
-                    });
-                }
-            }
             if (input.dealerId) {
-                const ItemList = await ctx.db.item.findMany({
-                    where: { dealerId: input.dealerId, ItemStock: { some: { storageId: input.storageId } } },
+                if (!userPerms.includes(PERMS.item_accept)) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
+                return await ctx.db.item.findFirst({
+                    where: { dealerId: input.dealerId, itemBarcode: { some: { barcode: input.barcode } } },
                     include: {
                         ItemStock: { select: { stock: true, storage: true } },
-                        color: true,
-                        size: true,
-                        category: true,
-                        itemBarcode: true,
-                        brand: true,
+                        itemBarcode: true
                     }
                 })
-
-                return ItemList.filter((o) => (o.itemBarcode.find((b) => b.barcode.toLowerCase().includes(input.searchInput.toLowerCase())) ?? o.itemCode.toLowerCase().includes(input.searchInput.toLowerCase())) || o.name.toLowerCase().includes(input.searchInput.toLowerCase())).map((o) => {
-                    const totalStock = o.ItemStock.reduce((sum, s) => sum + s.stock, 0) ?? 0;
-                    return { ...o, totalStock: totalStock };
-                });
             }
             if (input.orgId) {
-                const ItemList = await ctx.db.item.findMany({
-                    where: { orgId: input.orgId, ItemStock: { some: { storageId: input.storageId } } },
+                if (!userPerms.includes(PERMS.item_accept)) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
+                return await ctx.db.item.findFirst({
+                    where: { orgId: input.orgId, itemBarcode: { some: { barcode: input.barcode } } },
                     include: {
                         ItemStock: { select: { stock: true, storage: true } },
-                        color: true,
-                        size: true,
-                        category: true,
-                        itemBarcode: true,
-                        brand: true,
-                    }
-                })
+                        itemBarcode: true
 
-                return ItemList.filter((o) => (o.itemBarcode.find((b) => b.barcode.toLowerCase().includes(input.searchInput.toLowerCase())) ?? o.itemCode.toLowerCase().includes(input.searchInput.toLowerCase())) || o.name.toLowerCase().includes(input.searchInput.toLowerCase())).map((o) => {
-                    const totalStock = o.ItemStock.reduce((sum, s) => sum + s.stock, 0) ?? 0;
-                    return { ...o, totalStock: totalStock };
-                });
+                    },
+
+                })
             }
             throw new TRPCError({
                 code: "UNAUTHORIZED",
@@ -407,6 +387,18 @@ export const itemsRouter = createTRPCRouter({
                         data: { stock: input.stock, itemId: item.id, storageId: storage.id },
                     });
                 }
+                await ctx.db.itemHistory.create({
+                    data: {
+                        action: "AddItem",
+                        createdBy: ctx.session.user.name ?? ctx.session.user.email ?? "Bilinmeyen Kullanıcı",
+                        description: "",
+                        quantity: input.stock ?? 0,
+                        toStorageId: input.storageId,
+                        itemId: item.id,
+                        orgId: ctx.session.user.orgId,
+                        dealerId: ctx.session.user.dealerId
+                    }
+                })
                 return [item, itemBarcode];
             }
             if (ctx.session.user.dealerId) {
@@ -467,6 +459,18 @@ export const itemsRouter = createTRPCRouter({
                         data: { stock: input.stock, itemId: item.id, storageId: storage.id },
                     });
                 }
+                await ctx.db.itemHistory.create({
+                    data: {
+                        action: "AddItem",
+                        createdBy: ctx.session.user.name ?? ctx.session.user.email ?? "Bilinmeyen Kullanıcı",
+                        description: "",
+                        quantity: input.stock ?? 0,
+                        toStorageId: input.storageId,
+                        itemId: item.id,
+                        orgId: ctx.session.user.orgId,
+                        dealerId: ctx.session.user.dealerId
+                    }
+                })
                 return [item, itemBarcode];
             }
 
@@ -496,6 +500,7 @@ export const itemsRouter = createTRPCRouter({
                 isServiceItem: z.boolean(),
                 netWeight: z.string().optional(),
                 volume: z.string().optional(),
+                description: nonEmptyString
             }),
         )
         .mutation(async ({ ctx, input }) => {
@@ -528,7 +533,18 @@ export const itemsRouter = createTRPCRouter({
                         itemCategoryId: input.itemCategoryId,
                     },
                 });
-
+                await ctx.db.itemHistory.create({
+                    data: {
+                        action: "UpdateItem",
+                        createdBy: ctx.session.user.name ?? ctx.session.user.email ?? "Bilinmeyen Kullanıcı",
+                        description: input.description,
+                        quantity: input.stock ?? 0,
+                        toStorageId: input.storageId,
+                        itemId: item.id,
+                        orgId: ctx.session.user.orgId,
+                        dealerId: ctx.session.user.dealerId
+                    }
+                })
                 return item
             }
             if (ctx.session.user.dealerId) {
@@ -552,6 +568,18 @@ export const itemsRouter = createTRPCRouter({
                         itemCategoryId: input.itemCategoryId,
                     },
                 });
+                await ctx.db.itemHistory.create({
+                    data: {
+                        action: "UpdateItem",
+                        createdBy: ctx.session.user.name ?? ctx.session.user.email ?? "Bilinmeyen Kullanıcı",
+                        description: input.description,
+                        quantity: input.stock ?? 0,
+                        toStorageId: input.storageId,
+                        itemId: item.id,
+                        orgId: ctx.session.user.orgId,
+                        dealerId: ctx.session.user.dealerId
+                    }
+                })
                 return item
             }
 

@@ -74,7 +74,7 @@ const ItemDetail = () => {
     return <Loader />;
   }
   return (
-    <div className="flex flex-col gap-3 ">
+    <div className="flex w-full flex-col gap-3">
       <CardTitle>Ürün Detayları</CardTitle>
       <Tabs defaultValue="item_details">
         <TabsList className="w-full">
@@ -517,6 +517,24 @@ const ItemDetailForm = ({
                       Ürün Sevk işlemi sırasında Seri Numarası istenir.
                     </FormDescription>
                   </div>
+                </FormItem>
+              )}
+            />
+            <FormField
+              name="description"
+              control={form.control}
+              rules={{ required: true }}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Açıklama</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="text"
+                      placeholder="Ürün güncellemesini neden yapıyorsunuz?"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />

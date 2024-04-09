@@ -2,11 +2,21 @@ import { type ColumnDef } from "@tanstack/react-table";
 import { type ItemHistory } from "~/utils/useItems";
 
 export const columns: ColumnDef<ItemHistory>[] = [
-  { accessorKey: "description", header: "İşlem" },
-  { accessorKey: "createDate", header: "Tarih" },
+  { accessorKey: "action", header: "İşlem" },
+  {
+    accessorKey: "createDate",
+    header: "Tarih",
+    cell({
+      row: {
+        original: { createDate },
+      },
+    }) {
+      return createDate.toLocaleString();
+    },
+  },
   {
     accessorKey: "fromStorage",
-    header: "from",
+    header: "Çıkış Depo",
     cell: ({
       row: {
         original: { fromStorage },
@@ -17,7 +27,7 @@ export const columns: ColumnDef<ItemHistory>[] = [
   },
   {
     accessorKey: "toStorage",
-    header: "to",
+    header: "Giriş Depo",
     cell: ({
       row: {
         original: { toStorage },
@@ -26,9 +36,10 @@ export const columns: ColumnDef<ItemHistory>[] = [
       return toStorage?.name;
     },
   },
+  { accessorKey: "quantity", header: "Adet" },
   {
     accessorKey: "user",
-    header: "işlemi yapan",
+    header: "İşlemi Yapan",
     cell: ({
       row: {
         original: { createdBy },
@@ -36,5 +47,9 @@ export const columns: ColumnDef<ItemHistory>[] = [
     }) => {
       return createdBy;
     },
+  },
+  {
+    accessorKey: "description",
+    header: "Açıklama",
   },
 ];

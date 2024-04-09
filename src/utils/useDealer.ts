@@ -20,6 +20,25 @@ export const useCreateDealerMember = () => {
         },
     });
 };
+export const useCreateDealer = () => {
+    const utils = api.useUtils();
+    return api.organization.createDealer.useMutation({
+        onSuccess: async (_d,) => {
+            toast.success("Bayii Oluşturuldu", { id: "org.addDealer" });
+            await utils.dealer.getDealers.invalidate()
+        },
+        onMutate: () => {
+            toast.loading("Bayii Oluşturuluyor", {
+                id: "org.addDealer",
+            });
+        },
+        onError(error) {
+            toast.error(String(error.data?.zodError ?? error.message), {
+                id: "org.addDealer",
+            });
+        },
+    });
+};
 
 export const useDeleteDealerRole = () => {
     const utils = api.useUtils();

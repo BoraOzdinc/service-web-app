@@ -28,6 +28,8 @@ model Dealer {
     org   Org    @relation(fields: [orgId], references: [id], onDelete: Cascade)
     orgId String @db.ObjectId
 
+    priceType PriceType
+
     dealerStorages Storage[]
 
     items        Item[]
@@ -47,6 +49,13 @@ model Dealer {
     @@index([orgId])
 }
 
+enum PriceType {
+    mainDealerPrice
+    dealerPrice
+    multiPrice
+    singlePrice
+}
+
 model DealerMember {
     id     String @id @default(auto()) @map("_id") @db.ObjectId
     user   User   @relation(fields: [userId], references: [id])
@@ -55,9 +64,8 @@ model DealerMember {
     roles   MemberRole[] @relation("asDealerRole", fields: [rolesId], references: [id])
     rolesId String[]     @db.ObjectId
 
-    dealerId    String        @db.ObjectId
-    userId      String        @db.ObjectId
-    ItemHistory ItemHistory[]
+    dealerId String @db.ObjectId
+    userId   String @db.ObjectId
 
     @@unique([userId])
     @@index([dealerId, userId])
@@ -249,14 +257,13 @@ model ItemHistory {
     orgId     String? @db.ObjectId
     createdBy String
 
-    fromStorage    Storage?      @relation("FromStorage", fields: [fromStorageId], references: [id])
-    fromStorageId  String?       @db.ObjectId
-    toStorage      Storage?      @relation("ToStorage", fields: [toStorageId], references: [id])
-    toStorageId    String?       @db.ObjectId
-    Dealer         Dealer?       @relation(fields: [dealerId], references: [id])
-    dealerId       String?       @db.ObjectId
-    DealerMember   DealerMember? @relation(fields: [dealerMemberId], references: [id])
-    dealerMemberId String?       @db.ObjectId
+    fromStorage   Storage? @relation("FromStorage", fields: [fromStorageId], references: [id])
+    fromStorageId String?  @db.ObjectId
+    toStorage     Storage? @relation("ToStorage", fields: [toStorageId], references: [id])
+    toStorageId   String?  @db.ObjectId
+
+    Dealer   Dealer? @relation(fields: [dealerId], references: [id])
+    dealerId String? @db.ObjectId
 
     @@index([itemId])
     @@index([fromStorageId])
@@ -266,6 +273,8 @@ model ItemHistory {
 
 enum ItemHistoryActions {
     AddItem
+    UpdateItem
+    DeleteItem
 }
 
 model ItemAcceptHistory {

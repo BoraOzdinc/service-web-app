@@ -48,6 +48,7 @@ export interface FormInput {
   volume: string;
   isSerialNoRequired: boolean;
   isServiceItem: boolean;
+  description: string;
 }
 
 const NewItem = () => {

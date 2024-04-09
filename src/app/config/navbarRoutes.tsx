@@ -24,6 +24,19 @@ const NavbarRoutes: (session: Session) => {
       ],
     },
     {
+      title: "Müşteriler",
+      children: [
+        {
+          title: "Tüm Müşteriler",
+          route: "/customers",
+          description: "Bütün Müşterilerinizi Görüntüleyin ve Yönetin",
+          isVisible: Boolean(
+            session.user.permissions.includes(PERMS.customers_view),
+          ),
+        },
+      ],
+    },
+    {
       title: "Ürünler",
       children: [
         {
