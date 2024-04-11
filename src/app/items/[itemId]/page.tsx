@@ -1,5 +1,5 @@
 "use client";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import Loader from "~/app/_components/loader";
 import { api } from "~/trpc/server";

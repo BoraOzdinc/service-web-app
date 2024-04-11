@@ -1,9 +1,8 @@
 "use client";
-import { $Enums, AdressType } from "@prisma/client";
-import { Loader2 } from "lucide-react";
-import { Session } from "next-auth";
+import { $Enums } from "@prisma/client";
+import { type Session } from "next-auth";
 import { useSession } from "next-auth/react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { AddressTypes, PriceTypes } from "~/_constants";
 import Loader from "~/app/_components/loader";

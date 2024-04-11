@@ -8,7 +8,6 @@ import {
 } from "../_components/ui/card";
 import { DataTable } from "../_components/tables/generic-table";
 import { columns } from "./components/columns";
-import { useState } from "react";
 import { Button } from "../_components/ui/button";
 import { useSession } from "next-auth/react";
 import { PERMS } from "~/_constants/perms";
