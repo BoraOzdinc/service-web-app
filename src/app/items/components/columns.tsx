@@ -24,7 +24,7 @@ export const columns: ColumnDef<Item>[] = [
     accessorKey: "itemColorId",
     header: "Renk",
     filterFn: (row, id, value: Array<string>) => {
-      return value.includes(row.getValue(id));
+      return value.includes(row.original.color.colorCode);
     },
     cell: ({
       row: {
@@ -40,7 +40,7 @@ export const columns: ColumnDef<Item>[] = [
     accessorKey: "itemSizeId",
     header: "Beden",
     filterFn: (row, id, value: Array<string>) => {
-      return value.includes(row.getValue(id));
+      return value.includes(row.original.size.sizeCode);
     },
     cell: ({
       row: {
@@ -56,7 +56,7 @@ export const columns: ColumnDef<Item>[] = [
     accessorKey: "itemCategoryId",
     header: "Kategori",
     filterFn: (row, id, value: Array<string>) => {
-      return value.includes(row.getValue(id));
+      return value.includes(row.original.category.name);
     },
     cell: ({
       row: {
@@ -72,7 +72,7 @@ export const columns: ColumnDef<Item>[] = [
     accessorKey: "itemBrandId",
     header: "Marka",
     filterFn: (row, id, value: Array<string>) => {
-      return value.includes(row.getValue(id));
+      return value.includes(row.original.brand.name);
     },
     cell: ({
       row: {

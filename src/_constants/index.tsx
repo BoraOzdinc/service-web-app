@@ -4,3 +4,9 @@ export const PriceTypes = [
   { label: "Toptan Fiyatı", value: "multiPrice" },
   { label: "Parakende Fiyatı", value: "singlePrice" },
 ];
+
+export const AddressTypes = {
+  Normal: "Adres",
+  Billing: "Fatura",
+  Shipping: "Kargo",
+};

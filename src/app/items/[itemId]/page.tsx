@@ -54,7 +54,6 @@ const ItemDetail = () => {
   const params = useParams<{ itemId: string }>();
   const itemId = params.itemId.replace(/%.*$/, "");
   const update = useUpdateItem();
-  const router = useRouter();
   const addBarcode = useAddBarcode();
 
   const [barcode, setBarcode] = useState<string>("");
@@ -67,7 +66,6 @@ const ItemDetail = () => {
 
   async function onSubmitForm(data: FormInput) {
     update.mutate({ itemId: itemId, ...data });
-    router.refresh();
   }
 
   if (isItemLoading) {
@@ -194,7 +192,7 @@ const ItemDetail = () => {
               </CardContent>
             </Card>
           </div>
-          {itemData && (
+          {itemData && !update.isLoading && (
             <ItemDetailForm itemData={itemData} onSubmitForm={onSubmitForm} />
           )}
         </TabsContent>

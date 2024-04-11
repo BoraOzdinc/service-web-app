@@ -188,9 +188,9 @@ export const organizationRouter = createTRPCRouter({
 
     createDealer: protectedProcedure.input(z.object({ name: nonEmptyString, price_type: nonEmptyString })).mutation(async ({ ctx, input }) => {
         const priceEnum = z.nativeEnum($Enums.PriceType);
-        type priceEnum = z.infer<typeof priceEnum>;
+        const priceType = priceEnum.parse(input.price_type);
         const userPerms = ctx.session.user.permissions
-        const priceType = priceEnum.parse(input.price_type)
+
         if (!input || !priceType) {
             throw new TRPCError({
                 code: "BAD_REQUEST",

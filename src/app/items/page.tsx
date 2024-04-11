@@ -168,10 +168,10 @@ const Items = () => {
               columnToFilter: "itemBrandId",
               title: "Marka",
               options: [
-                ...new Set(ItemsData.data?.flatMap((i) => i.brand)),
+                ...new Set(ItemsData.data?.flatMap((i) => i.brand.name)),
               ].map((b) => ({
-                label: b.name,
-                value: b.id,
+                label: b,
+                value: b,
               })),
               icon: <TagsIcon className="mr-2 h-5 w-5" />,
             },
@@ -179,32 +179,32 @@ const Items = () => {
               columnToFilter: "itemColorId",
               title: "Renk",
               options: [
-                ...new Set(ItemsData.data?.flatMap((i) => i.color)),
+                ...new Set(ItemsData.data?.flatMap((i) => i.color.colorCode)),
               ].map((b) => ({
-                label: b.colorCode,
-                value: b.id,
+                label: b,
+                value: b,
               })),
               icon: <PaletteIcon className="mr-2 h-5 w-5" />,
             },
             {
               columnToFilter: "itemSizeId",
               title: "Beden",
-              options: [...new Set(ItemsData.data?.flatMap((i) => i.size))].map(
-                (b) => ({
-                  label: b.sizeCode,
-                  value: b.id,
-                }),
-              ),
+              options: [
+                ...new Set(ItemsData.data?.flatMap((i) => i.size.sizeCode)),
+              ].map((b) => ({
+                label: b,
+                value: b,
+              })),
               icon: <RulerIcon className="mr-2 h-5 w-5" />,
             },
             {
               columnToFilter: "itemCategoryId",
               title: "Kategori",
               options: [
-                ...new Set(ItemsData.data?.flatMap((i) => i.category)),
+                ...new Set(ItemsData.data?.flatMap((i) => i.category.name)),
               ].map((b) => ({
-                label: b.name,
-                value: b.id,
+                label: b,
+                value: b,
               })),
               icon: <Layers3Icon className="mr-2 h-5 w-5" />,
             },

@@ -13,17 +13,6 @@ const NavbarRoutes: (session: Session) => {
 }[] = (session: Session) => {
   return [
     {
-      title: "Ana Sayfa",
-      children: [
-        {
-          title: "Anasayfa",
-          route: "/",
-          description: "Uygulama Anasayfası",
-          isVisible: true,
-        },
-      ],
-    },
-    {
       title: "Müşteriler",
       children: [
         {
