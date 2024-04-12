@@ -35,6 +35,17 @@ export const columns: ColumnDef<ItemAcceptHistory>[] = [
     },
   },
   {
+    accessorKey: "from",
+    header: "Kimden",
+    cell({
+      row: {
+        original: { from },
+      },
+    }) {
+      return <div>{`${from.companyName} ${from.name} ${from.surname}`}</div>;
+    },
+  },
+  {
     accessorKey: "storage",
     header: "Depo",
     cell({

@@ -26,10 +26,11 @@ model Customer {
 
     adresses Adress[]
 
-    org      Org?    @relation(fields: [orgId], references: [id])
-    orgId    String? @db.ObjectId
-    dealer   Dealer? @relation("Dealer", fields: [dealerId], references: [id])
-    dealerId String? @db.ObjectId
+    org               Org?                @relation(fields: [orgId], references: [id])
+    orgId             String?             @db.ObjectId
+    dealer            Dealer?             @relation("Dealer", fields: [dealerId], references: [id])
+    dealerId          String?             @db.ObjectId
+    ItemAcceptHistory ItemAcceptHistory[]
 }
 
 model Adress {
@@ -216,13 +217,14 @@ model Item {
 }
 
 model itemBarcode {
-    id       String  @id @default(auto()) @map("_id") @db.ObjectId
-    barcode  String
-    unit     String
-    isMaster Boolean
-    quantity Int
-    item     Item    @relation(fields: [itemId], references: [id])
-    itemId   String  @db.ObjectId
+    id               String             @id @default(auto()) @map("_id") @db.ObjectId
+    barcode          String
+    unit             String
+    isMaster         Boolean
+    quantity         Int
+    item             Item               @relation(fields: [itemId], references: [id])
+    itemId           String             @db.ObjectId
+    ItemAcceptDetail ItemAcceptDetail[]
 
     @@index([itemId])
 }
@@ -329,22 +331,25 @@ model ItemAcceptHistory {
     createDate DateTime @default(now())
 
     items ItemAcceptDetail[]
+    from  Customer           @relation(fields: [customerId], references: [id])
 
     storage   Storage @relation(fields: [storageId], references: [id])
     storageId String  @db.ObjectId
     name      String
 
-    org      Org?    @relation(fields: [orgId], references: [id])
-    orgId    String? @db.ObjectId
-    dealer   Dealer? @relation(fields: [dealerId], references: [id])
-    dealerId String? @db.ObjectId
+    org        Org?    @relation(fields: [orgId], references: [id])
+    orgId      String? @db.ObjectId
+    dealer     Dealer? @relation(fields: [dealerId], references: [id])
+    dealerId   String? @db.ObjectId
+    customerId String  @db.ObjectId
 }
 
 model ItemAcceptDetail {
-    id       String @id @default(auto()) @map("_id") @db.ObjectId
-    item     Item   @relation(fields: [itemId], references: [id])
-    itemId   String @db.ObjectId
-    quantity Int
+    id          String      @id @default(auto()) @map("_id") @db.ObjectId
+    item        Item        @relation(fields: [itemId], references: [id])
+    itemId      String      @db.ObjectId
+    itemBarcode itemBarcode @relation(fields: [itemBarcodeId], references: [id])
+    quantity    Int
 
     ItemAcceptHistory   ItemAcceptHistory? @relation(fields: [itemAcceptHistoryId], references: [id])
     itemAcceptHistoryId String?            @db.ObjectId
@@ -352,6 +357,7 @@ model ItemAcceptDetail {
     dealerId            String?            @db.ObjectId
     Org                 Org?               @relation(fields: [orgId], references: [id])
     orgId               String?            @db.ObjectId
+    itemBarcodeId       String             @db.ObjectId
 }
 
 model Org {

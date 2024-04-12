@@ -10,7 +10,6 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import { useState, type Dispatch, type SetStateAction } from "react";
-import toast from "react-hot-toast";
 import { Input } from "./ui/input";
 import { ScanBarcodeIcon } from "lucide-react";
 
@@ -45,7 +44,6 @@ const BarcodeScanner = ({
           }}
           onUpdate={(err, result) => {
             if (result) {
-              toast.success(`Barkod: ${result.getText()}`);
               setData(result.getText());
               setOpen(!open);
             }

@@ -10,6 +10,8 @@ export type Item = RouterOutputs["items"]["getItems"][number]
 
 export type ItemWithId = RouterOutputs["items"]["getItemWithId"]
 
+export type ItemWithBarcode = RouterOutputs["items"]["getItemWithBarcode"]
+
 export type Storage = RouterOutputs["items"]["getStorages"][number]
 
 export type ItemHistory = RouterOutputs["items"]["getItemWithId"]["ItemHistory"][number]

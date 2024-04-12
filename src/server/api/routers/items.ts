@@ -117,7 +117,9 @@ export const itemsRouter = createTRPCRouter({
                     where: { dealerId: input.dealerId, itemBarcode: { some: { barcode: input.barcode } } },
                     include: {
                         ItemStock: { select: { stock: true, storage: true } },
-                        itemBarcode: true
+                        itemBarcode: true,
+                        color: true,
+                        size: true
                     }
                 })
             }
@@ -132,8 +134,9 @@ export const itemsRouter = createTRPCRouter({
                     where: { orgId: input.orgId, itemBarcode: { some: { barcode: input.barcode } } },
                     include: {
                         ItemStock: { select: { stock: true, storage: true } },
-                        itemBarcode: true
-
+                        itemBarcode: true,
+                        color: true,
+                        size: true
                     },
 
                 })
@@ -885,17 +888,21 @@ export const itemsRouter = createTRPCRouter({
         .input(
             /* {
                 storageId:string
+                fromCustomerId:string
                 items:[
                     {
                         itemId:string,
+                        barcode:string
                         quantity:number
                     }
                 ]
             }*/
             z.object({
                 storageId: nonEmptyString,
+                fromCustomerId: nonEmptyString,
                 items: z.object({
                     itemId: nonEmptyString,
+                    barcode: nonEmptyString,
                     quantity: z.number().min(1),
                 }).array().min(1)
             }))
@@ -923,7 +930,8 @@ export const itemsRouter = createTRPCRouter({
                             { dealerId: ctx.session.user.dealerId }]
                     },
                     { id: input.storageId }]
-                }
+                },
+                include: { ItemStock: { include: { item: true } } }
             })
             if (!storage) {
                 throw new TRPCError({
@@ -931,28 +939,62 @@ export const itemsRouter = createTRPCRouter({
                     message: "You don't have permission to do this!",
                 });
             }
-            const itemStocks = await ctx.db.itemStock.createMany({
-                data: input.items.map((i) => ({ itemId: i.itemId, stock: i.quantity, storageId: storage.id })),
-
-            })
-
             const history = await ctx.db.itemAcceptHistory.create({
                 data: {
                     orgId: ctx.session.user.orgId,
                     dealerId: ctx.session.user.dealerId,
                     name: ctx.session.user.name ?? ctx.session.user.email ?? "Bilinmeyen Kullanıcı",
                     storageId: storage.id,
+                    customerId: input.fromCustomerId
                 }
             })
-            await ctx.db.itemAcceptDetail.createMany({
-                data: input.items.map(i => ({
-                    itemId: i.itemId,
-                    itemAcceptHistoryId: history.id,
-                    quantity: i.quantity,
-                }))
+            input.items.map(async (i) => {
+                const existingItemStock = await ctx.db.itemStock.findFirst({
+                    where: {
+                        AND: [{
+                            OR: [
+                                { item: { id: ctx.session.user.orgId } },
+                                { item: { id: ctx.session.user.dealerId } }]
+                        },
+                        { itemId: i.itemId }]
+                    }
+                })
+                const barcodeDetails = await ctx.db.itemBarcode.findFirst({
+                    where: {
+                        AND: [{ barcode: i.barcode },
+                        {
+                            OR: [
+                                { item: { orgId: ctx.session.user.orgId } },
+                                { item: { dealerId: ctx.session.user.dealerId } }
+                            ]
+                        }]
+                    }
+                })
+
+                if (!barcodeDetails) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
+                if (existingItemStock) {
+                    console.log("BRUHHH CMONN");
+
+                    await ctx.db.itemStock.update({ where: { id: existingItemStock.id }, data: { stock: (i.quantity * barcodeDetails.quantity) + existingItemStock.stock } })
+                } else {
+                    await ctx.db.itemStock.create({ data: { itemId: i.itemId, stock: i.quantity * barcodeDetails.quantity, storageId: storage.id } })
+                }
+                await ctx.db.itemAcceptDetail.create({
+                    data: {
+                        itemId: i.itemId,
+                        itemAcceptHistoryId: history.id,
+                        itemBarcodeId: barcodeDetails.id,
+                        quantity: i.quantity,
+                    }
+                })
 
             })
-            return itemStocks
+            return history
         }),
     getItemAcceptHistory: protectedProcedure.query(async ({ ctx }) => {
         const userPerms = ctx.session.user.permissions
@@ -971,7 +1013,7 @@ export const itemsRouter = createTRPCRouter({
                 ]
             },
             orderBy: { createDate: "desc" },
-            include: { items: { include: { item: true } }, storage: true }
+            include: { items: { include: { item: true } }, storage: true, from: { select: { companyName: true, name: true, surname: true } } }
         })
     })
 });

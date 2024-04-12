@@ -3,6 +3,7 @@ import { api } from "~/trpc/server";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "../_components/ui/card";
@@ -20,7 +21,13 @@ const Customers = () => {
   return (
     <Card className="w-full">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Müşteri Listesi</CardTitle>
+        <div>
+          <CardTitle>Müşteri Listesi</CardTitle>
+          <CardDescription>
+            Müşteri Detayı için istediğiniz müşteriye tıklayın
+          </CardDescription>
+        </div>
+
         {session?.user.permissions.includes(PERMS.manage_customers) ? (
           <Button onClick={() => router.push("/customers/new")}>
             Yeni Müşteri
