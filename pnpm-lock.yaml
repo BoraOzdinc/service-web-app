@@ -91,6 +91,9 @@ dependencies:
   '@use-symbology-scanner/react':
     specifier: ^1.0.3
     version: 1.0.3(react@18.2.0)
+  '@vercel/analytics':
+    specifier: ^1.2.2
+    version: 1.2.2(next@14.0.4)(react@18.2.0)
   '@vercel/speed-insights':
     specifier: ^1.0.10
     version: 1.0.10(next@14.0.4)(react@18.2.0)
@@ -2262,6 +2265,22 @@ packages:
     dependencies:
       '@use-symbology-scanner/core': 1.0.3
       react: 18.2.0
+    dev: false
+
+  /@vercel/analytics@1.2.2(next@14.0.4)(react@18.2.0):
+    resolution: {integrity: sha512-X0rctVWkQV1e5Y300ehVNqpOfSOufo7ieA5PIdna8yX/U7Vjz0GFsGf4qvAhxV02uQ2CVt7GYcrFfddXXK2Y4A==}
+    peerDependencies:
+      next: '>= 13'
+      react: ^18 || ^19
+    peerDependenciesMeta:
+      next:
+        optional: true
+      react:
+        optional: true
+    dependencies:
+      next: 14.0.4(@babel/core@7.24.4)(react-dom@18.2.0)(react@18.2.0)
+      react: 18.2.0
+      server-only: 0.0.1
     dev: false
 
   /@vercel/speed-insights@1.0.10(next@14.0.4)(react@18.2.0):

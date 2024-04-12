@@ -19,6 +19,7 @@ import { Toaster } from "react-hot-toast";
 import NextAuthProvider from "./context/NextAuthProvider";
 import NavbarRoutes from "./config/navbarRoutes";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/react";
 
 const inter = Poppins({
   weight: "400",
@@ -99,6 +100,7 @@ export default async function RootLayout({
             </div>
           </TRPCReactProvider>
         </NextAuthProvider>
+        <Analytics />
         <SpeedInsights />
       </body>
     </html>
