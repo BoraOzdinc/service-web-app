@@ -41,7 +41,15 @@ const NavbarRoutes: (session: Session) => {
           route: "/items/item-accept",
           description: "Ürün Kabul işlemleri.",
           isVisible: Boolean(
-            session.user.permissions.includes(PERMS.item_view),
+            session.user.permissions.includes(PERMS.item_accept_history_view),
+          ),
+        },
+        {
+          title: "Ürün Sevk/Satış",
+          route: "/items/item-sell",
+          description: "Ürün Sevk Edin veya Satın.",
+          isVisible: Boolean(
+            session.user.permissions.includes(PERMS.item_sell_history_view),
           ),
         },
         {

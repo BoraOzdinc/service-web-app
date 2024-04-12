@@ -19,7 +19,7 @@ const ItemAccept = () => {
   const { data: itemAcceptHistory, isLoading } =
     api.items.getItemAcceptHistory.useQuery();
   return (
-    <Card className="flex w-full flex-col">
+    <Card className="flex w-full flex-col overflow-x-auto">
       <CardHeader className="flex flex-row items-center justify-between">
         <div className="flex flex-col gap-1">
           <CardTitle>Ürün Kabul</CardTitle>
@@ -40,19 +40,6 @@ const ItemAccept = () => {
           isLoading={isLoading}
           datePicker={{ title: "Tarih", columnToFilter: "createDate" }}
         />
-        {/* <Button
-          onClick={() => {
-            itemAccept.mutate({
-              storageId: "66094a2ddf148de746eb48b0",
-              items: [
-                { itemId: "6609c21f2933c908d501fdd9", quantity: 3 },
-                { itemId: "6609c2ed2933c908d501fddc", quantity: 2 },
-              ],
-            });
-          }}
-        >
-          Test Kabul
-        </Button> */}
       </CardContent>
     </Card>
   );

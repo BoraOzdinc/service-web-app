@@ -77,11 +77,17 @@ export const columns: ColumnDef<ItemAcceptHistory>[] = [
               <PackageIcon className="h-4 w-4" />
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="flex w-full flex-col overflow-x-auto">
             <DialogHeader>
               <DialogTitle>Ürünler</DialogTitle>
             </DialogHeader>
-            <DataTable data={items} columns={itemsColumns} isLoading={!items} />
+            <div className="w-full">
+              <DataTable
+                data={items}
+                columns={itemsColumns}
+                isLoading={!items}
+              />
+            </div>
           </DialogContent>
         </Dialog>
       );
@@ -101,6 +107,28 @@ const itemsColumns: ColumnDef<ItemAcceptHistory["items"][number]>[] = [
       },
     }) {
       return name;
+    },
+  },
+  {
+    accessorKey: "itemBarcode",
+    header: "Barkod",
+    cell({
+      row: {
+        original: { itemBarcode },
+      },
+    }) {
+      return itemBarcode.barcode;
+    },
+  },
+  {
+    accessorKey: "itemBarcode",
+    header: "Birim/Adet",
+    cell({
+      row: {
+        original: { itemBarcode },
+      },
+    }) {
+      return `${itemBarcode.unit} / ${itemBarcode.quantity}`;
     },
   },
   {

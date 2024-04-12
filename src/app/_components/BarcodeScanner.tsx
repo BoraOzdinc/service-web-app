@@ -52,6 +52,8 @@ const BarcodeScanner = ({
         <Input
           type="number"
           placeholder="Barkod"
+          inputMode="numeric"
+          autoFocus={false}
           value={barcode}
           onChange={(e) => setBarcode(e.target.value)}
         />

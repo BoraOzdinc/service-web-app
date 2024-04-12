@@ -17,6 +17,8 @@ export const PERMS = {
     manage_items: "MANAGE_ITEMS",
     item_accept: "ACCEPT_ITEMS",
     item_accept_history_view: "ACCEPT_ITEMS_VIEW",
+    item_sell: "SELL_ITEMS",
+    item_sell_history_view: "SELL_ITEMS_VIEW",
     customers_view: "CUSTOMERS_VIEW",
     manage_customers: "MANAGE_CUSTOMERS"
 } as const;

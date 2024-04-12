@@ -354,6 +354,7 @@ const ItemCard = ({
               <Label>Adet</Label>
               <Input
                 placeholder="Adet"
+                inputMode="numeric"
                 name="update-quantity-input"
                 defaultValue={String(quantity)}
                 onChange={(e) => {
@@ -506,6 +507,7 @@ const AddItemDialog = ({
           <Label>Adet</Label>
           <Input
             type="number"
+            inputMode="numeric"
             disabled={!item}
             value={quantity}
             onChange={(e) => {

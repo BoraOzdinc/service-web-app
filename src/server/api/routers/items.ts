@@ -1013,7 +1013,14 @@ export const itemsRouter = createTRPCRouter({
                 ]
             },
             orderBy: { createDate: "desc" },
-            include: { items: { include: { item: true } }, storage: true, from: { select: { companyName: true, name: true, surname: true } } }
+            include: {
+                items: {
+                    include: { item: true, itemBarcode: true }
+                },
+
+                storage: true,
+                from: { select: { companyName: true, name: true, surname: true } }
+            }
         })
     })
 });
