@@ -7,6 +7,8 @@ export type getCustomerType = RouterOutputs["customer"]["getCustomers"][number]
 
 export type customerById = RouterOutputs["customer"]["getCustomerWithId"]
 
+export type customerTransaction = RouterOutputs["customer"]["getCustomerTransactions"][number]
+
 export const useCreateCustomer = () => {
     const router = useRouter()
     return api.customer.addCustomer.useMutation({

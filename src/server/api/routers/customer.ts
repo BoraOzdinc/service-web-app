@@ -78,7 +78,8 @@ export const customerRouter = createTRPCRouter({
           { orgId: ctx.session.user.orgId },
           { dealerId: ctx.session.user.dealerId }
         ]
-      }
+      },
+      include: { connectedDealer: true }
     })
   }),
   getCustomerWithId: protectedProcedure.input(nonEmptyString).query(async ({ input, ctx }) => {
@@ -180,5 +181,25 @@ export const customerRouter = createTRPCRouter({
     }
 
     return await ctx.db.adress.delete({ where: { id: input } })
+  }),
+  getCustomerTransactions: protectedProcedure.input(nonEmptyString).query(async ({ ctx, input }) => {
+    const userPerms = ctx.session.user.permissions
+
+    if (!userPerms.includes(PERMS.customers_view)) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "You don't have permission to do this!",
+      });
+    }
+
+    return await ctx.db.transaction.findMany({
+      where: { customerId: input },
+      include: {
+        boughtItems: { include: { item: { include: { itemBarcode: true } } } },
+        ItemSellHistory: true,
+        storage: { select: { name: true } }
+      },
+      orderBy: { createDate: "desc" }
+    })
   })
 });

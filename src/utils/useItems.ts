@@ -18,6 +18,14 @@ export type ItemHistory = RouterOutputs["items"]["getItemWithId"]["ItemHistory"]
 
 export type ItemAcceptHistory = RouterOutputs["items"]["getItemAcceptHistory"][number]
 
+export type ItemSellHistory = RouterOutputs["items"]["getItemSellHistory"][number]
+
+
+export const transactionTypes = {
+    "Sale": "Satış",
+    "Cancel": "İptal",
+    "Return": "İade"
+}
 
 export const useAddItem = () => {
     const utils = api.useUtils();
@@ -226,6 +234,25 @@ export const useItemAccept = () => {
         onError(error) {
             toast.error(String(error.data?.zodError ?? error.message), {
                 id: "item.itemAccept",
+            });
+        },
+    });
+};
+export const useItemSell = () => {
+    const utils = api.useUtils();
+    return api.items.itemSell.useMutation({
+        onSuccess: async (_d,) => {
+            toast.success("Satış Yapıldı", { id: "item.itemSell" });
+            await utils.items.getItemSellHistory.invalidate();
+        },
+        onMutate: () => {
+            toast.loading("Satış Yapılıyor...", {
+                id: "item.itemSell",
+            });
+        },
+        onError(error) {
+            toast.error(String(error.data?.zodError ?? error.message), {
+                id: "item.itemSell",
             });
         },
     });

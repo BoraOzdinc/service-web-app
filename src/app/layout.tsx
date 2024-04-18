@@ -46,6 +46,9 @@ export default async function RootLayout({
   const isAnyOrg = session?.user.orgId ?? session?.user.dealerId;
   return (
     <html lang="en">
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+      </head>
       <body className={`font-sans ${inter.className}`}>
         <NextAuthProvider session={session}>
           <Toaster />

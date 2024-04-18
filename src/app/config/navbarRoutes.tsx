@@ -61,6 +61,16 @@ const NavbarRoutes: (session: Session) => {
             session.user.permissions.includes(PERMS.item_setting_view),
           ),
         },
+        {
+          title: "Ürün Sayımı",
+          route: "/items/counter",
+          description:
+            "Deponuzdaki ürünlerin sayımını yapın. eksik veya fazla ürünleri tespit edin.",
+          isVisible: Boolean(
+            session.user.permissions.includes(PERMS.item_view) &&
+              session.user.permissions.includes(PERMS.manage_storage),
+          ),
+        },
       ],
     },
     {

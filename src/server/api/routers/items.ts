@@ -2,6 +2,7 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { PERMS } from "../../../_constants/perms"
+import { $Enums } from "@prisma/client";
 
 
 export const nonEmptyString = z.string().trim().min(1).max(150);
@@ -25,6 +26,25 @@ const addItemSchema = z.object({
     netWeight: z.string().optional(),
     volume: z.string().optional(),
 });
+
+const itemSellSchema = z.object({
+    storageId: nonEmptyString,
+    customerId: nonEmptyString,
+    discount: z.number(),
+    totalPayAmount: z.number(),
+    priceToPay: z.number(),
+    selectedPriceType: z.nativeEnum($Enums.PriceType).optional(),
+    exchangeRate: z.number().optional(),
+    transferToDealer: z.boolean(),
+    paidAmount: z.number(),
+    saleCancel: z.boolean(),
+    items: z.array(z.object({
+        itemId: z.string(),
+        price: z.string().optional(),
+        barcode: nonEmptyString,
+        totalAdded: z.number(),
+    }))
+})
 
 export const itemsRouter = createTRPCRouter({
     getItems: protectedProcedure
@@ -947,14 +967,14 @@ export const itemsRouter = createTRPCRouter({
                     storageId: storage.id,
                     customerId: input.fromCustomerId
                 }
-            })
+            });
             input.items.map(async (i) => {
                 const existingItemStock = await ctx.db.itemStock.findFirst({
                     where: {
                         AND: [{
                             OR: [
-                                { item: { id: ctx.session.user.orgId } },
-                                { item: { id: ctx.session.user.dealerId } }]
+                                { item: { orgId: ctx.session.user.orgId } },
+                                { item: { dealerId: ctx.session.user.dealerId } }]
                         },
                         { itemId: i.itemId }]
                     }
@@ -978,8 +998,6 @@ export const itemsRouter = createTRPCRouter({
                     });
                 }
                 if (existingItemStock) {
-                    console.log("BRUHHH CMONN");
-
                     await ctx.db.itemStock.update({ where: { id: existingItemStock.id }, data: { stock: (i.quantity * barcodeDetails.quantity) + existingItemStock.stock } })
                 } else {
                     await ctx.db.itemStock.create({ data: { itemId: i.itemId, stock: i.quantity * barcodeDetails.quantity, storageId: storage.id } })
@@ -1022,5 +1040,108 @@ export const itemsRouter = createTRPCRouter({
                 from: { select: { companyName: true, name: true, surname: true } }
             }
         })
-    })
+    }),
+    getItemSellHistory: protectedProcedure.query(async ({ ctx }) => {
+        const userPerms = ctx.session.user.permissions
+
+        if (!userPerms.includes(PERMS.item_sell_history_view)) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
+        }
+        return await ctx.db.itemSellHistory.findMany({
+            where: {
+                OR: [
+                    { orgId: ctx.session.user.orgId },
+                    { dealerId: ctx.session.user.dealerId }
+                ]
+            },
+            orderBy: { createDate: "desc" },
+            include: {
+                connectedTransaction: true,
+                items: { include: { item: { include: { itemBarcode: true } } } },
+                to: true,
+                storage: true
+            }
+        })
+    }),
+    itemSell: protectedProcedure.input(itemSellSchema).mutation(async ({ input, ctx }) => {
+        const userPerms = ctx.session.user.permissions
+
+        if (!userPerms.includes(PERMS.item_sell)) {
+
+        }
+        const customer = await ctx.db.customer.findUnique({ where: { id: input.customerId } })
+        if (!customer) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
+        }
+        const storage = await ctx.db.storage.findUnique({ where: { id: input.storageId } })
+        if (!storage) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
+        }
+        const priceEnum = z.nativeEnum($Enums.PriceType);
+        const priceType = priceEnum.parse(input.selectedPriceType);
+
+        if (!input.saleCancel) {
+            input.items.map(async (i) => {
+                const itemStock = await ctx.db.itemStock.findFirst({ where: { itemId: i.itemId, storageId: storage.id } })
+                if (!itemStock) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
+                const remainingStock = itemStock.stock - i.totalAdded
+                if (remainingStock < 0) {
+                    throw new TRPCError({
+                        code: "BAD_REQUEST",
+                        message: "Deponuzdaki Ürünler Yeterli Değil",
+                    });
+                }
+                await ctx.db.itemStock.update({ where: { id: itemStock?.id }, data: { stock: remainingStock } })
+            })
+        }
+
+        const transaction = await ctx.db.transaction.create({
+            data: {
+                dealerId: input.transferToDealer ? customer.connectedDealerId : null,
+                customerId: customer.id,
+                discount: String(input.discount),
+                exchangeRate: String(input.exchangeRate),
+                priceType: priceType,
+                storageId: input.storageId,
+                totalAmount: String(input.totalPayAmount),
+                transactionType: input.saleCancel ? "Cancel" : "Sale",
+                payAmount: String(input.paidAmount),
+                boughtItems: { createMany: { data: input.items.map(i => ({ itemId: i.itemId, price: i.price, quantity: i.totalAdded })) } }
+            }
+        })
+        const sellHistory = await ctx.db.itemSellHistory.create({
+            data: {
+                name: ctx.session.user.name ?? ctx.session.user.email ?? "Bilinmeyen Kullanıcı",
+                customerId: customer.id,
+                orgId: ctx.session.user.orgId,
+                dealerId: ctx.session.user.dealerId,
+                storageId: storage.id,
+                transactionType: input.saleCancel ? "Cancel" : "Sale",
+                transactionId: transaction.id,
+                items: {
+                    createMany: {
+                        data: input.items.map(i => {
+                            return { itemId: i.itemId, quantity: i.totalAdded }
+                        })
+                    }
+                }
+            }
+        })
+        return [transaction, sellHistory]
+    }),
+
 });

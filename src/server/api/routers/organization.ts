@@ -207,7 +207,7 @@ export const organizationRouter = createTRPCRouter({
             }
             const dealer = await ctx.db.dealer.create({ data: { name: input.name, orgId: ctx.session.user.orgId, priceType: priceType } })
             const permissions = await ctx.db.memberPermission.findMany({ where: { assignableTo: { has: "Dealer" } } })
-            await ctx.db.memberRole.create({ data: { name: "Bayii Yöneticisi", dealerId: dealer.id, permissionIds: permissions.map(p => p.id) } })
+            await ctx.db.memberRole.create({ data: { name: "Bayii Yöneticisi", dealerId: dealer.id, permissions: { connect: permissions.map(p => ({ id: p.id })) } } })
             return dealer
         }
         throw new TRPCError({
@@ -261,7 +261,7 @@ export const organizationRouter = createTRPCRouter({
                 });
             }
             return await ctx.db.memberRole.create({
-                data: { orgId: input.orgId, name: input.roleName, permissionIds: input.permIds }
+                data: { orgId: input.orgId, name: input.roleName, permissions: { connect: input.permIds.map(p => ({ id: p })) } }
             })
         }),
     deleteOrgRole: protectedProcedure.input(z.object(

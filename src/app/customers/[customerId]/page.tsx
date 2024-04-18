@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { AddressTypes, PriceTypes } from "~/_constants";
 import Loader from "~/app/_components/loader";
+import { DataTable } from "~/app/_components/tables/generic-table";
 import { Badge } from "~/app/_components/ui/badge";
 import { Button } from "~/app/_components/ui/button";
 import {
@@ -53,6 +54,8 @@ import {
   useUpdateCustomer,
   type customerById,
 } from "~/utils/useCustomers";
+import { customerTransactionColumns } from "./components/customerTransactionColumns";
+import { transactionTypes } from "~/utils/useItems";
 
 interface FormInput {
   companyName: string;
@@ -83,6 +86,8 @@ const CustomerDetail = () => {
   const { data: session } = useSession();
   const { data: customer, isLoading } =
     api.customer.getCustomerWithId.useQuery(customerId);
+  const { data: customerTransactions } =
+    api.customer.getCustomerTransactions.useQuery(customerId);
 
   const updateCustomer = useUpdateCustomer();
 
@@ -166,7 +171,24 @@ const CustomerDetail = () => {
             <CardHeader>
               <CardTitle>Müşteri Carisi</CardTitle>
             </CardHeader>
-            <CardContent></CardContent>
+            <CardContent>
+              <DataTable
+                data={customerTransactions ?? []}
+                columns={customerTransactionColumns}
+                columnFilter={[
+                  {
+                    columnToFilter: "transactionType",
+                    title: "Satış Tipi",
+                    options: [
+                      { label: "Satış", value: "Sale" },
+                      { label: "İptal", value: "Cancel" },
+                      { label: "İade", value: "Return" },
+                    ],
+                  },
+                ]}
+                datePicker={{ columnToFilter: "createDate", title: "Tarih" }}
+              />
+            </CardContent>
           </Card>
         </TabsContent>
       </Tabs>

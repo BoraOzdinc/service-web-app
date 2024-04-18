@@ -8,13 +8,11 @@ import {
   CardTitle,
 } from "~/app/_components/ui/card";
 import { api } from "~/trpc/server";
-//import { useItemAccept } from "~/utils/useItems";
 import { columns as itemAcceptHistoryColumns } from "./components/itemAcceptListColumns";
 import { Button } from "~/app/_components/ui/button";
 import { useRouter } from "next/navigation";
 
 const ItemAccept = () => {
-  //const itemAccept = useItemAccept();
   const router = useRouter();
   const { data: itemAcceptHistory, isLoading } =
     api.items.getItemAcceptHistory.useQuery();

@@ -47,7 +47,6 @@ export const RoleCreateOrUpdateModal = ({
     name: string;
     description: string;
     assignableTo: $Enums.MemberType[];
-    MemberRoleIds: string[];
   }[];
   roleId: string;
   dealerId: string;

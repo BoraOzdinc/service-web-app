@@ -45,6 +45,7 @@ import {
 } from "lucide-react";
 import { useDebounce } from "@uidotdev/usehooks";
 import { isValidEmail } from "~/utils";
+import { dealerTransactionsColumns } from "./components/dealerTransactionsColumns";
 
 const DealerDetails = () => {
   const params = useParams<{ dealerId: string }>();
@@ -75,11 +76,13 @@ const DealerDetails = () => {
           session?.user.permissions.includes(PERMS.item_view)),
     },
   );
-
+  const dealerTransactions = api.dealer.getDealerTransactions.useQuery(
+    params.dealerId,
+    { enabled: session?.user.permissions.includes(PERMS.dealers_view) },
+  );
   const memberColumns = useMemo(() => {
     return dealerMemberColumns(dealerRoles.data);
   }, [dealerRoles]);
-
   return (
     <div className="w-full">
       <CardHeader>
@@ -101,7 +104,9 @@ const DealerDetails = () => {
               session?.user.permissions.includes(PERMS.item_view))) && (
             <TabsTrigger value="items">Ürünler</TabsTrigger>
           )}
-          <TabsTrigger value="history">Geçmiş</TabsTrigger>
+          {session?.user.permissions.includes(PERMS.dealers_view) && (
+            <TabsTrigger value="customerHistory">Müşteri Geçmişi</TabsTrigger>
+          )}
         </TabsList>
         <TabsContent value="members">
           <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
@@ -274,9 +279,33 @@ const DealerDetails = () => {
             </Card>
           </TabsContent>
         )}
-        <TabsContent value={"history"}>
-          <p>Work In Progress</p>
-        </TabsContent>
+        {session?.user.permissions.includes(PERMS.dealers_view) && (
+          <TabsContent value={"customerHistory"}>
+            <Card>
+              <CardHeader>
+                <CardTitle>Bayii Müşterileri Geçmişi</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <DataTable
+                  data={dealerTransactions.data}
+                  columns={dealerTransactionsColumns}
+                  columnFilter={[
+                    {
+                      columnToFilter: "transactionType",
+                      title: "Satış Tipi",
+                      options: [
+                        { label: "Satış", value: "Sale" },
+                        { label: "İptal", value: "Cancel" },
+                        { label: "İade", value: "Return" },
+                      ],
+                    },
+                  ]}
+                  datePicker={{ columnToFilter: "createDate", title: "Tarih" }}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

@@ -153,6 +153,14 @@ export function DataTable<TData, TValue>({
             />
           </div>
         )}
+        {datePicker && (
+          <DataTableFilter
+            column={table.getColumn(datePicker.columnToFilter)}
+            title={datePicker.title}
+            date={date}
+            setDate={setDate}
+          />
+        )}
         {columnFilter?.map((a) => {
           return (
             <DataTableFacetedFilter
@@ -164,14 +172,7 @@ export function DataTable<TData, TValue>({
             />
           );
         })}
-        {datePicker && (
-          <DataTableFilter
-            column={table.getColumn(datePicker.columnToFilter)}
-            title={datePicker.title}
-            date={date}
-            setDate={setDate}
-          />
-        )}
+
         {isFiltered && (
           <Button
             variant="ghost"

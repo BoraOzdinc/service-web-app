@@ -1,5 +1,9 @@
 import toast from "react-hot-toast";
 import { api } from "~/trpc/server";
+import { type RouterOutputs } from "~/trpc/shared";
+
+
+export type getDealerTransactions = RouterOutputs["dealer"]["getDealerTransactions"][number]
 
 export const useCreateDealerMember = () => {
     const utils = api.useUtils();
