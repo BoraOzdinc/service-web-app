@@ -49,35 +49,19 @@ export const authOptions: NextAuthOptions = {
         session.user.dealerId = undefined
         session.user.orgId = undefined
 
-        const orgMember = await db.orgMember.findUnique({
+        const member = await db.member.findUnique({
           where: { userId: session.user.id ?? user.id },
           include: {
             roles: { include: { permissions: true } },
           },
         });
-        if (orgMember) {
-          const orgMemberPermissions = orgMember.roles.flatMap((role) =>
+        if (member) {
+          const memberPermissions = member.roles.flatMap((role) =>
             role.permissions.map((p) => p.name),
           );
-          session.user.permissions = orgMemberPermissions
-          session.user.orgId = orgMember.orgId
-        }
-        const dealerMember = await db.dealerMember.findFirst({
-          where: { userId: session.user.id ?? user.id },
-          include: {
-            roles: { include: { permissions: true } },
-            dealer: { include: { dealerStorages: true } },
-            user: true
-          },
-        });
-        console.log(dealerMember);
-
-        if (dealerMember) {
-          const dealerMemberPermissions = dealerMember.roles.flatMap((role) =>
-            role.permissions.map((p) => p.name),
-          );
-          session.user.permissions = dealerMemberPermissions
-          session.user.dealerId = dealerMember.dealerId
+          session.user.permissions = memberPermissions
+          session.user.orgId = member.orgId ?? undefined
+          session.user.dealerId = member.dealerId ?? undefined
         }
 
         session.user.id = user.id;

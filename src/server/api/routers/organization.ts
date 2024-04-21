@@ -43,7 +43,7 @@ export const organizationRouter = createTRPCRouter({
         }
         return await ctx.db.memberRole.findMany({
             where: { orgId: input.orgId },
-            include: { permissions: true, OrgMembers: { include: { user: true } } }
+            include: { permissions: true, members: { include: { user: true } } }
         })
     }),
     updateOrgMember: protectedProcedure
@@ -76,7 +76,7 @@ export const organizationRouter = createTRPCRouter({
                     message: "You don't have permission to do this!",
                 });
             }
-            return await ctx.db.orgMember.update({
+            return await ctx.db.member.update({
                 where: { id: input.orgMemberId },
                 data: { roles: { set: input.roleIds.map(r => ({ id: r })) } },
 
@@ -90,7 +90,7 @@ export const organizationRouter = createTRPCRouter({
                     message: "Invalid Payload",
                 });
             }
-            const member = await ctx.db.orgMember.findUnique({ where: { userId: ctx.session.user.id } })
+            const member = await ctx.db.member.findUnique({ where: { userId: ctx.session.user.id } })
             if (member?.id === input.memberId) {
 
                 throw new TRPCError({
@@ -106,7 +106,7 @@ export const organizationRouter = createTRPCRouter({
                     message: "You don't have permission to do this!",
                 });
             }
-            return await ctx.db.orgMember.delete({ where: { id: input.memberId } })
+            return await ctx.db.member.delete({ where: { id: input.memberId } })
         }),
     getOrgMembers: protectedProcedure.input(z.object({ orgId: nonEmptyString })).query(async ({ ctx, input }) => {
         if (!input) {
@@ -125,7 +125,7 @@ export const organizationRouter = createTRPCRouter({
                 message: "You don't have permission to do this!",
             });
         }
-        return await ctx.db.orgMember.findMany({
+        return await ctx.db.member.findMany({
             where: { orgId: input.orgId },
             include: { user: true, roles: true }
         })
@@ -155,7 +155,7 @@ export const organizationRouter = createTRPCRouter({
                     });
                 }
                 try {
-                    return await ctx.db.orgMember.create({ data: { orgId: input.orgId, userId: invitedUser.id } })
+                    return await ctx.db.member.create({ data: { orgId: input.orgId, userId: invitedUser.id } })
                 } catch {
                     throw new TRPCError({
                         code: "BAD_REQUEST",
@@ -171,7 +171,7 @@ export const organizationRouter = createTRPCRouter({
                     });
                 }
                 try {
-                    return await ctx.db.dealerMember.create({ data: { dealerId: input.dealerId, userId: invitedUser.id } })
+                    return await ctx.db.member.create({ data: { dealerId: input.dealerId, userId: invitedUser.id } })
                 } catch {
                     throw new TRPCError({
                         code: "BAD_REQUEST",

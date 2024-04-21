@@ -136,7 +136,7 @@ export const dealerRouter = createTRPCRouter({
                 message: "You don't have permission to do this!",
             });
         }
-        return await ctx.db.dealerMember.findMany({
+        return await ctx.db.member.findMany({
             where: { dealerId: input },
             include: { user: true, roles: true, dealer: true }
         })
@@ -152,7 +152,7 @@ export const dealerRouter = createTRPCRouter({
                 message: "You don't have permission to do this!",
             });
         }
-        return await ctx.db.dealerMember.findMany({
+        return await ctx.db.member.findMany({
             where: { dealerId: input },
             include: { user: true, roles: true }
         })
@@ -186,7 +186,7 @@ export const dealerRouter = createTRPCRouter({
         }
         return await ctx.db.memberRole.findMany({
             where: { dealerId: input },
-            include: { permissions: true, DealerMembers: { include: { user: true } } }
+            include: { permissions: true, members: { include: { user: true } } }
         })
     }),
     getDealerPerms: protectedProcedure.query(async ({ ctx }) => {
@@ -229,7 +229,7 @@ export const dealerRouter = createTRPCRouter({
                     message: "You don't have permission to do this!",
                 });
             }
-            return await ctx.db.dealerMember.update({
+            return await ctx.db.member.update({
                 where: { id: input.dealerMemberId },
                 data: { roles: { set: input.roleIds.map(r => ({ id: r })) } },
 
@@ -250,14 +250,14 @@ export const dealerRouter = createTRPCRouter({
                     message: "You don't have permission to do this!",
                 });
             }
-            const member = await ctx.db.dealerMember.findUnique({ where: { id: input.memberId } })
+            const member = await ctx.db.member.findUnique({ where: { id: input.memberId } })
             if (member?.id === ctx.session.user.id) {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
                     message: "Kendi Hesabını Silemezsin!",
                 });
             }
-            return await ctx.db.dealerMember.delete({ where: { id: input.memberId } })
+            return await ctx.db.member.delete({ where: { id: input.memberId } })
         }),
     getDealerTransactions: protectedProcedure.input(nonEmptyString).query(async ({ ctx, input }) => {
         const userPerms = ctx.session.user.permissions

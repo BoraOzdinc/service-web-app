@@ -93,7 +93,9 @@ export default async function RootLayout({
               ) : (
                 <div className="flex flex-col items-center justify-center gap-3">
                   <Link
-                    href={session ? "/api/auth/signout" : "/api/auth/signin"}
+                    href={
+                      session ? "/api/auth/signout" : "/api/auth/signin/google"
+                    }
                     className="rounded-full bg-black px-10 py-3 font-semibold text-white no-underline transition"
                   >
                     {session ? "Sign out" : "Sign in"}

@@ -5,8 +5,9 @@ generator client {
 }
 
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
+    provider  = "postgresql"
+    url       = env("DATABASE_URL")
+    directUrl = env("DIRECT_URL")
 }
 
 model Customer {
@@ -128,7 +129,7 @@ model Dealer {
     ItemCategory ItemCategory[]
     ItemBrand    ItemBrand[]
 
-    members DealerMember[]
+    members Member[]
     views   DealerView[]
 
     roles               MemberRole[]
@@ -149,32 +150,20 @@ enum PriceType {
     singlePrice
 }
 
-model DealerMember {
-    id     String @id @default(cuid())
-    user   User   @relation(fields: [userId], references: [id])
-    dealer Dealer @relation(fields: [dealerId], references: [id])
+model Member {
+    id     String  @id @default(cuid())
+    user   User    @relation(fields: [userId], references: [id])
+    dealer Dealer? @relation(fields: [dealerId], references: [id])
+    org    Org?    @relation(fields: [orgId], references: [id])
 
-    roles MemberRole[] @relation("asDealerRole")
+    roles MemberRole[]
 
-    dealerId String
+    orgId    String?
+    dealerId String?
     userId   String
 
     @@unique([userId])
     @@index([dealerId, userId])
-}
-
-model OrgMember {
-    id    String @id @default(cuid())
-    user  User   @relation(fields: [userId], references: [id])
-    org   Org    @relation(fields: [orgId], references: [id], onDelete: Cascade)
-    orgId String
-
-    roles MemberRole[]
-
-    userId String
-
-    @@unique([userId])
-    @@index([orgId, userId])
 }
 
 model MemberRole {
@@ -182,9 +171,7 @@ model MemberRole {
     name        String
     permissions MemberPermission[]
 
-    OrgMembers OrgMember[]
-
-    DealerMembers DealerMember[] @relation("asDealerRole")
+    members Member[]
 
     Dealer   Dealer? @relation(fields: [dealerId], references: [id])
     dealerId String?
@@ -445,7 +432,7 @@ model Org {
     ItemCategory ItemCategory[]
     ItemBrand    ItemBrand[]
     dealers      Dealer[]
-    OrgMember    OrgMember[]
+    members      Member[]
 
     roles             MemberRole[]
     ItemAcceptHistory ItemAcceptHistory[]
@@ -516,13 +503,12 @@ model VerificationToken {
 }
 
 model User {
-    id               String         @id @default(cuid())
-    name             String?
-    email            String         @unique
-    emailVerified    DateTime?
-    image            String?
-    accounts         Account[]
-    sessions         Session[]
-    dealerMembership DealerMember[]
-    OrgMember        OrgMember[]
+    id            String    @id @default(cuid())
+    name          String?
+    email         String    @unique
+    emailVerified DateTime?
+    image         String?
+    accounts      Account[]
+    sessions      Session[]
+    member        Member?
 }
