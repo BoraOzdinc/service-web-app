@@ -5,20 +5,18 @@ import { redirect } from 'next/navigation'
 
 import { createClient } from '../../utils/supabase/server'
 
-export async function login(formData: FormData) {
+export async function login({ email, password }: { email: string, password: string }) {
     const supabase = createClient()
 
-    // type-casting here for convenience
-    // in practice, you should validate your inputs
-    const data = {
-        email: formData.get('email') as string,
-        password: formData.get('password') as string,
-    }
+    console.log("email: ", email);
+    console.log("password: ", password);
 
-    const { error } = await supabase.auth.signInWithPassword(data)
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
+
         console.log(error.message);
+        redirect(`/login?msg=${error.message}`)
     }
 
     revalidatePath('/', 'layout')
@@ -42,27 +40,28 @@ export async function loginWithGoogle() {
 
     if (error) {
         console.log(error.message);
+        redirect(`/login?msg=${error.message}`)
+
     }
 
     revalidatePath('/', 'layout')
     redirect('/')
 }
 
-export async function signup(formData: FormData) {
+export async function signup({ email, password }: { email: string, password: string }) {
     const supabase = createClient()
-
-    // type-casting here for convenience
-    // in practice, you should validate your inputs
-    const data = {
-        email: formData.get('email') as string,
-        password: formData.get('password') as string,
-    }
-
-    const { error } = await supabase.auth.signUp({ email: data.email, password: data.password })
+    console.log("email: ", email);
+    console.log("password: ", password);
+    const { data, error } = await supabase.auth.signUp({ email, password })
 
     if (error) {
         console.log(error.message);
+        redirect(`/login?msg=${error.message}`)
+
     }
+
+    console.log("data:", data);
+    console.log("err:", error);
 
     revalidatePath('/', 'layout')
     redirect('/')
@@ -76,6 +75,7 @@ export async function signOut() {
 
     if (error) {
         console.log(error.message);
+        redirect(`/login?msg=${error.message}`)
 
     }
 
