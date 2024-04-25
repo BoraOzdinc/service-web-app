@@ -1,6 +1,6 @@
 "use client";
 import { $Enums } from "@prisma/client";
-import { useSession } from "next-auth/react";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { PriceTypes } from "~/_constants";
@@ -31,6 +31,7 @@ import {
 import { Separator } from "~/app/_components/ui/separator";
 import { Textarea } from "~/app/_components/ui/textarea";
 import { api } from "~/trpc/server";
+import { getSession } from "~/utils/getSession";
 import { useCreateCustomer } from "~/utils/useCustomers";
 
 interface FormInput {
@@ -60,13 +61,13 @@ interface FormInput {
 }
 
 const NewCustomer = () => {
-  const { data: session } = useSession();
+  const { data: session } = useQuery({ queryFn: getSession });
   const [useAsBill, setUseAsBill] = useState<boolean>(true);
   const form = useForm<FormInput>({
     defaultValues: { adresses: undefined },
   });
   const dealers = api.dealer.getDealers.useQuery(undefined, {
-    enabled: Boolean(session?.user.orgId),
+    enabled: Boolean(session?.orgId),
   });
   const addCustomer = useCreateCustomer();
 
@@ -184,7 +185,7 @@ const NewCustomer = () => {
                     </FormItem>
                   )}
                 />
-                {session?.user.orgId ? (
+                {session?.orgId ? (
                   <FormField
                     name="connectedDealerId"
                     control={form.control}

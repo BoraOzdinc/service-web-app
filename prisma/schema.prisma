@@ -151,19 +151,17 @@ enum PriceType {
 }
 
 model Member {
-    id     String  @id @default(cuid())
-    user   User    @relation(fields: [userId], references: [id])
-    dealer Dealer? @relation(fields: [dealerId], references: [id])
-    org    Org?    @relation(fields: [orgId], references: [id])
+    id        String  @id @default(cuid())
+    userEmail String  @unique
+    dealer    Dealer? @relation(fields: [dealerId], references: [id])
+    org       Org?    @relation(fields: [orgId], references: [id])
 
     roles MemberRole[]
 
     orgId    String?
     dealerId String?
-    userId   String
 
-    @@unique([userId])
-    @@index([dealerId, userId])
+    @@index([dealerId])
 }
 
 model MemberRole {
@@ -460,55 +458,4 @@ model Storage {
 
     @@index([orgId])
     @@index([dealerId])
-}
-
-// Necessary for Next auth
-model Account {
-    id                String  @id @default(cuid())
-    userId            String
-    type              String
-    provider          String
-    providerAccountId String
-    refresh_token     String?
-    access_token      String?
-    expires_at        Int?
-    token_type        String?
-    scope             String?
-    id_token          String?
-    session_state     String?
-    user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-    @@unique([provider, providerAccountId])
-    @@index([userId])
-}
-
-model Session {
-    id           String   @id @default(cuid())
-    sessionToken String   @unique
-    userId       String
-    expires      DateTime @map("expiresAt")
-    user         User     @relation(fields: [userId], references: [id])
-
-    @@map("sessions")
-}
-
-model VerificationToken {
-    id         String   @id @default(cuid())
-    identifier String
-    token      String   @unique
-    expires    DateTime @map("expiresAt")
-
-    @@unique([identifier, token])
-    @@map("verification_tokens")
-}
-
-model User {
-    id            String    @id @default(cuid())
-    name          String?
-    email         String    @unique
-    emailVerified DateTime?
-    image         String?
-    accounts      Account[]
-    sessions      Session[]
-    member        Member?
 }

@@ -270,11 +270,11 @@ export const columns: ColumnDef<orgRolesType>[] = [
     },
   },
   {
-    accessorKey: "OrgMembers",
+    accessorKey: "members",
     header: "Üyeler",
     cell({
       row: {
-        original: { OrgMembers },
+        original: { members },
       },
     }) {
       return (
@@ -289,10 +289,8 @@ export const columns: ColumnDef<orgRolesType>[] = [
               <DialogTitle>Üyeler</DialogTitle>
             </DialogHeader>
             <ul className="list-disc p-3">
-              {OrgMembers.map((p) => (
-                <li key={p.user.id}>
-                  {p.user.name} - {p.user.email}
-                </li>
+              {members.map((p) => (
+                <li key={p.user?.id}>{p.user?.email}</li>
               ))}
             </ul>
           </DialogContent>

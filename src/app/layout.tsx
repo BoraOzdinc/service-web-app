@@ -11,15 +11,13 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "~/app/_components/ui/navigation-menu";
-import { auth } from "~/server/auth";
-import Link from "next/link";
 import React from "react";
 import { cn } from "~/lib/utils";
 import { Toaster } from "react-hot-toast";
-import NextAuthProvider from "./context/NextAuthProvider";
 import NavbarRoutes from "./config/navbarRoutes";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
+import { createClient } from "~/utils/supabase/server";
 
 const inter = Poppins({
   weight: "400",
@@ -40,71 +38,58 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
-  console.log(session);
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const isAnyOrg = session?.user.orgId ?? session?.user.dealerId;
   return (
     <html lang="en">
       <head>
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className={`font-sans ${inter.className}`}>
-        <NextAuthProvider session={session}>
-          <Toaster />
-          <TRPCReactProvider>
-            <div className="p-3">
-              {isAnyOrg && session && (
-                <NavigationMenu className="flex gap-3">
-                  <NavigationMenuList>
-                    {NavbarRoutes(session).map((parent) => {
-                      return (
-                        <NavigationMenuItem key={parent.title}>
-                          <NavigationMenuTrigger>
-                            {parent.title}
-                          </NavigationMenuTrigger>
-                          <NavigationMenuContent>
-                            <ul className="grid gap-3 p-6 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
-                              {parent.children.map((children) => {
-                                if (children.isVisible) {
-                                  return (
-                                    <ListItem
-                                      key={children.title}
-                                      title={children.title}
-                                      href={children.route}
-                                    >
-                                      {children.description}
-                                    </ListItem>
-                                  );
-                                }
-                              })}
-                            </ul>
-                          </NavigationMenuContent>
-                        </NavigationMenuItem>
-                      );
-                    })}
-                  </NavigationMenuList>
-                </NavigationMenu>
-              )}
-              {isAnyOrg ? (
-                <div className="flex items-center justify-center p-3">
-                  {children}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center gap-3">
-                  <Link
-                    href={
-                      session ? "/api/auth/signout" : "/api/auth/signin/google"
-                    }
-                    className="rounded-full bg-black px-10 py-3 font-semibold text-white no-underline transition"
-                  >
-                    {session ? "Sign out" : "Sign in"}
-                  </Link>
-                </div>
-              )}
+        <Toaster />
+        <TRPCReactProvider>
+          <div className="p-3">
+            {user && (
+              <NavigationMenu className="flex gap-3">
+                <NavigationMenuList>
+                  {(await NavbarRoutes(user.email ?? "")).map((parent) => {
+                    return (
+                      <NavigationMenuItem key={parent.title}>
+                        <NavigationMenuTrigger>
+                          {parent.title}
+                        </NavigationMenuTrigger>
+                        <NavigationMenuContent>
+                          <ul className="grid gap-3 p-6 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
+                            {parent.children.map((children) => {
+                              if (children.isVisible) {
+                                return (
+                                  <ListItem
+                                    key={children.title}
+                                    title={children.title}
+                                    href={children.route}
+                                  >
+                                    {children.description}
+                                  </ListItem>
+                                );
+                              }
+                            })}
+                          </ul>
+                        </NavigationMenuContent>
+                      </NavigationMenuItem>
+                    );
+                  })}
+                </NavigationMenuList>
+              </NavigationMenu>
+            )}
+
+            <div className="flex items-center justify-center p-3">
+              {children}
             </div>
-          </TRPCReactProvider>
-        </NextAuthProvider>
+          </div>
+        </TRPCReactProvider>
         <Analytics />
         <SpeedInsights />
       </body>

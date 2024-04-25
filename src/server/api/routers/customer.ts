@@ -8,6 +8,7 @@ import {
 } from "~/server/api/trpc";
 import { nonEmptyString } from "./items";
 import { $Enums } from "@prisma/client";
+import { db } from "~/server/db";
 
 const addCustomerSchema = z.object({
   name: nonEmptyString,
@@ -64,26 +65,11 @@ const addOrUpdateAddressSchema = z.object({
 
 export const customerRouter = createTRPCRouter({
   getCustomers: protectedProcedure.query(async ({ ctx }) => {
+    return await getAllCustomers({ permissions: ctx.session.permissions, orgId: ctx.session.orgId ?? undefined, dealerId: ctx.session.dealerId ?? undefined })
 
-    const userPerms = ctx.session.user.permissions
-    if (!userPerms.includes(PERMS.customers_view)) {
-      throw new TRPCError({
-        code: "UNAUTHORIZED",
-        message: "You don't have permission to do this!"
-      })
-    }
-    return await ctx.db.customer.findMany({
-      where: {
-        OR: [
-          { orgId: ctx.session.user.orgId },
-          { dealerId: ctx.session.user.dealerId }
-        ]
-      },
-      include: { connectedDealer: true }
-    })
   }),
   getCustomerWithId: protectedProcedure.input(nonEmptyString).query(async ({ input, ctx }) => {
-    const userPerms = ctx.session.user.permissions
+    const userPerms = ctx.session.permissions
     if (!userPerms.includes(PERMS.customers_view)) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
@@ -94,15 +80,15 @@ export const customerRouter = createTRPCRouter({
       where: {
         id: input,
         OR: [
-          { orgId: ctx.session.user.orgId },
-          { dealerId: ctx.session.user.dealerId }
+          { orgId: ctx.session.orgId },
+          { dealerId: ctx.session.dealerId }
         ]
       },
       include: { adresses: true, connectedDealer: true }
     })
   }),
   addCustomer: protectedProcedure.input(addCustomerSchema).mutation(async ({ ctx, input }) => {
-    const userPerms = ctx.session.user.permissions
+    const userPerms = ctx.session.permissions
 
     if (!userPerms.includes(PERMS.manage_customers)) {
       throw new TRPCError({
@@ -116,16 +102,16 @@ export const customerRouter = createTRPCRouter({
     if (input.adresses && !input.adresses.every(a => a?.Type === undefined)) {
 
       return await ctx.db.customer.create({
-        data: { ...input, adresses: { createMany: { data: input.adresses.map(a => ({ ...a, Type: a.Type ?? $Enums.AdressType.Normal })) } }, priceType, dealerId: ctx.session.user.dealerId, orgId: ctx.session.user.orgId }
+        data: { ...input, adresses: { createMany: { data: input.adresses.map(a => ({ ...a, Type: a.Type ?? $Enums.AdressType.Normal })) } }, priceType, dealerId: ctx.session.dealerId, orgId: ctx.session.orgId }
       })
     }
 
     return await ctx.db.customer.create({
-      data: { ...input, adresses: undefined, priceType, dealerId: ctx.session.user.dealerId, orgId: ctx.session.user.orgId }
+      data: { ...input, adresses: undefined, priceType, dealerId: ctx.session.dealerId, orgId: ctx.session.orgId }
     })
   }),
   updateCustomer: protectedProcedure.input(updateCustomerSchema).mutation(async ({ ctx, input }) => {
-    const userPerms = ctx.session.user.permissions
+    const userPerms = ctx.session.permissions
 
     if (!userPerms.includes(PERMS.manage_customers)) {
       throw new TRPCError({
@@ -145,7 +131,7 @@ export const customerRouter = createTRPCRouter({
     })
   }),
   addAddress: protectedProcedure.input(addOrUpdateAddressSchema).mutation(async ({ ctx, input }) => {
-    const userPerms = ctx.session.user.permissions
+    const userPerms = ctx.session.permissions
 
     if (!userPerms.includes(PERMS.manage_customers)) {
       throw new TRPCError({
@@ -158,7 +144,7 @@ export const customerRouter = createTRPCRouter({
     return await ctx.db.adress.create({ data: { ...moddedInput } })
   }),
   updateAddress: protectedProcedure.input(addOrUpdateAddressSchema).mutation(async ({ ctx, input }) => {
-    const userPerms = ctx.session.user.permissions
+    const userPerms = ctx.session.permissions
 
     if (!userPerms.includes(PERMS.manage_customers)) {
       throw new TRPCError({
@@ -171,7 +157,7 @@ export const customerRouter = createTRPCRouter({
     return await ctx.db.adress.update({ where: { id: input.addressId }, data: { ...moddedInput } })
   }),
   deleteAddress: protectedProcedure.input(nonEmptyString).mutation(async ({ ctx, input }) => {
-    const userPerms = ctx.session.user.permissions
+    const userPerms = ctx.session.permissions
 
     if (!userPerms.includes(PERMS.manage_customers)) {
       throw new TRPCError({
@@ -183,7 +169,7 @@ export const customerRouter = createTRPCRouter({
     return await ctx.db.adress.delete({ where: { id: input } })
   }),
   getCustomerTransactions: protectedProcedure.input(nonEmptyString).query(async ({ ctx, input }) => {
-    const userPerms = ctx.session.user.permissions
+    const userPerms = ctx.session.permissions
 
     if (!userPerms.includes(PERMS.customers_view)) {
       throw new TRPCError({
@@ -203,3 +189,22 @@ export const customerRouter = createTRPCRouter({
     })
   })
 });
+
+
+export async function getAllCustomers({ permissions, orgId, dealerId }: { permissions: string[]; orgId: string | undefined, dealerId: string | undefined }) {
+  if (!permissions.includes(PERMS.customers_view)) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "You don't have permission to do this!"
+    })
+  }
+  return await db.customer.findMany({
+    where: {
+      OR: [
+        { orgId: orgId },
+        { dealerId: dealerId }
+      ]
+    },
+    include: { connectedDealer: true }
+  })
+}

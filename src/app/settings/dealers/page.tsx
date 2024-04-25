@@ -18,7 +18,6 @@ import {
   DialogHeader,
   DialogTrigger,
 } from "~/app/_components/ui/dialog";
-import { useSession } from "next-auth/react";
 import { PERMS } from "~/_constants/perms";
 import { Input } from "~/app/_components/ui/input";
 import { useState } from "react";
@@ -32,9 +31,11 @@ import {
 } from "~/app/_components/ui/select";
 import { useCreateDealer } from "~/utils/useDealer";
 import { PriceTypes } from "~/_constants";
+import { useQuery } from "@tanstack/react-query";
+import { getSession } from "~/utils/getSession";
 
 const Dealers = () => {
-  const { data: session } = useSession();
+  const { data: session } = useQuery({ queryFn: getSession });
   const { data: dealers, isLoading: dealersLoading } =
     api.dealer.getDealers.useQuery(undefined, { retry: false });
   const createDealer = useCreateDealer();
@@ -52,7 +53,7 @@ const Dealers = () => {
           <CardTitle>Bayiileriniz</CardTitle>
           <CardDescription>Yönetmek istediğiniz bayii seçin</CardDescription>
         </div>
-        {session?.user.permissions.includes(PERMS.create_dealer) ? (
+        {session?.permissions.includes(PERMS.create_dealer) ? (
           <Dialog>
             <DialogTrigger asChild>
               <Button>Yeni Bayii Oluştur</Button>

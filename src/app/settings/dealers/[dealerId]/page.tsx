@@ -15,7 +15,6 @@ import {
   RoleCreateOrUpdateModal,
   columns as dealerRolesColumns,
 } from "./components/dealerRolesColumn";
-import { useSession } from "next-auth/react";
 import { Button } from "~/app/_components/ui/button";
 import { PERMS } from "~/_constants/perms";
 import {
@@ -46,10 +45,12 @@ import {
 import { useDebounce } from "@uidotdev/usehooks";
 import { isValidEmail } from "~/utils";
 import { dealerTransactionsColumns } from "./components/dealerTransactionsColumns";
+import { useQuery } from "@tanstack/react-query";
+import { getSession } from "~/utils/getSession";
 
 const DealerDetails = () => {
   const params = useParams<{ dealerId: string }>();
-  const { data: session } = useSession();
+  const { data: session } = useQuery({ queryFn: getSession });
   const addDealerMember = useCreateDealerMember();
   const [dealerMemberEmail, setDealerMemberEmail] = useState<
     string | undefined
@@ -57,10 +58,10 @@ const DealerDetails = () => {
   const [searchInput, setSearchInput] = useState<string>("");
   const debouncedSearchInput = useDebounce(searchInput, 750);
   const dealerMembers = api.dealer.getDealerMembers.useQuery(params.dealerId, {
-    enabled: session?.user.permissions.includes(PERMS.view_dealer_members),
+    enabled: session?.permissions.includes(PERMS.view_dealer_members),
   });
   const dealerRoles = api.dealer.getDealerRoles.useQuery(params.dealerId, {
-    enabled: session?.user.permissions.includes(PERMS.view_dealer_role),
+    enabled: session?.permissions.includes(PERMS.view_dealer_role),
   });
   const dealerItems = api.items.getItems.useQuery(
     {
@@ -70,15 +71,14 @@ const DealerDetails = () => {
     },
     {
       enabled:
-        (!!session?.user.orgId &&
-          session?.user.permissions.includes(PERMS.dealer_item_view)) ||
-        (!!session?.user.dealerId &&
-          session?.user.permissions.includes(PERMS.item_view)),
+        (!!session?.orgId &&
+          session?.permissions.includes(PERMS.dealer_item_view)) ||
+        (!!session?.dealerId && session?.permissions.includes(PERMS.item_view)),
     },
   );
   const dealerTransactions = api.dealer.getDealerTransactions.useQuery(
     params.dealerId,
-    { enabled: session?.user.permissions.includes(PERMS.dealers_view) },
+    { enabled: session?.permissions.includes(PERMS.dealers_view) },
   );
   const memberColumns = useMemo(() => {
     return dealerMemberColumns(dealerRoles.data);
@@ -86,31 +86,31 @@ const DealerDetails = () => {
   return (
     <div className="w-full">
       <CardHeader>
-        <CardTitle>{dealerMembers.data?.[0]?.dealer.name}</CardTitle>
+        <CardTitle>{dealerMembers.data?.[0]?.dealer?.name}</CardTitle>
       </CardHeader>
       <Tabs defaultValue="members" className="w-full">
         <TabsList className="w-full">
           {
             // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-            (session?.user.permissions.includes(PERMS.view_dealer_members) ||
-              session?.user.permissions.includes(PERMS.view_dealer_role)) && (
+            (session?.permissions.includes(PERMS.view_dealer_members) ||
+              session?.permissions.includes(PERMS.view_dealer_role)) && (
               <TabsTrigger value="members">Üyeler ve Roller</TabsTrigger>
             )
           }
-          {((session?.user.orgId &&
+          {((session?.orgId &&
             // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-            session?.user.permissions.includes(PERMS.dealer_item_view)) ||
-            (session?.user.dealerId &&
-              session?.user.permissions.includes(PERMS.item_view))) && (
+            session?.permissions.includes(PERMS.dealer_item_view)) ||
+            (session?.dealerId &&
+              session?.permissions.includes(PERMS.item_view))) && (
             <TabsTrigger value="items">Ürünler</TabsTrigger>
           )}
-          {session?.user.permissions.includes(PERMS.dealers_view) && (
+          {session?.permissions.includes(PERMS.dealers_view) && (
             <TabsTrigger value="customerHistory">Müşteri Geçmişi</TabsTrigger>
           )}
         </TabsList>
         <TabsContent value="members">
           <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-            {session?.user.permissions.includes(PERMS.view_dealer_members) && (
+            {session?.permissions.includes(PERMS.view_dealer_members) && (
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div className=" flex flex-row gap-3">
@@ -119,7 +119,7 @@ const DealerDetails = () => {
                       <Loader2Icon className="h-5 w-5 animate-spin" />
                     )}
                   </div>
-                  {session?.user.permissions.includes(
+                  {session?.permissions.includes(
                     PERMS.manage_dealer_members,
                   ) ? (
                     <Dialog>
@@ -172,7 +172,7 @@ const DealerDetails = () => {
                 </CardContent>
               </Card>
             )}
-            {session?.user.permissions.includes(PERMS.view_dealer_role) && (
+            {session?.permissions.includes(PERMS.view_dealer_role) && (
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div className=" flex flex-row gap-3">
@@ -182,9 +182,7 @@ const DealerDetails = () => {
                     )}
                   </div>
 
-                  {session.user.permissions.includes(
-                    PERMS.manage_dealer_role,
-                  ) && (
+                  {session.permissions.includes(PERMS.manage_dealer_role) && (
                     <RoleCreateOrUpdateModal
                       dealerId={params.dealerId}
                       mode="create"
@@ -205,11 +203,11 @@ const DealerDetails = () => {
             )}
           </div>
         </TabsContent>
-        {((session?.user.orgId &&
+        {((session?.orgId &&
           // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-          session?.user.permissions.includes(PERMS.dealer_item_view)) ||
-          (session?.user.dealerId &&
-            session?.user.permissions.includes(PERMS.item_view))) && (
+          session?.permissions.includes(PERMS.dealer_item_view)) ||
+          (session?.dealerId &&
+            session?.permissions.includes(PERMS.item_view))) && (
           <TabsContent value="items">
             <Card>
               <CardHeader>
@@ -279,7 +277,7 @@ const DealerDetails = () => {
             </Card>
           </TabsContent>
         )}
-        {session?.user.permissions.includes(PERMS.dealers_view) && (
+        {session?.permissions.includes(PERMS.dealers_view) && (
           <TabsContent value={"customerHistory"}>
             <Card>
               <CardHeader>

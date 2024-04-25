@@ -19,7 +19,7 @@ export const dealerRouter = createTRPCRouter({
                     message: "Invalid Payload",
                 });
             }
-            const perms = ctx.session.user.permissions
+            const perms = ctx.session.permissions
 
             if (!perms.includes(PERMS.manage_dealer_role)) {
                 throw new TRPCError({
@@ -42,7 +42,7 @@ export const dealerRouter = createTRPCRouter({
                     message: "Invalid Payload",
                 });
             }
-            const perms = ctx.session.user.permissions
+            const perms = ctx.session.permissions
 
             if (!perms.includes(PERMS.manage_dealer_role)) {
                 throw new TRPCError({
@@ -53,14 +53,14 @@ export const dealerRouter = createTRPCRouter({
             return await ctx.db.memberRole.delete({ where: { id: input.roleId } })
         }),
     getDealers: protectedProcedure.query(async ({ ctx }) => {
-        if (!ctx.session.user.orgId) {
+        if (!ctx.session.orgId) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "You don't have permission to do this!",
             });
         }
 
-        if (!ctx.session.user.permissions.includes(PERMS.dealers_view)
+        if (!ctx.session.permissions.includes(PERMS.dealers_view)
         ) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
@@ -68,7 +68,7 @@ export const dealerRouter = createTRPCRouter({
             });
         }
         const dealers = await ctx.db.dealer.findMany({
-            where: { orgId: ctx.session.user.orgId },
+            where: { orgId: ctx.session.orgId },
             include: { members: true, items: true, views: true }
         })
         return dealers
@@ -78,7 +78,7 @@ export const dealerRouter = createTRPCRouter({
         if (!input) {
             throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid Payload!" })
         }
-        const userPerms = ctx.session.user.permissions
+        const userPerms = ctx.session.permissions
 
         if (!userPerms.includes(PERMS.dealers_view)) {
             throw new TRPCError({
@@ -90,8 +90,8 @@ export const dealerRouter = createTRPCRouter({
         const dealer = await ctx.db.dealer.findMany({
             where: {
                 OR: [
-                    { id: ctx.session.user.dealerId },
-                    { orgId: ctx.session.user.orgId, }]
+                    { id: ctx.session.dealerId ?? undefined },
+                    { orgId: ctx.session.orgId ?? undefined, }]
             },
             include: { members: true, items: true, views: true }
 
@@ -113,7 +113,7 @@ export const dealerRouter = createTRPCRouter({
         if (!input) {
             throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid Payload!" })
         }
-        const userPerms = ctx.session.user.permissions
+        const userPerms = ctx.session.permissions
         if (!userPerms.includes(PERMS.view_dealer_members)) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
@@ -123,8 +123,8 @@ export const dealerRouter = createTRPCRouter({
         const dealer = await ctx.db.dealer.findMany({
             where: {
                 OR: [
-                    { id: ctx.session.user.dealerId },
-                    { orgId: ctx.session.user.orgId, }]
+                    { id: ctx.session.dealerId ?? undefined },
+                    { orgId: ctx.session.orgId ?? undefined, }]
             },
             include: { members: true, items: true, views: true }
 
@@ -138,30 +138,34 @@ export const dealerRouter = createTRPCRouter({
         }
         return await ctx.db.member.findMany({
             where: { dealerId: input },
-            include: { user: true, roles: true, dealer: true }
+            include: { roles: true, dealer: true }
         })
     }),
     getDealerMemberById: protectedProcedure.input(nonEmptyString).query(async ({ ctx, input }) => {
         if (!input) {
             throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid Payload!" })
         }
-        const userPerms = ctx.session.user.permissions
+        const userPerms = ctx.session.permissions
         if (!userPerms.includes(PERMS.view_dealer_members)) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "You don't have permission to do this!",
             });
         }
-        return await ctx.db.member.findMany({
+        const members = await ctx.db.member.findMany({
             where: { dealerId: input },
-            include: { user: true, roles: true }
+            include: { roles: true }
         })
+        const { data: userList } = await ctx.supabase.auth.admin.listUsers()
+
+        return members.flatMap(r => ({ ...r, user: userList.users.find(u => u.email === r.userEmail) }))
+
     }),
     getDealerRoles: protectedProcedure.input(nonEmptyString).query(async ({ ctx, input }) => {
         if (!input) {
             throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid Payload!" })
         }
-        const userPerms = ctx.session.user.permissions
+        const userPerms = ctx.session.permissions
         if (!userPerms.includes(PERMS.view_dealer_role)) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
@@ -171,8 +175,8 @@ export const dealerRouter = createTRPCRouter({
         const dealer = await ctx.db.dealer.findMany({
             where: {
                 OR: [
-                    { id: ctx.session.user.dealerId },
-                    { orgId: ctx.session.user.orgId, }]
+                    { id: ctx.session.dealerId ?? undefined },
+                    { orgId: ctx.session.orgId ?? undefined, }]
             },
             include: { members: true, items: true, views: true }
 
@@ -184,10 +188,14 @@ export const dealerRouter = createTRPCRouter({
                 message: "You don't have permission to do this!",
             });
         }
-        return await ctx.db.memberRole.findMany({
+        const memberRoles = await ctx.db.memberRole.findMany({
             where: { dealerId: input },
-            include: { permissions: true, members: { include: { user: true } } }
+            include: { permissions: true, members: true }
         })
+        const { data: userList } = await ctx.supabase.auth.admin.listUsers()
+
+        return memberRoles.flatMap(r => ({ ...r, members: r.members.map(m => ({ ...m, user: userList.users.find(u => u.email === m.userEmail) })) }))
+
     }),
     getDealerPerms: protectedProcedure.query(async ({ ctx }) => {
         return await ctx.db.memberPermission.findMany({ where: { assignableTo: { has: "Dealer" } } })
@@ -202,7 +210,7 @@ export const dealerRouter = createTRPCRouter({
                     message: "Invalid Payload",
                 });
             }
-            const userPerms = ctx.session.user.permissions
+            const userPerms = ctx.session.permissions
             if (!userPerms.includes(PERMS.manage_dealer_members)) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
@@ -212,8 +220,8 @@ export const dealerRouter = createTRPCRouter({
             const Org = await ctx.db.org.findFirst({
                 where: {
                     OR: [
-                        { id: ctx.session.user.orgId },
-                        { dealers: { some: { id: ctx.session.user.dealerId } } }]
+                        { id: ctx.session.orgId ?? undefined },
+                        { dealers: { some: { id: ctx.session.dealerId ?? undefined } } }]
                 },
                 include: { dealers: { include: { members: true } } }
             })
@@ -243,7 +251,7 @@ export const dealerRouter = createTRPCRouter({
                     message: "Invalid Payload",
                 });
             }
-            const userPerms = ctx.session.user.permissions
+            const userPerms = ctx.session.permissions
             if (!userPerms.includes(PERMS.manage_dealer_members)) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
@@ -251,7 +259,7 @@ export const dealerRouter = createTRPCRouter({
                 });
             }
             const member = await ctx.db.member.findUnique({ where: { id: input.memberId } })
-            if (member?.id === ctx.session.user.id) {
+            if (member?.id === ctx.session.id) {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
                     message: "Kendi Hesabını Silemezsin!",
@@ -260,7 +268,7 @@ export const dealerRouter = createTRPCRouter({
             return await ctx.db.member.delete({ where: { id: input.memberId } })
         }),
     getDealerTransactions: protectedProcedure.input(nonEmptyString).query(async ({ ctx, input }) => {
-        const userPerms = ctx.session.user.permissions
+        const userPerms = ctx.session.permissions
 
         if (!userPerms.includes(PERMS.dealers_view)) {
             throw new TRPCError({

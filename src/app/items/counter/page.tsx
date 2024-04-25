@@ -1,7 +1,7 @@
 "use client";
+import { useQuery } from "@tanstack/react-query";
 import { useDebounce } from "@uidotdev/usehooks";
 import { Loader2 } from "lucide-react";
-import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import BarcodeScanner from "~/app/_components/BarcodeScanner";
@@ -31,11 +31,12 @@ import {
 } from "~/app/_components/ui/select";
 import { useHydrated } from "~/trpc/react";
 import { api } from "~/trpc/server";
+import { getSession } from "~/utils/getSession";
 import { ItemWithBarcode } from "~/utils/useItems";
 
 const ItemCount = () => {
   const storages = api.items.getStorages.useQuery();
-  const { data: session } = useSession();
+  const { data: session } = useQuery({ queryFn: getSession });
   const hydrated = useHydrated();
   const [isStorageOpen, setIsStorageOpen] = useState(true);
   const [isBarcodeOpen, setIsBarcodeOpen] = useState(false);
@@ -54,8 +55,8 @@ const ItemCount = () => {
 
   const ItemsData = api.items.getItemWithBarcode.useQuery(
     {
-      orgId: session?.user.orgId,
-      dealerId: session?.user.dealerId,
+      orgId: session?.orgId ?? undefined,
+      dealerId: session?.dealerId ?? undefined,
       barcode: scannedBarcode,
     },
     {

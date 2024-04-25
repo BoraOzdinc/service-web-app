@@ -1,6 +1,5 @@
 import { type ColumnDef } from "@tanstack/react-table";
 import { EllipsisVertical } from "lucide-react";
-import { type Session } from "next-auth";
 import { useState } from "react";
 import { PERMS } from "~/_constants/perms";
 import { Button } from "~/app/_components/ui/button";
@@ -73,13 +72,13 @@ const ActionColumn = ({
             <DialogHeader className="flex flex-row gap-3">
               <DialogTitle>Üye Düzenle</DialogTitle>
             </DialogHeader>
-            <div>
+            {/* <div>
               <Label>Üye ismi</Label>
               <Input placeholder="İsim" disabled value={member.user.name!} />
-            </div>
+            </div> */}
             <div>
               <Label>E-Mail</Label>
-              <Input placeholder="E-Mail" disabled value={member.user.email} />
+              <Input placeholder="E-Mail" disabled value={member.userEmail} />
             </div>
             <div>
               <Label>Roller</Label>
@@ -164,13 +163,20 @@ const ActionColumn = ({
 
 export const columns: (
   dealerRoles: orgRolesType | undefined,
-  session: Session | null,
+  session:
+    | {
+        permissions: string[];
+        orgId: string | null | undefined;
+        dealerId: string | null | undefined;
+        email: string | undefined;
+      }
+    | undefined,
 ) => ColumnDef<orgMemberType>[] = (orgRoles, session) => [
   {
     id: "action",
     cell({ row: { original } }) {
       if (
-        session?.user.permissions.includes(
+        session?.permissions.includes(
           PERMS.manage_org_members && PERMS.view_org_role,
         )
       ) {
@@ -179,7 +185,7 @@ export const columns: (
       return null;
     },
   },
-  {
+  /* {
     accessorKey: "id",
     header: "Kullanıcı Adı",
     cell: ({
@@ -189,16 +195,16 @@ export const columns: (
     }) => {
       return user.name;
     },
-  },
+  }, */
   {
-    accessorKey: "user",
+    accessorKey: "userEmail",
     header: "E-Mail",
     cell: ({
       row: {
-        original: { user },
+        original: { userEmail },
       },
     }) => {
-      return user.email;
+      return userEmail;
     },
   },
   {

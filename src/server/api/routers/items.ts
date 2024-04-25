@@ -56,9 +56,9 @@ export const itemsRouter = createTRPCRouter({
                     message: "Invalid Payload",
                 });
             }
-            const userPerms = ctx.session.user.permissions
+            const userPerms = ctx.session.permissions
 
-            if (Boolean(ctx.session.user.dealerId)) {
+            if (Boolean(ctx.session.dealerId)) {
                 if (!userPerms.includes(PERMS.item_view)) {
                     throw new TRPCError({
                         code: "UNAUTHORIZED",
@@ -66,7 +66,7 @@ export const itemsRouter = createTRPCRouter({
                     });
                 }
             }
-            if (Boolean(ctx.session.user.orgId)) {
+            if (Boolean(ctx.session.orgId)) {
                 if (!userPerms.includes(PERMS.dealer_item_view) && !userPerms.includes(PERMS.item_view)) {
                     throw new TRPCError({
                         code: "UNAUTHORIZED",
@@ -124,7 +124,7 @@ export const itemsRouter = createTRPCRouter({
                     message: "Invalid Payload",
                 });
             }
-            const userPerms = ctx.session.user.permissions
+            const userPerms = ctx.session.permissions
 
             if (input.dealerId) {
                 if (!userPerms.includes(PERMS.item_accept)) {
@@ -175,9 +175,9 @@ export const itemsRouter = createTRPCRouter({
                     message: "Invalid Payload",
                 });
             }
-            const userPerms = ctx.session.user.permissions
+            const userPerms = ctx.session.permissions
 
-            if (Boolean(ctx.session.user.dealerId)) {
+            if (Boolean(ctx.session.dealerId)) {
                 if (!userPerms.includes(PERMS.item_view)) {
                     throw new TRPCError({
                         code: "UNAUTHORIZED",
@@ -185,7 +185,7 @@ export const itemsRouter = createTRPCRouter({
                     });
                 }
             }
-            if (Boolean(ctx.session.user.orgId)) {
+            if (Boolean(ctx.session.orgId)) {
                 if (!userPerms.includes(PERMS.dealer_item_view) && !userPerms.includes(PERMS.item_view)) {
                     throw new TRPCError({
                         code: "UNAUTHORIZED",
@@ -241,7 +241,7 @@ export const itemsRouter = createTRPCRouter({
         }),
     getStorages: protectedProcedure.query(async ({ ctx }) => {
 
-        const userPerms = ctx.session.user.permissions
+        const userPerms = ctx.session.permissions
 
         if (!userPerms.includes(PERMS.item_view)) {
             throw new TRPCError({
@@ -250,18 +250,18 @@ export const itemsRouter = createTRPCRouter({
             });
         }
 
-        if (ctx.session.user.orgId) {
+        if (ctx.session.orgId) {
 
             const Storages = await ctx.db.storage.findMany({
-                where: { orgId: ctx.session.user.orgId },
+                where: { orgId: ctx.session.orgId },
             });
 
             return Storages
         }
-        if (ctx.session.user.dealerId) {
+        if (ctx.session.dealerId) {
 
             const Storages = await ctx.db.storage.findMany({
-                where: { dealerId: ctx.session.user.dealerId },
+                where: { dealerId: ctx.session.dealerId },
             });
 
             return Storages
@@ -278,9 +278,9 @@ export const itemsRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            const userPerms = ctx.session.user.permissions
+            const userPerms = ctx.session.permissions
 
-            if (ctx.session.user.orgId) {
+            if (ctx.session.orgId) {
                 if (!userPerms.includes(PERMS.manage_storage)) {
                     throw new TRPCError({
                         code: "UNAUTHORIZED",
@@ -288,10 +288,10 @@ export const itemsRouter = createTRPCRouter({
                     });
                 }
                 return await ctx.db.storage.create({
-                    data: { name: input.name, orgId: ctx.session.user.orgId },
+                    data: { name: input.name, orgId: ctx.session.orgId },
                 });
             }
-            if (ctx.session.user.dealerId) {
+            if (ctx.session.dealerId) {
                 if (!userPerms.includes(PERMS.manage_storage)) {
                     throw new TRPCError({
                         code: "UNAUTHORIZED",
@@ -299,7 +299,7 @@ export const itemsRouter = createTRPCRouter({
                     });
                 }
                 return await ctx.db.storage.create({
-                    data: { name: input.name, dealerId: ctx.session.user.dealerId },
+                    data: { name: input.name, dealerId: ctx.session.dealerId },
                 });
             }
 
@@ -311,9 +311,9 @@ export const itemsRouter = createTRPCRouter({
     deleteStorage: protectedProcedure
         .input(nonEmptyString)
         .mutation(async ({ ctx, input }) => {
-            const userPerms = ctx.session.user.permissions
+            const userPerms = ctx.session.permissions
 
-            if (ctx.session.user.orgId) {
+            if (ctx.session.orgId) {
                 if (!userPerms.includes(PERMS.manage_storage)) {
                     throw new TRPCError({
                         code: "UNAUTHORIZED",
@@ -324,7 +324,7 @@ export const itemsRouter = createTRPCRouter({
                     where: { id: input }
                 });
             }
-            if (ctx.session.user.dealerId) {
+            if (ctx.session.dealerId) {
                 if (!userPerms.includes(PERMS.manage_storage)) {
                     throw new TRPCError({
                         code: "UNAUTHORIZED",
@@ -344,7 +344,7 @@ export const itemsRouter = createTRPCRouter({
     addItem: protectedProcedure
         .input(addItemSchema)
         .mutation(async ({ ctx, input }) => {
-            const userPerms = ctx.session.user.permissions
+            const userPerms = ctx.session.permissions
 
             if (!userPerms.includes(PERMS.manage_items)) {
                 throw new TRPCError({
@@ -352,12 +352,12 @@ export const itemsRouter = createTRPCRouter({
                     message: "You don't have permission to do this!",
                 });
             }
-            if (ctx.session.user.orgId) {
+            if (ctx.session.orgId) {
                 const sameBarcodedItem = await ctx.db.itemBarcode.findFirst({
                     where: {
                         barcode: input.barcode,
                         item: {
-                            orgId: ctx.session.user.orgId
+                            orgId: ctx.session.orgId
                         }
                     },
                     include: { item: true }
@@ -370,7 +370,7 @@ export const itemsRouter = createTRPCRouter({
                 }
                 const item = await ctx.db.item.create({
                     data: {
-                        orgId: ctx.session.user.orgId,
+                        orgId: ctx.session.orgId,
                         itemBrandId: input.itemBrandId,
                         name: input.productName,
                         itemCode: input.itemCode,
@@ -413,23 +413,23 @@ export const itemsRouter = createTRPCRouter({
                 await ctx.db.itemHistory.create({
                     data: {
                         action: "AddItem",
-                        createdBy: ctx.session.user.name ?? ctx.session.user.email ?? "Bilinmeyen Kullanıcı",
+                        createdBy:  ctx.session.email ?? "Bilinmeyen Kullanıcı",
                         description: "",
                         quantity: input.stock ?? 0,
                         toStorageId: input.storageId,
                         itemId: item.id,
-                        orgId: ctx.session.user.orgId,
-                        dealerId: ctx.session.user.dealerId
+                        orgId: ctx.session.orgId,
+                        dealerId: ctx.session.dealerId
                     }
                 })
                 return [item, itemBarcode];
             }
-            if (ctx.session.user.dealerId) {
+            if (ctx.session.dealerId) {
                 const sameBarcodedItem = await ctx.db.itemBarcode.findFirst({
                     where: {
                         barcode: input.barcode,
                         item: {
-                            dealerId: ctx.session.user.dealerId
+                            dealerId: ctx.session.dealerId
                         }
                     },
                     include: { item: true }
@@ -442,7 +442,7 @@ export const itemsRouter = createTRPCRouter({
                 }
                 const item = await ctx.db.item.create({
                     data: {
-                        dealerId: ctx.session.user.dealerId,
+                        dealerId: ctx.session.dealerId,
                         itemBrandId: input.itemBrandId,
                         name: input.productName,
                         itemCode: input.itemCode,
@@ -485,13 +485,13 @@ export const itemsRouter = createTRPCRouter({
                 await ctx.db.itemHistory.create({
                     data: {
                         action: "AddItem",
-                        createdBy: ctx.session.user.name ?? ctx.session.user.email ?? "Bilinmeyen Kullanıcı",
+                        createdBy: ctx.session.email ?? "Bilinmeyen Kullanıcı",
                         description: "",
                         quantity: input.stock ?? 0,
                         toStorageId: input.storageId,
                         itemId: item.id,
-                        orgId: ctx.session.user.orgId,
-                        dealerId: ctx.session.user.dealerId
+                        orgId: ctx.session.orgId,
+                        dealerId: ctx.session.dealerId
                     }
                 })
                 return [item, itemBarcode];
@@ -527,7 +527,7 @@ export const itemsRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            const userPerms = ctx.session.user.permissions
+            const userPerms = ctx.session.permissions
 
             if (!userPerms.includes(PERMS.manage_items)) {
                 throw new TRPCError({
@@ -535,11 +535,11 @@ export const itemsRouter = createTRPCRouter({
                     message: "You don't have permission to do this!",
                 });
             }
-            if (ctx.session.user.orgId) {
+            if (ctx.session.orgId) {
                 const item = await ctx.db.item.update({
                     where: { id: input.itemId },
                     data: {
-                        orgId: ctx.session.user.orgId,
+                        orgId: ctx.session.orgId,
                         itemBrandId: input.itemBrandId,
                         name: input.productName,
                         itemCode: input.itemCode,
@@ -559,22 +559,22 @@ export const itemsRouter = createTRPCRouter({
                 await ctx.db.itemHistory.create({
                     data: {
                         action: "UpdateItem",
-                        createdBy: ctx.session.user.name ?? ctx.session.user.email ?? "Bilinmeyen Kullanıcı",
+                        createdBy: ctx.session.email ?? "Bilinmeyen Kullanıcı",
                         description: input.description,
                         quantity: input.stock ?? 0,
                         toStorageId: input.storageId,
                         itemId: item.id,
-                        orgId: ctx.session.user.orgId,
-                        dealerId: ctx.session.user.dealerId
+                        orgId: ctx.session.orgId,
+                        dealerId: ctx.session.dealerId
                     }
                 })
                 return item
             }
-            if (ctx.session.user.dealerId) {
+            if (ctx.session.dealerId) {
                 const item = await ctx.db.item.update({
                     where: { id: input.itemId },
                     data: {
-                        dealerId: ctx.session.user.dealerId,
+                        dealerId: ctx.session.dealerId,
                         itemBrandId: input.itemBrandId,
                         name: input.productName,
                         itemCode: input.itemCode,
@@ -594,13 +594,13 @@ export const itemsRouter = createTRPCRouter({
                 await ctx.db.itemHistory.create({
                     data: {
                         action: "UpdateItem",
-                        createdBy: ctx.session.user.name ?? ctx.session.user.email ?? "Bilinmeyen Kullanıcı",
+                        createdBy:  ctx.session.email ?? "Bilinmeyen Kullanıcı",
                         description: input.description,
                         quantity: input.stock ?? 0,
                         toStorageId: input.storageId,
                         itemId: item.id,
-                        orgId: ctx.session.user.orgId,
-                        dealerId: ctx.session.user.dealerId
+                        orgId: ctx.session.orgId,
+                        dealerId: ctx.session.dealerId
                     }
                 })
                 return item
@@ -612,25 +612,25 @@ export const itemsRouter = createTRPCRouter({
             });
         }),
     getColors: protectedProcedure.query(async ({ ctx }) => {
-        const userPerms = ctx.session.user.permissions
-        if (ctx.session.user.orgId) {
+        const userPerms = ctx.session.permissions
+        if (ctx.session.orgId) {
             if (!userPerms.includes(PERMS.item_setting_view)) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
                     message: "You don't have permission to do this!",
                 });
             }
-            return await ctx.db.itemColor.findMany({ where: { orgId: ctx.session.user.orgId } })
+            return await ctx.db.itemColor.findMany({ where: { orgId: ctx.session.orgId } })
         }
 
-        if (ctx.session.user.dealerId) {
+        if (ctx.session.dealerId) {
             if (!userPerms.includes(PERMS.item_setting_view)) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
                     message: "You don't have permission to do this!",
                 });
             }
-            return await ctx.db.itemColor.findMany({ where: { dealerId: ctx.session.user.dealerId } })
+            return await ctx.db.itemColor.findMany({ where: { dealerId: ctx.session.dealerId } })
         }
         throw new TRPCError({
             code: "UNAUTHORIZED",
@@ -642,47 +642,47 @@ export const itemsRouter = createTRPCRouter({
             z.object({ colorCode: z.string().min(1), colorText: z.string().min(1) }),
         )
         .mutation(async ({ ctx, input }) => {
-            const userPerms = ctx.session.user.permissions
-            if (ctx.session.user.orgId) {
+            const userPerms = ctx.session.permissions
+            if (ctx.session.orgId) {
                 if (!userPerms.includes(PERMS.manage_item_setting)) {
                     throw new TRPCError({
                         code: "UNAUTHORIZED",
                         message: "You don't have permission to do this!",
                     });
                 }
-                return await ctx.db.itemColor.create({ data: { orgId: ctx.session.user.orgId, colorCode: input.colorCode, colorText: input.colorText } })
+                return await ctx.db.itemColor.create({ data: { orgId: ctx.session.orgId, colorCode: input.colorCode, colorText: input.colorText } })
             }
 
-            if (ctx.session.user.dealerId) {
+            if (ctx.session.dealerId) {
                 if (!userPerms.includes(PERMS.manage_item_setting)) {
                     throw new TRPCError({
                         code: "UNAUTHORIZED",
                         message: "You don't have permission to do this!",
                     });
                 }
-                return await ctx.db.itemColor.create({ data: { dealerId: ctx.session.user.dealerId, colorCode: input.colorCode, colorText: input.colorText } })
+                return await ctx.db.itemColor.create({ data: { dealerId: ctx.session.dealerId, colorCode: input.colorCode, colorText: input.colorText } })
             }
         }),
     getSizes: protectedProcedure.query(async ({ ctx }) => {
-        const userPerms = ctx.session.user.permissions
-        if (ctx.session.user.orgId) {
+        const userPerms = ctx.session.permissions
+        if (ctx.session.orgId) {
             if (!userPerms.includes(PERMS.item_setting_view)) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
                     message: "You don't have permission to do this!",
                 });
             }
-            return await ctx.db.itemSize.findMany({ where: { orgId: ctx.session.user.orgId } })
+            return await ctx.db.itemSize.findMany({ where: { orgId: ctx.session.orgId } })
         }
 
-        if (ctx.session.user.dealerId) {
+        if (ctx.session.dealerId) {
             if (!userPerms.includes(PERMS.item_setting_view)) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
                     message: "You don't have permission to do this!",
                 });
             }
-            return await ctx.db.itemSize.findMany({ where: { dealerId: ctx.session.user.dealerId } })
+            return await ctx.db.itemSize.findMany({ where: { dealerId: ctx.session.dealerId } })
         }
         throw new TRPCError({
             code: "UNAUTHORIZED",
@@ -694,47 +694,47 @@ export const itemsRouter = createTRPCRouter({
             z.object({ sizeCode: z.string().min(1), sizeText: z.string().min(1) }),
         )
         .mutation(async ({ ctx, input }) => {
-            const userPerms = ctx.session.user.permissions
-            if (ctx.session.user.orgId) {
+            const userPerms = ctx.session.permissions
+            if (ctx.session.orgId) {
                 if (!userPerms.includes(PERMS.manage_item_setting)) {
                     throw new TRPCError({
                         code: "UNAUTHORIZED",
                         message: "You don't have permission to do this!",
                     });
                 }
-                return await ctx.db.itemSize.create({ data: { orgId: ctx.session.user.orgId, sizeCode: input.sizeCode, sizeText: input.sizeText } })
+                return await ctx.db.itemSize.create({ data: { orgId: ctx.session.orgId, sizeCode: input.sizeCode, sizeText: input.sizeText } })
             }
 
-            if (ctx.session.user.dealerId) {
+            if (ctx.session.dealerId) {
                 if (!userPerms.includes(PERMS.manage_item_setting)) {
                     throw new TRPCError({
                         code: "UNAUTHORIZED",
                         message: "You don't have permission to do this!",
                     });
                 }
-                return await ctx.db.itemSize.create({ data: { dealerId: ctx.session.user.dealerId, sizeCode: input.sizeCode, sizeText: input.sizeText } })
+                return await ctx.db.itemSize.create({ data: { dealerId: ctx.session.dealerId, sizeCode: input.sizeCode, sizeText: input.sizeText } })
             }
         }),
     getCategory: protectedProcedure.query(async ({ ctx }) => {
-        const userPerms = ctx.session.user.permissions
-        if (ctx.session.user.orgId) {
+        const userPerms = ctx.session.permissions
+        if (ctx.session.orgId) {
             if (!userPerms.includes(PERMS.item_setting_view)) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
                     message: "You don't have permission to do this!",
                 });
             }
-            return await ctx.db.itemCategory.findMany({ where: { orgId: ctx.session.user.orgId } })
+            return await ctx.db.itemCategory.findMany({ where: { orgId: ctx.session.orgId } })
         }
 
-        if (ctx.session.user.dealerId) {
+        if (ctx.session.dealerId) {
             if (!userPerms.includes(PERMS.item_setting_view)) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
                     message: "You don't have permission to do this!",
                 });
             }
-            return await ctx.db.itemCategory.findMany({ where: { dealerId: ctx.session.user.dealerId } })
+            return await ctx.db.itemCategory.findMany({ where: { dealerId: ctx.session.dealerId } })
         }
         throw new TRPCError({
             code: "UNAUTHORIZED",
@@ -744,47 +744,47 @@ export const itemsRouter = createTRPCRouter({
     addCategory: protectedProcedure
         .input(z.string().min(1))
         .mutation(async ({ ctx, input }) => {
-            const userPerms = ctx.session.user.permissions
-            if (ctx.session.user.orgId) {
+            const userPerms = ctx.session.permissions
+            if (ctx.session.orgId) {
                 if (!userPerms.includes(PERMS.manage_item_setting)) {
                     throw new TRPCError({
                         code: "UNAUTHORIZED",
                         message: "You don't have permission to do this!",
                     });
                 }
-                return await ctx.db.itemCategory.create({ data: { orgId: ctx.session.user.orgId, name: input } })
+                return await ctx.db.itemCategory.create({ data: { orgId: ctx.session.orgId, name: input } })
             }
 
-            if (ctx.session.user.dealerId) {
+            if (ctx.session.dealerId) {
                 if (!userPerms.includes(PERMS.manage_item_setting)) {
                     throw new TRPCError({
                         code: "UNAUTHORIZED",
                         message: "You don't have permission to do this!",
                     });
                 }
-                return await ctx.db.itemCategory.create({ data: { dealerId: ctx.session.user.dealerId, name: input } })
+                return await ctx.db.itemCategory.create({ data: { dealerId: ctx.session.dealerId, name: input } })
             }
         }),
     getBrands: protectedProcedure.query(async ({ ctx }) => {
-        const userPerms = ctx.session.user.permissions
-        if (ctx.session.user.orgId) {
+        const userPerms = ctx.session.permissions
+        if (ctx.session.orgId) {
             if (!userPerms.includes(PERMS.item_setting_view)) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
                     message: "You don't have permission to do this!",
                 });
             }
-            return await ctx.db.itemBrand.findMany({ where: { orgId: ctx.session.user.orgId } })
+            return await ctx.db.itemBrand.findMany({ where: { orgId: ctx.session.orgId } })
         }
 
-        if (ctx.session.user.dealerId) {
+        if (ctx.session.dealerId) {
             if (!userPerms.includes(PERMS.item_setting_view)) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
                     message: "You don't have permission to do this!",
                 });
             }
-            return await ctx.db.itemBrand.findMany({ where: { dealerId: ctx.session.user.dealerId } })
+            return await ctx.db.itemBrand.findMany({ where: { dealerId: ctx.session.dealerId } })
         }
         throw new TRPCError({
             code: "UNAUTHORIZED",
@@ -794,25 +794,25 @@ export const itemsRouter = createTRPCRouter({
     addBrands: protectedProcedure
         .input(z.string().min(1))
         .mutation(async ({ ctx, input }) => {
-            const userPerms = ctx.session.user.permissions
-            if (ctx.session.user.orgId) {
+            const userPerms = ctx.session.permissions
+            if (ctx.session.orgId) {
                 if (!userPerms.includes(PERMS.manage_item_setting)) {
                     throw new TRPCError({
                         code: "UNAUTHORIZED",
                         message: "You don't have permission to do this!",
                     });
                 }
-                return await ctx.db.itemBrand.create({ data: { orgId: ctx.session.user.orgId, name: input } })
+                return await ctx.db.itemBrand.create({ data: { orgId: ctx.session.orgId, name: input } })
             }
 
-            if (ctx.session.user.dealerId) {
+            if (ctx.session.dealerId) {
                 if (!userPerms.includes(PERMS.manage_item_setting)) {
                     throw new TRPCError({
                         code: "UNAUTHORIZED",
                         message: "You don't have permission to do this!",
                     });
                 }
-                return await ctx.db.itemBrand.create({ data: { dealerId: ctx.session.user.dealerId, name: input } })
+                return await ctx.db.itemBrand.create({ data: { dealerId: ctx.session.dealerId, name: input } })
             }
         }),
     addBarcode: protectedProcedure
@@ -826,7 +826,7 @@ export const itemsRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            const userPerms = ctx.session.user.permissions
+            const userPerms = ctx.session.permissions
 
             if (!userPerms.includes(PERMS.manage_items)) {
                 throw new TRPCError({
@@ -870,7 +870,7 @@ export const itemsRouter = createTRPCRouter({
         quantity: z.string().min(1),
         isMaster: z.boolean(),
     })).mutation(async ({ input, ctx }) => {
-        const userPerms = ctx.session.user.permissions
+        const userPerms = ctx.session.permissions
 
         if (!userPerms.includes(PERMS.manage_items)) {
             throw new TRPCError({
@@ -933,7 +933,7 @@ export const itemsRouter = createTRPCRouter({
                     message: "Invalid Payload!"
                 })
             }
-            const userPerms = ctx.session.user.permissions
+            const userPerms = ctx.session.permissions
 
             if (!userPerms.includes(PERMS.item_accept)) {
                 throw new TRPCError({
@@ -946,8 +946,8 @@ export const itemsRouter = createTRPCRouter({
                 where: {
                     AND: [{
                         OR: [
-                            { orgId: ctx.session.user.orgId },
-                            { dealerId: ctx.session.user.dealerId }]
+                            { orgId: ctx.session.orgId },
+                            { dealerId: ctx.session.dealerId }]
                     },
                     { id: input.storageId }]
                 },
@@ -961,9 +961,9 @@ export const itemsRouter = createTRPCRouter({
             }
             const history = await ctx.db.itemAcceptHistory.create({
                 data: {
-                    orgId: ctx.session.user.orgId,
-                    dealerId: ctx.session.user.dealerId,
-                    name: ctx.session.user.name ?? ctx.session.user.email ?? "Bilinmeyen Kullanıcı",
+                    orgId: ctx.session.orgId,
+                    dealerId: ctx.session.dealerId,
+                    name:  ctx.session.email ?? "Bilinmeyen Kullanıcı",
                     storageId: storage.id,
                     customerId: input.fromCustomerId
                 }
@@ -973,8 +973,8 @@ export const itemsRouter = createTRPCRouter({
                     where: {
                         AND: [{
                             OR: [
-                                { item: { orgId: ctx.session.user.orgId } },
-                                { item: { dealerId: ctx.session.user.dealerId } }]
+                                { item: { orgId: ctx.session.orgId } },
+                                { item: { dealerId: ctx.session.dealerId } }]
                         },
                         { itemId: i.itemId }]
                     }
@@ -984,8 +984,8 @@ export const itemsRouter = createTRPCRouter({
                         AND: [{ barcode: i.barcode },
                         {
                             OR: [
-                                { item: { orgId: ctx.session.user.orgId } },
-                                { item: { dealerId: ctx.session.user.dealerId } }
+                                { item: { orgId: ctx.session.orgId } },
+                                { item: { dealerId: ctx.session.dealerId } }
                             ]
                         }]
                     }
@@ -1015,7 +1015,7 @@ export const itemsRouter = createTRPCRouter({
             return history
         }),
     getItemAcceptHistory: protectedProcedure.query(async ({ ctx }) => {
-        const userPerms = ctx.session.user.permissions
+        const userPerms = ctx.session.permissions
 
         if (!userPerms.includes(PERMS.item_accept_history_view)) {
             throw new TRPCError({
@@ -1026,8 +1026,8 @@ export const itemsRouter = createTRPCRouter({
         return await ctx.db.itemAcceptHistory.findMany({
             where: {
                 OR: [
-                    { orgId: ctx.session.user.orgId },
-                    { dealerId: ctx.session.user.dealerId }
+                    { orgId: ctx.session.orgId },
+                    { dealerId: ctx.session.dealerId }
                 ]
             },
             orderBy: { createDate: "desc" },
@@ -1042,7 +1042,7 @@ export const itemsRouter = createTRPCRouter({
         })
     }),
     getItemSellHistory: protectedProcedure.query(async ({ ctx }) => {
-        const userPerms = ctx.session.user.permissions
+        const userPerms = ctx.session.permissions
 
         if (!userPerms.includes(PERMS.item_sell_history_view)) {
             throw new TRPCError({
@@ -1053,8 +1053,8 @@ export const itemsRouter = createTRPCRouter({
         return await ctx.db.itemSellHistory.findMany({
             where: {
                 OR: [
-                    { orgId: ctx.session.user.orgId },
-                    { dealerId: ctx.session.user.dealerId }
+                    { orgId: ctx.session.orgId },
+                    { dealerId: ctx.session.dealerId }
                 ]
             },
             orderBy: { createDate: "desc" },
@@ -1067,7 +1067,7 @@ export const itemsRouter = createTRPCRouter({
         })
     }),
     itemSell: protectedProcedure.input(itemSellSchema).mutation(async ({ input, ctx }) => {
-        const userPerms = ctx.session.user.permissions
+        const userPerms = ctx.session.permissions
 
         if (!userPerms.includes(PERMS.item_sell)) {
 
@@ -1125,10 +1125,10 @@ export const itemsRouter = createTRPCRouter({
         })
         const sellHistory = await ctx.db.itemSellHistory.create({
             data: {
-                name: ctx.session.user.name ?? ctx.session.user.email ?? "Bilinmeyen Kullanıcı",
+                name:  ctx.session.email ?? "Bilinmeyen Kullanıcı",
                 customerId: customer.id,
-                orgId: ctx.session.user.orgId,
-                dealerId: ctx.session.user.dealerId,
+                orgId: ctx.session.orgId,
+                dealerId: ctx.session.dealerId,
                 storageId: storage.id,
                 transactionType: input.saleCancel ? "Cancel" : "Sale",
                 transactionId: transaction.id,

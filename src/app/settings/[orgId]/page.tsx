@@ -25,17 +25,18 @@ import { api } from "~/trpc/server";
 import { isValidEmail } from "~/utils";
 import { useCreateOrgMember } from "~/utils/useOrg";
 import { PERMS } from "~/_constants/perms";
-import { useSession } from "next-auth/react";
 import { DataTable } from "~/app/_components/tables/generic-table";
 import { columns as orgMemberColumns } from "./components/orgMembersColumns";
 import {
   RoleCreateOrUpdateModal,
   columns as orgRolesColumns,
 } from "./components/orgRolesColumns";
+import { useQuery } from "@tanstack/react-query";
+import { getSession } from "~/utils/getSession";
 
 const OrganizationSettings = () => {
   const params = useParams<{ orgId: string }>();
-  const { data: session } = useSession();
+  const { data: session } = useQuery({ queryFn: getSession });
   const [orgMemberEmail, setOrgMemberEmail] = useState<string | undefined>();
   const addOrgMember = useCreateOrgMember();
   const { data: org, isLoading: isOrgLoading } =
@@ -71,7 +72,7 @@ const OrganizationSettings = () => {
                 <Loader2Icon className="h-5 w-5 animate-spin" />
               )}
             </div>
-            {session?.user.permissions.includes(PERMS.manage_org_members) ? (
+            {session?.permissions.includes(PERMS.manage_org_members) ? (
               <Dialog>
                 <DialogTrigger asChild>
                   <Button>Üye Ekle</Button>

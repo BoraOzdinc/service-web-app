@@ -1,7 +1,5 @@
 "use client";
 import { $Enums } from "@prisma/client";
-import { type Session } from "next-auth";
-import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { AddressTypes, PriceTypes } from "~/_constants";
@@ -55,7 +53,8 @@ import {
   type customerById,
 } from "~/utils/useCustomers";
 import { customerTransactionColumns } from "./components/customerTransactionColumns";
-import { transactionTypes } from "~/utils/useItems";
+import { useQuery } from "@tanstack/react-query";
+import { getSession } from "~/utils/getSession";
 
 interface FormInput {
   companyName: string;
@@ -83,11 +82,11 @@ interface AddOrUpdateAddressFormInput {
 
 const CustomerDetail = () => {
   const { customerId } = useParams<{ customerId: string }>();
-  const { data: session } = useSession();
   const { data: customer, isLoading } =
     api.customer.getCustomerWithId.useQuery(customerId);
   const { data: customerTransactions } =
     api.customer.getCustomerTransactions.useQuery(customerId);
+  const { data: session } = useQuery({ queryFn: getSession });
 
   const updateCustomer = useUpdateCustomer();
 
@@ -403,12 +402,19 @@ const CustomerDetailForm = ({
   customer,
   onSubmitForm,
 }: {
-  session: Session | null;
+  session:
+    | {
+        permissions: string[];
+        orgId: string | null | undefined;
+        dealerId: string | null | undefined;
+        email: string | undefined;
+      }
+    | undefined;
   customer: customerById;
   onSubmitForm: (data: FormInput) => void;
 }) => {
   const dealers = api.dealer.getDealers.useQuery(undefined, {
-    enabled: Boolean(session?.user.orgId),
+    enabled: Boolean(session?.orgId),
   });
   const form = useForm<FormInput>({
     defaultValues: {
@@ -522,7 +528,7 @@ const CustomerDetailForm = ({
                 </FormItem>
               )}
             />
-            {session?.user.orgId ? (
+            {session?.orgId ? (
               <FormField
                 name="connectedDealerId"
                 control={form.control}

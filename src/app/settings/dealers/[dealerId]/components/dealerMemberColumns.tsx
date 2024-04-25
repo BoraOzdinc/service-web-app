@@ -74,13 +74,13 @@ const ActionColumn = ({
             <DialogHeader className="flex flex-row gap-3">
               <DialogTitle>Üye Düzenle</DialogTitle>
             </DialogHeader>
-            <div>
+            {/* <div>
               <Label>Üye ismi</Label>
               <Input placeholder="İsim" disabled value={member.user.name!} />
-            </div>
+            </div> */}
             <div>
               <Label>E-Mail</Label>
-              <Input placeholder="E-Mail" disabled value={member.user.email} />
+              <Input placeholder="E-Mail" disabled value={member.userEmail} />
             </div>
             <div>
               <Label>Roller</Label>
@@ -176,26 +176,8 @@ export const columns: (
     },
   },
   {
-    accessorKey: "id",
-    header: "Kullanıcı Adı",
-    cell: ({
-      row: {
-        original: { user },
-      },
-    }) => {
-      return user.name;
-    },
-  },
-  {
-    accessorKey: "user",
+    accessorKey: "userEmail",
     header: "E-Mail",
-    cell: ({
-      row: {
-        original: { user },
-      },
-    }) => {
-      return user.email;
-    },
   },
   {
     accessorKey: "role",

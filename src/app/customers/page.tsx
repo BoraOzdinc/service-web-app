@@ -1,5 +1,3 @@
-"use client";
-import { api } from "~/trpc/server";
 import {
   Card,
   CardContent,
@@ -7,17 +5,15 @@ import {
   CardHeader,
   CardTitle,
 } from "../_components/ui/card";
-import { DataTable } from "../_components/tables/generic-table";
-import { columns } from "./components/columns";
 import { Button } from "../_components/ui/button";
-import { useSession } from "next-auth/react";
 import { PERMS } from "~/_constants/perms";
-import { useRouter } from "next/navigation";
+import { redirect } from "next/navigation";
+import { getSession } from "~/utils/getSession";
+import CustomerList from "./components/CustomersListComp";
 
-const Customers = () => {
-  const { data: session } = useSession();
-  const router = useRouter();
-  const customers = api.customer.getCustomers.useQuery();
+const Customers = async () => {
+  const session = await getSession();
+
   return (
     <Card className="w-full">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -28,21 +24,14 @@ const Customers = () => {
           </CardDescription>
         </div>
 
-        {session?.user.permissions.includes(PERMS.manage_customers) ? (
-          <Button onClick={() => router.push("/customers/new")}>
+        {session.permissions.includes(PERMS.manage_customers) ? (
+          <Button onClick={() => redirect("/customers/new")}>
             Yeni Müşteri
           </Button>
         ) : null}
       </CardHeader>
       <CardContent>
-        <DataTable
-          data={customers.data}
-          isLoading={customers.isLoading}
-          columns={columns}
-          inputFilter={{ columnToFilter: "name", title: "İsim" }}
-          onRowClick={({ original: { id } }) => router.push(`/customers/${id}`)}
-          pagination
-        />
+        <CustomerList />
       </CardContent>
     </Card>
   );

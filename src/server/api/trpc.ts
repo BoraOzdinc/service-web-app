@@ -10,9 +10,8 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
-
-import { auth } from "~/server/auth";
 import { db } from "~/server/db";
+import { createClient } from "~/utils/supabase/server";
 
 /**
  * 1. CONTEXT
@@ -27,11 +26,30 @@ import { db } from "~/server/db";
  * @see https://trpc.io/docs/server/context
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
-  const session = await auth();
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser()
+  const userMember = await db.member.findUnique({
+    where: { userEmail: user?.email },
+    include: { roles: { include: { permissions: true } } },
+  });
+  const userPermission = [
+    ...new Set(
+      userMember?.roles.flatMap((r) => r.permissions.map((p) => p.name)),
+    ),
+  ];
+  const session = {
+    permissions: userPermission,
+    orgId: userMember?.orgId,
+    dealerId: userMember?.dealerId,
+    email: userMember?.userEmail,
+    id: user?.id
+  }
+  console.log(session);
 
   return {
     db,
     session,
+    supabase,
     ...opts,
   };
 };
@@ -89,13 +107,15 @@ export const publicProcedure = t.procedure;
  * @see https://trpc.io/docs/procedures
  */
 export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
-  if (!ctx.session || !ctx.session.user || (!ctx.session.user.orgId && !ctx.session.user.dealerId)) {
+  if (!ctx.session || (!ctx.session.orgId && !ctx.session.dealerId)) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "You don't have permission to do this!" });
   }
+  console.log(ctx.session);
+
   return next({
     ctx: {
       // infers the `session` as non-nullable
-      session: { ...ctx.session, user: ctx.session.user },
+      session: { ...ctx.session },
     },
   });
 });

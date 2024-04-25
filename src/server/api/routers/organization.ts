@@ -16,13 +16,13 @@ export const organizationRouter = createTRPCRouter({
                     message: "Invalid Payload",
                 });
             }
-            if (!ctx.session.user.permissions.includes(PERMS.view_org_members) || !ctx.session.user.orgId) {
+            if (!ctx.session.permissions.includes(PERMS.view_org_members) || !ctx.session.orgId) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
                     message: "You don't have permission to do this!",
                 });
             }
-            if (input.orgId !== ctx.session.user.orgId) {
+            if (input.orgId !== ctx.session.orgId) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
                     message: "You don't have permission to do this!",
@@ -34,17 +34,22 @@ export const organizationRouter = createTRPCRouter({
         if (!input) {
             throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid Payload!" })
         }
-        const userPerms = ctx.session.user.permissions
+        const userPerms = ctx.session.permissions
         if (!userPerms.includes(PERMS.view_org_role)) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "You don't have permission to do this!",
             });
         }
-        return await ctx.db.memberRole.findMany({
+
+        const memberRoles = await ctx.db.memberRole.findMany({
             where: { orgId: input.orgId },
-            include: { permissions: true, members: { include: { user: true } } }
+            include: { permissions: true, members: true }
         })
+        const { data: userList } = await ctx.supabase.auth.admin.listUsers()
+
+        return memberRoles.flatMap(r => ({ ...r, members: r.members.map(m => ({ ...m, user: userList.users.find(u => u.email === m.userEmail) })) }))
+
     }),
     updateOrgMember: protectedProcedure
         .input(z.object({ roleIds: z.string().array(), orgMemberId: nonEmptyString }))
@@ -55,7 +60,7 @@ export const organizationRouter = createTRPCRouter({
                     message: "Invalid Payload",
                 });
             }
-            const userPerms = ctx.session.user.permissions
+            const userPerms = ctx.session.permissions
             if (!userPerms.includes(PERMS.manage_org_members)) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
@@ -65,8 +70,8 @@ export const organizationRouter = createTRPCRouter({
             const Org = await ctx.db.org.findFirst({
                 where: {
                     OR: [
-                        { id: ctx.session.user.orgId },
-                        { dealers: { some: { id: ctx.session.user.dealerId } } }]
+                        { id: ctx.session.orgId ?? undefined },
+                        { dealers: { some: { id: ctx.session.dealerId ?? undefined } } }]
                 },
                 include: { dealers: { include: { members: true } } }
             })
@@ -90,7 +95,7 @@ export const organizationRouter = createTRPCRouter({
                     message: "Invalid Payload",
                 });
             }
-            const member = await ctx.db.member.findUnique({ where: { userId: ctx.session.user.id } })
+            const member = await ctx.db.member.findUnique({ where: { userEmail: ctx.session.email } })
             if (member?.id === input.memberId) {
 
                 throw new TRPCError({
@@ -99,7 +104,7 @@ export const organizationRouter = createTRPCRouter({
                 });
 
             }
-            const userPerms = ctx.session.user.permissions
+            const userPerms = ctx.session.permissions
             if (!userPerms.includes(PERMS.manage_org_members)) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
@@ -112,14 +117,14 @@ export const organizationRouter = createTRPCRouter({
         if (!input) {
             throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid Payload!" })
         }
-        const userPerms = ctx.session.user.permissions
+        const userPerms = ctx.session.permissions
         if (!userPerms.includes(PERMS.view_org_members)) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "You don't have permission to do this!",
             });
         }
-        if (input.orgId !== ctx.session.user.orgId) {
+        if (input.orgId !== ctx.session.orgId) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "You don't have permission to do this!",
@@ -127,7 +132,7 @@ export const organizationRouter = createTRPCRouter({
         }
         return await ctx.db.member.findMany({
             where: { orgId: input.orgId },
-            include: { user: true, roles: true }
+            include: { roles: true }
         })
     }),
     addMember: protectedProcedure.input(z.object({ orgId: z.string().optional(), dealerId: z.string().optional(), email: nonEmptyString }))
@@ -138,8 +143,9 @@ export const organizationRouter = createTRPCRouter({
                     message: "Invalid Payload",
                 });
             }
-            const userPermission = ctx.session.user.permissions
-            const invitedUser = await ctx.db.user.findUnique({ where: { email: input.email } })
+            const userPermission = ctx.session.permissions
+            const { data: { users: authUsers } } = await ctx.supabase.auth.admin.listUsers()
+            const invitedUser = authUsers.find(u => u.email === input.email)
             if (!invitedUser) {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
@@ -155,7 +161,7 @@ export const organizationRouter = createTRPCRouter({
                     });
                 }
                 try {
-                    return await ctx.db.member.create({ data: { orgId: input.orgId, userId: invitedUser.id } })
+                    return await ctx.db.member.create({ data: { orgId: input.orgId, userEmail: invitedUser.email ?? "" } })
                 } catch {
                     throw new TRPCError({
                         code: "BAD_REQUEST",
@@ -171,7 +177,7 @@ export const organizationRouter = createTRPCRouter({
                     });
                 }
                 try {
-                    return await ctx.db.member.create({ data: { dealerId: input.dealerId, userId: invitedUser.id } })
+                    return await ctx.db.member.create({ data: { dealerId: input.dealerId, userEmail: invitedUser.email ?? "" } })
                 } catch {
                     throw new TRPCError({
                         code: "BAD_REQUEST",
@@ -189,7 +195,7 @@ export const organizationRouter = createTRPCRouter({
     createDealer: protectedProcedure.input(z.object({ name: nonEmptyString, price_type: nonEmptyString })).mutation(async ({ ctx, input }) => {
         const priceEnum = z.nativeEnum($Enums.PriceType);
         const priceType = priceEnum.parse(input.price_type);
-        const userPerms = ctx.session.user.permissions
+        const userPerms = ctx.session.permissions
 
         if (!input || !priceType) {
             throw new TRPCError({
@@ -197,7 +203,7 @@ export const organizationRouter = createTRPCRouter({
                 message: "Invalid Payload",
             });
         }
-        if (ctx.session.user.orgId) {
+        if (ctx.session.orgId) {
 
             if (!userPerms.includes(PERMS.create_dealer)) {
                 throw new TRPCError({
@@ -205,7 +211,7 @@ export const organizationRouter = createTRPCRouter({
                     message: "You don't have permission to do this!",
                 });
             }
-            const dealer = await ctx.db.dealer.create({ data: { name: input.name, orgId: ctx.session.user.orgId, priceType: priceType } })
+            const dealer = await ctx.db.dealer.create({ data: { name: input.name, orgId: ctx.session.orgId, priceType: priceType } })
             const permissions = await ctx.db.memberPermission.findMany({ where: { assignableTo: { has: "Dealer" } } })
             await ctx.db.memberRole.create({ data: { name: "Bayii Yöneticisi", dealerId: dealer.id, permissions: { connect: permissions.map(p => ({ id: p.id })) } } })
             return dealer
@@ -227,7 +233,7 @@ export const organizationRouter = createTRPCRouter({
                     message: "Invalid Payload",
                 });
             }
-            const userPerms = ctx.session.user.permissions
+            const userPerms = ctx.session.permissions
             if (!userPerms.includes(PERMS.manage_dealer_role || PERMS.manage_org_role)) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
@@ -252,7 +258,7 @@ export const organizationRouter = createTRPCRouter({
                     message: "Invalid Payload",
                 });
             }
-            const perms = ctx.session.user.permissions
+            const perms = ctx.session.permissions
 
             if (!perms.includes(PERMS.manage_org_role)) {
                 throw new TRPCError({
@@ -275,7 +281,7 @@ export const organizationRouter = createTRPCRouter({
                     message: "Invalid Payload",
                 });
             }
-            const perms = ctx.session.user.permissions
+            const perms = ctx.session.permissions
 
             if (!perms.includes(PERMS.manage_org_role)) {
                 throw new TRPCError({
