@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 import { createClient } from '../../utils/supabase/server'
+import toast from 'react-hot-toast'
 
 export async function login(formData: FormData) {
     const supabase = createClient()
@@ -18,7 +19,7 @@ export async function login(formData: FormData) {
     const { error } = await supabase.auth.signInWithPassword(data)
 
     if (error) {
-        throw new Error(error.message)
+        toast.error(error.message)
     }
 
     revalidatePath('/', 'layout')
@@ -41,7 +42,7 @@ export async function loginWithGoogle() {
     })
 
     if (error) {
-        throw new Error(error.message)
+        toast.error(error.message)
     }
 
     revalidatePath('/', 'layout')
@@ -61,7 +62,7 @@ export async function signup(formData: FormData) {
     const { error } = await supabase.auth.signUp(data)
 
     if (error) {
-        throw new Error(error.message)
+        toast.error(error.message)
     }
 
     revalidatePath('/', 'layout')
@@ -75,7 +76,7 @@ export async function signOut() {
     const { error } = await supabase.auth.signOut()
 
     if (error) {
-        throw new Error(error.message)
+        toast.error(error.message)
     }
 
     revalidatePath('/', 'layout')
