@@ -10,6 +10,7 @@ import { PERMS } from "~/_constants/perms";
 import { redirect } from "next/navigation";
 import { getSession } from "~/utils/getSession";
 import CustomerList from "./components/CustomersListComp";
+import Link from "next/link";
 
 const Customers = async () => {
   const session = await getSession();
@@ -25,9 +26,9 @@ const Customers = async () => {
         </div>
 
         {session.permissions.includes(PERMS.manage_customers) ? (
-          <Button onClick={() => redirect("/customers/new")}>
-            Yeni Müşteri
-          </Button>
+          <Link href="/customers/new">
+            <Button>Yeni Müşteri</Button>
+          </Link>
         ) : null}
       </CardHeader>
       <CardContent>
