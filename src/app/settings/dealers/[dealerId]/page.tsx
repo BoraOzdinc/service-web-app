@@ -45,12 +45,10 @@ import {
 import { useDebounce } from "@uidotdev/usehooks";
 import { isValidEmail } from "~/utils";
 import { dealerTransactionsColumns } from "./components/dealerTransactionsColumns";
-import { useQuery } from "@tanstack/react-query";
-import { getSession } from "~/utils/getSession";
 
 const DealerDetails = () => {
   const params = useParams<{ dealerId: string }>();
-  const { data: session } = useQuery({ queryFn: getSession });
+  const { data: session } = api.utilRouter.getSession.useQuery();
   const addDealerMember = useCreateDealerMember();
   const [dealerMemberEmail, setDealerMemberEmail] = useState<
     string | undefined

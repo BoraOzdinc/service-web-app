@@ -53,8 +53,6 @@ import {
   type customerById,
 } from "~/utils/useCustomers";
 import { customerTransactionColumns } from "./components/customerTransactionColumns";
-import { useQuery } from "@tanstack/react-query";
-import { getSession } from "~/utils/getSession";
 
 interface FormInput {
   companyName: string;
@@ -86,7 +84,7 @@ const CustomerDetail = () => {
     api.customer.getCustomerWithId.useQuery(customerId);
   const { data: customerTransactions } =
     api.customer.getCustomerTransactions.useQuery(customerId);
-  const { data: session } = useQuery({ queryFn: getSession });
+  const { data: session } = api.utilRouter.getSession.useQuery();
 
   const updateCustomer = useUpdateCustomer();
 

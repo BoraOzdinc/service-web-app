@@ -31,12 +31,11 @@ import {
 } from "~/app/_components/ui/select";
 import { useHydrated } from "~/trpc/react";
 import { api } from "~/trpc/server";
-import { getSession } from "~/utils/getSession";
-import { ItemWithBarcode } from "~/utils/useItems";
+import {type ItemWithBarcode } from "~/utils/useItems";
 
 const ItemCount = () => {
   const storages = api.items.getStorages.useQuery();
-  const { data: session } = useQuery({ queryFn: getSession });
+  const { data: session } = api.utilRouter.getSession.useQuery();
   const hydrated = useHydrated();
   const [isStorageOpen, setIsStorageOpen] = useState(true);
   const [isBarcodeOpen, setIsBarcodeOpen] = useState(false);

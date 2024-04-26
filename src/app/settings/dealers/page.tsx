@@ -31,11 +31,9 @@ import {
 } from "~/app/_components/ui/select";
 import { useCreateDealer } from "~/utils/useDealer";
 import { PriceTypes } from "~/_constants";
-import { useQuery } from "@tanstack/react-query";
-import { getSession } from "~/utils/getSession";
 
 const Dealers = () => {
-  const { data: session } = useQuery({ queryFn: getSession });
+  const { data: session } = api.utilRouter.getSession.useQuery();
   const { data: dealers, isLoading: dealersLoading } =
     api.dealer.getDealers.useQuery(undefined, { retry: false });
   const createDealer = useCreateDealer();

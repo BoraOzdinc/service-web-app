@@ -31,12 +31,10 @@ import {
   RoleCreateOrUpdateModal,
   columns as orgRolesColumns,
 } from "./components/orgRolesColumns";
-import { useQuery } from "@tanstack/react-query";
-import { getSession } from "~/utils/getSession";
 
 const OrganizationSettings = () => {
   const params = useParams<{ orgId: string }>();
-  const { data: session } = useQuery({ queryFn: getSession });
+  const { data: session } = api.utilRouter.getSession.useQuery();
   const [orgMemberEmail, setOrgMemberEmail] = useState<string | undefined>();
   const addOrgMember = useCreateOrgMember();
   const { data: org, isLoading: isOrgLoading } =

@@ -26,6 +26,9 @@ export const UtilsRouter = createTRPCRouter({
         });
         const priceJson = await price.json() as EuroPriceType;
         return priceJson.list.find(i => i.kurId === 5)
+    }),
+    getSession: protectedProcedure.query(async ({ ctx }) => {
+        return ctx.session
     })
 
 })

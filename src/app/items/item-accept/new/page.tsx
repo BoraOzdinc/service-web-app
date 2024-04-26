@@ -34,12 +34,10 @@ import toast from "react-hot-toast";
 import AddItemDialog from "../components/AddItemDialog";
 import UpdateItemDialog from "../components/UpdateItemDialog";
 import ItemCard from "../components/ItemCard";
-import { useQuery } from "@tanstack/react-query";
-import { getSession } from "~/utils/getSession";
 
 const NewItemAccept = () => {
   const hydrated = useHydrated();
-  const { data: session } = useQuery({ queryFn: getSession });
+  const { data: session } = api.utilRouter.getSession.useQuery();
   const [selectedStorageId, setSelectedStorageId] = useState<
     string | undefined
   >();
@@ -59,8 +57,8 @@ const NewItemAccept = () => {
   >([]);
   const ItemsData = api.items.getItemWithBarcode.useQuery(
     {
-      orgId: session?.orgId??undefined,
-      dealerId: session?.dealerId??undefined,
+      orgId: session?.orgId ?? undefined,
+      dealerId: session?.dealerId ?? undefined,
       barcode: data,
     },
     {
