@@ -21,6 +21,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "~/app/_components/ui/dialog";
 import {
   Select,
@@ -31,7 +32,13 @@ import {
 } from "~/app/_components/ui/select";
 import { useHydrated } from "~/trpc/react";
 import { api } from "~/trpc/server";
-import {type ItemWithBarcode } from "~/utils/useItems";
+import { useItemCount, type ItemWithBarcode } from "~/utils/useItems";
+import AddItemDialog from "../item-accept/components/AddItemDialog";
+import UpdateItemDialog from "../item-accept/components/UpdateItemDialog";
+import ItemCard from "../item-accept/components/ItemCard";
+import { ScrollArea } from "~/app/_components/ui/scroll-area";
+import { DataTable } from "~/app/_components/tables/generic-table";
+import { ColumnDef } from "@tanstack/react-table";
 
 const ItemCount = () => {
   const storages = api.items.getStorages.useQuery();
@@ -76,6 +83,7 @@ const ItemCount = () => {
     {
       item: ItemWithBarcode;
       barcode: string;
+      quantity: number;
       totalAdded: number;
     }[]
   >([]);
@@ -97,6 +105,7 @@ const ItemCount = () => {
         {
           item,
           barcode: scannedBarcode,
+          quantity: quantity,
           totalAdded: (itemBarcode?.quantity ?? 1) * quantity,
         },
       ]);
@@ -108,6 +117,55 @@ const ItemCount = () => {
     setIsAddItemOpen(false);
   };
 
+  const onUpdateItem = (
+    barcode: string,
+    quantity: number,
+    conflict: boolean,
+  ) => {
+    const existingItem = addedItems.find((i) => i.barcode === barcode);
+    const itemIndex = addedItems.findIndex((i) => i.barcode === barcode);
+
+    if (existingItem) {
+      setAddedItem((prevItems) => {
+        const newItems = [...prevItems];
+        const itemBarcode = existingItem.item?.itemBarcode.find(
+          (b) => b.barcode === scannedBarcode,
+        );
+        if (conflict) {
+          newItems[itemIndex] = {
+            ...existingItem,
+            quantity: existingItem.quantity + quantity,
+            totalAdded:
+              existingItem.totalAdded + (itemBarcode?.quantity ?? 1) * quantity,
+          };
+        } else {
+          newItems[itemIndex] = {
+            ...existingItem,
+            quantity: quantity,
+            totalAdded: (itemBarcode?.quantity ?? 1) * quantity,
+          };
+        }
+        return newItems;
+      });
+    }
+    toast.success("Güncellendi");
+    setIsUpdateItemOpen(false);
+    setIsAddItemOpen(false);
+  };
+  const onDeleteItem = (barcode: string) => {
+    const itemIndex = addedItems.findIndex((i) => i.barcode === barcode);
+
+    setAddedItem((prevItems) => {
+      const newItems = [...prevItems];
+      newItems.splice(itemIndex, 1);
+      return newItems;
+    });
+
+    toast.success("Silindi");
+    setIsUpdateItemOpen(false);
+    setIsAddItemOpen(false);
+  };
+  const countItems = useItemCount();
   if (!hydrated) {
     return null;
   }
@@ -125,8 +183,72 @@ const ItemCount = () => {
           open={isBarcodeOpen}
           setData={setScannedBarcode}
         />
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button>Tamamla</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Özet</DialogTitle>
+              <DialogDescription>Ürün Sayımınızın Özeti</DialogDescription>
+              <DialogDescription>
+                Not: Ürün Sayımı Bütün Deponuzdaki Stokları Aşşağıdaki Stoklar
+                ile Güncelleyecek!
+              </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="max-h-[300px] rounded border p-1">
+              <DataTable data={addedItems} columns={CountDealerColumns} />
+            </ScrollArea>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button
+                  onClick={() => {
+                    countItems.mutate(
+                      {
+                        storageId: selectedStorage?.id ?? "",
+                        items: addedItems.map((i) => ({
+                          itemId: i.item?.id ?? "",
+                          barcode: i.barcode,
+                          totalAdded: i.totalAdded,
+                        })),
+                      },
+                      {
+                        onSuccess: () => {
+                          setAddedItem([]);
+                        },
+                      },
+                    );
+                  }}
+                >
+                  Kaydet
+                </Button>
+              </DialogClose>
+
+              <DialogClose asChild>
+                <Button variant={"outline"}>Vazgeç</Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardHeader>
       <CardContent>
+        <AddItemDialog
+          item={ItemsData.data}
+          open={isAddItemOpen}
+          setOpen={setIsAddItemOpen}
+          isLoading={ItemsData.isLoading}
+          barcode={scannedBarcode}
+          onAddItem={onAddItem}
+        />
+        <UpdateItemDialog
+          open={isUpdateItemOpen}
+          setOpen={setIsUpdateItemOpen}
+          item={ItemsData.data}
+          addedItems={addedItems}
+          quantity={updateQuantity}
+          onUpdateItem={onUpdateItem}
+          scannedBarcode={scannedBarcode}
+        />
         <Dialog
           defaultOpen
           open={isStorageOpen}
@@ -180,9 +302,61 @@ const ItemCount = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        {addedItems.length ? (
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-5">
+            {addedItems.map((item) => {
+              if (item.item) {
+                const barcode = item.item.itemBarcode.find(
+                  (b) => b.barcode === item.barcode,
+                );
+                return (
+                  <ItemCard
+                    key={barcode?.id}
+                    item={item}
+                    barcode={barcode}
+                    onUpdateItem={onUpdateItem}
+                    onDeleteItem={onDeleteItem}
+                  />
+                );
+              }
+            })}
+          </div>
+        ) : (
+          <div className="text-xl" key={"empty"}>
+            Henüz Ürün Eklenmedi! Barkod Tuşuna Basarak Ürün Eklemeye
+            Başlayabilirsiniz
+          </div>
+        )}
       </CardContent>
     </Card>
   );
 };
+
+const CountDealerColumns: ColumnDef<{
+  item: ItemWithBarcode;
+  barcode: string;
+  quantity: number;
+  totalAdded: number;
+}>[] = [
+  {
+    accessorKey: "item",
+    header: "Ürün Adı",
+    cell({
+      row: {
+        original: { item },
+      },
+    }) {
+      return item?.name;
+    },
+  },
+  {
+    accessorKey: "barcode",
+    header: "Barkod",
+  },
+  {
+    accessorKey: "totalAdded",
+    header: "Toplam Adet",
+  },
+];
 
 export default ItemCount;

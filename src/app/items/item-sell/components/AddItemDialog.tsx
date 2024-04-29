@@ -1,5 +1,6 @@
 import { Loader2 } from "lucide-react";
 import { type Dispatch, type SetStateAction, useState, useMemo } from "react";
+import { Badge } from "~/app/_components/ui/badge";
 import { Button } from "~/app/_components/ui/button";
 import {
   Dialog,
@@ -25,17 +26,31 @@ const AddItemDialog = ({
   setOpen: Dispatch<SetStateAction<boolean>>;
   isLoading: boolean;
   barcode: string;
-  onAddItem: (item: ItemWithBarcode, quantity: number) => void;
+  onAddItem: (
+    item: ItemWithBarcode,
+    quantity: number,
+    serialNumbers: string[],
+  ) => void;
   selectedStorageId: string | undefined;
 }) => {
   const itemBarcode = item?.itemBarcode.find((b) => b.barcode === barcode);
   const [quantity, setQuantity] = useState(1);
+  const [serialNumber, setSerialNumber] = useState<string>("");
+  const [serialNumberList, setSerialNumberList] = useState<string[]>([]);
   const totalStock = useMemo(() => {
     return item?.ItemStock.find((s) => s.storage.id === selectedStorageId)
       ?.stock;
   }, [item?.ItemStock, selectedStorageId]);
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={() => {
+        setOpen(!open);
+        setSerialNumberList([]);
+        setSerialNumber("");
+        setQuantity(1);
+      }}
+    >
       <DialogContent
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
@@ -58,6 +73,9 @@ const AddItemDialog = ({
               <div>{`Depoda Bulunan Toplam Stok: ${
                 totalStock ? totalStock : "0"
               }`}</div>
+              <div>{`Seri Numarası Zorunlu: ${
+                item.isSerialNoRequired ? "Evet" : "Hayır"
+              }`}</div>
             </div>
           </div>
         ) : (
@@ -79,19 +97,65 @@ const AddItemDialog = ({
             }}
           />
         </div>
+        {item?.isSerialNoRequired && (
+          <div className="flex flex-col gap-2">
+            <Label>Seri Numaraları</Label>
+            <div className="flex gap-2">
+              <Input
+                disabled={!item}
+                value={serialNumber}
+                onChange={(e) => {
+                  setSerialNumber(e.target.value);
+                }}
+              />
+              <Button
+                disabled={!serialNumber || serialNumberList.length === quantity}
+                onClick={() => {
+                  setSerialNumberList([...serialNumberList, serialNumber]);
+                  setSerialNumber("");
+                }}
+              >
+                Seri Numarası Ekle
+              </Button>
+            </div>
+            <div className=" min-h-[30px] w-full  rounded border p-1">
+              {serialNumberList.length ? (
+                serialNumberList.map((s) => (
+                  <Badge
+                    className="m-[3px]"
+                    key={s}
+                    onClick={() => {
+                      setSerialNumberList(
+                        serialNumberList.filter((serial) => serial !== s),
+                      );
+                    }}
+                  >
+                    {s}
+                  </Badge>
+                ))
+              ) : (
+                <p>Lütfen Seri Numaralarını Ekleyin</p>
+              )}
+            </div>
+          </div>
+        )}
         <Button
-          disabled={
-            !!(
-              isLoading ||
+          disabled={Boolean(
+            isLoading ||
               !item ||
               Boolean(
                 quantity * (itemBarcode?.quantity ?? 0) > (totalStock ?? 0),
-              )
-            )
-          }
+              ) ||
+              !(
+                item.isSerialNoRequired && serialNumberList.length === quantity
+              ),
+          )}
           onClick={() => {
             if (item) {
-              onAddItem(item, quantity);
+              onAddItem(item, quantity, serialNumberList);
+              setSerialNumberList([]);
+              setSerialNumber("");
+              setQuantity(1);
             }
           }}
         >
@@ -101,6 +165,9 @@ const AddItemDialog = ({
           variant={"outline"}
           onClick={() => {
             setOpen(false);
+            setSerialNumberList([]);
+            setSerialNumber("");
+            setQuantity(1);
           }}
         >
           İptal

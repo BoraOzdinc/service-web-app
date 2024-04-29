@@ -154,20 +154,24 @@ const NewItemAccept = () => {
           disabled={!addedItems.length}
           onClick={async () => {
             if (addedItems && selectedCustomerId && selectedStorageId) {
-              await itemAccept.mutateAsync({
-                fromCustomerId: selectedCustomerId,
-                storageId: selectedStorageId,
-                items: addedItems.map((i) => {
-                  return {
-                    barcode: i.barcode,
-                    itemId: i.item ? i.item.id : "",
-                    quantity: i.quantity,
-                  };
-                }),
-              });
-              if (itemAccept.isSuccess) {
-                setAddedItem([]);
-              }
+              await itemAccept.mutateAsync(
+                {
+                  fromCustomerId: selectedCustomerId,
+                  storageId: selectedStorageId,
+                  items: addedItems.map((i) => {
+                    return {
+                      barcode: i.barcode,
+                      itemId: i.item ? i.item.id : "",
+                      quantity: i.quantity,
+                    };
+                  }),
+                },
+                {
+                  onSuccess: () => {
+                    setAddedItem([]);
+                  },
+                },
+              );
             }
           }}
         >

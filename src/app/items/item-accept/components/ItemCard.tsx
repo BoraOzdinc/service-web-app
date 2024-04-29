@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Badge } from "~/app/_components/ui/badge";
 import { Button } from "~/app/_components/ui/button";
 import {
   Dialog,
@@ -19,6 +20,7 @@ const ItemCard = ({
   onDeleteItem,
   addedItems,
   selectedStorageId,
+  sellUpdate,
 }: {
   barcode?: {
     id: string;
@@ -31,6 +33,7 @@ const ItemCard = ({
   item: {
     item: ItemWithBarcode;
     barcode: string;
+    serialNumbers?: string[];
     quantity: number;
     totalAdded?: number;
   };
@@ -41,10 +44,20 @@ const ItemCard = ({
     totalAdded?: number;
   }[];
   selectedStorageId?: string;
-  onUpdateItem: (barcode: string, quantity: number, conflict: boolean) => void;
+  onUpdateItem: (
+    barcode: string,
+    quantity: number,
+    conflict: boolean,
+    serialNumbers?: string[],
+  ) => void;
   onDeleteItem: (barcode: string) => void;
+  sellUpdate?: boolean;
 }) => {
   const [quantity, setQuantity] = useState(item.quantity);
+  const [serialNumber, setSerialNumber] = useState<string>("");
+  const [serialNumberList, setSerialNumberList] = useState<string[]>(
+    item.serialNumbers ?? [],
+  );
 
   const existingItemTotalAddedStock = useMemo(() => {
     if (addedItems) {
@@ -68,6 +81,8 @@ const ItemCard = ({
       <Dialog
         key={item.barcode}
         onOpenChange={() => {
+          setQuantity(item.quantity);
+          setSerialNumberList(item.serialNumbers ?? []);
           setQuantity(item.quantity);
         }}
       >
@@ -115,6 +130,50 @@ const ItemCard = ({
                 type="number"
               />
             </div>
+            {sellUpdate && item.item.isSerialNoRequired && (
+              <div className="flex flex-col gap-2">
+                <Label>Seri Numaraları</Label>
+                <div className="flex gap-2">
+                  <Input
+                    disabled={!item}
+                    value={serialNumber}
+                    onChange={(e) => {
+                      setSerialNumber(e.target.value);
+                    }}
+                  />
+                  <Button
+                    disabled={
+                      !serialNumber || serialNumberList.length === quantity
+                    }
+                    onClick={() => {
+                      setSerialNumberList([...serialNumberList, serialNumber]);
+                      setSerialNumber("");
+                    }}
+                  >
+                    Seri Numarası Ekle
+                  </Button>
+                </div>
+                <div className=" min-h-[30px] w-full  rounded border p-1">
+                  {serialNumberList.length ? (
+                    serialNumberList.map((s) => (
+                      <Badge
+                        className="m-[3px]"
+                        key={s}
+                        onClick={() => {
+                          setSerialNumberList(
+                            serialNumberList.filter((serial) => serial !== s),
+                          );
+                        }}
+                      >
+                        {s}
+                      </Badge>
+                    ))
+                  ) : (
+                    <p>Lütfen Seri Numaralarını Ekleyin</p>
+                  )}
+                </div>
+              </div>
+            )}
             <DialogClose asChild>
               <Button
                 disabled={
@@ -123,13 +182,13 @@ const ItemCard = ({
                     totalStock &&
                     barcode &&
                     existingItemTotalAddedStock &&
-                    totalStock <
-                      existingItemTotalAddedStock +
-                        quantity * barcode.quantity -
-                        item.quantity
-                  )
+                    totalStock < quantity * barcode.quantity - item.quantity
+                  ) ||
+                  (sellUpdate && serialNumberList.length !== quantity)
                 }
-                onClick={() => onUpdateItem(item.barcode, quantity, false)}
+                onClick={() =>
+                  onUpdateItem(item.barcode, quantity, false, serialNumberList)
+                }
               >
                 Kaydet
               </Button>

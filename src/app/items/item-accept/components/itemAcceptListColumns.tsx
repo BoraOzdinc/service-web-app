@@ -77,17 +77,11 @@ export const columns: ColumnDef<ItemAcceptHistory>[] = [
               <PackageIcon className="h-4 w-4" />
             </Button>
           </DialogTrigger>
-          <DialogContent className="flex w-full flex-col overflow-x-auto">
+          <DialogContent className="max-h-min max-w-min overflow-scroll sm:overflow-hidden">
             <DialogHeader>
               <DialogTitle>Ürünler</DialogTitle>
             </DialogHeader>
-            <div className="w-full">
-              <DataTable
-                data={items}
-                columns={itemsColumns}
-                isLoading={!items}
-              />
-            </div>
+            <DataTable data={items} columns={itemsColumns} isLoading={!items} />
           </DialogContent>
         </Dialog>
       );

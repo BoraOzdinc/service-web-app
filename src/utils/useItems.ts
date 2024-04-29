@@ -257,5 +257,23 @@ export const useItemSell = () => {
         },
     });
 };
+export const useItemCount = () => {
+    return api.items.itemCount.useMutation({
+        onSuccess: async (_d,) => {
+            toast.success("Sayım Tamamlandı", { id: "item.itemCounter" });
+
+        },
+        onMutate: () => {
+            toast.loading("Sayım Yapılıyor...", {
+                id: "item.itemCounter",
+            });
+        },
+        onError(error) {
+            toast.error(String(error.data?.zodError ?? error.message), {
+                id: "item.itemCounter",
+            });
+        },
+    });
+};
 
 

@@ -200,7 +200,6 @@ model Item {
     itemBarcode        itemBarcode[]
     itemCode           String
     isSerialNoRequired Boolean
-    serialNo           String?
     image              String?
     netWeight          String?
     volume             String?
@@ -408,10 +407,11 @@ model ItemSellHistory {
 }
 
 model ItemSellDetail {
-    id       String @id @default(cuid())
-    item     Item   @relation(fields: [itemId], references: [id])
-    itemId   String
-    quantity Int
+    id            String   @id @default(cuid())
+    item          Item     @relation(fields: [itemId], references: [id])
+    itemId        String
+    quantity      Int
+    serialNumbers String[]
 
     ItemAcceptHistory   ItemSellHistory? @relation(fields: [itemAcceptHistoryId], references: [id])
     itemAcceptHistoryId String?

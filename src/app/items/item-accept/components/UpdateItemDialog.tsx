@@ -27,7 +27,8 @@ const UpdateItemDialog = ({
   addedItems: {
     item: ItemWithBarcode;
     barcode: string;
-    quantity: number;
+    quantity?: number;
+    serialNumbers?: string[];
     totalAdded?: number;
   }[];
   quantity: number;
@@ -75,7 +76,7 @@ const UpdateItemDialog = ({
           <DialogDescription>{`Bu Barkodun Önceki Miktarı: ${existingItem.quantity}`}</DialogDescription>
           <DialogDescription>{`Bu Barkodun Şimdiki Miktarı: ${quantity}`}</DialogDescription>
           <DialogDescription>{`Bu Barkodun Toplam Miktarı: ${
-            existingItem.quantity + quantity
+            (existingItem?.quantity ?? 0) + quantity
           }`}</DialogDescription>
           {existingItem.totalAdded && totalStock && barcodeDetails && (
             <>

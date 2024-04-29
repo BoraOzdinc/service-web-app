@@ -413,7 +413,7 @@ export const itemsRouter = createTRPCRouter({
                 await ctx.db.itemHistory.create({
                     data: {
                         action: "AddItem",
-                        createdBy:  ctx.session.email ?? "Bilinmeyen Kullanıcı",
+                        createdBy: ctx.session.email ?? "Bilinmeyen Kullanıcı",
                         description: "",
                         quantity: input.stock ?? 0,
                         toStorageId: input.storageId,
@@ -594,7 +594,7 @@ export const itemsRouter = createTRPCRouter({
                 await ctx.db.itemHistory.create({
                     data: {
                         action: "UpdateItem",
-                        createdBy:  ctx.session.email ?? "Bilinmeyen Kullanıcı",
+                        createdBy: ctx.session.email ?? "Bilinmeyen Kullanıcı",
                         description: input.description,
                         quantity: input.stock ?? 0,
                         toStorageId: input.storageId,
@@ -963,7 +963,7 @@ export const itemsRouter = createTRPCRouter({
                 data: {
                     orgId: ctx.session.orgId,
                     dealerId: ctx.session.dealerId,
-                    name:  ctx.session.email ?? "Bilinmeyen Kullanıcı",
+                    name: ctx.session.email ?? "Bilinmeyen Kullanıcı",
                     storageId: storage.id,
                     customerId: input.fromCustomerId
                 }
@@ -1125,7 +1125,7 @@ export const itemsRouter = createTRPCRouter({
         })
         const sellHistory = await ctx.db.itemSellHistory.create({
             data: {
-                name:  ctx.session.email ?? "Bilinmeyen Kullanıcı",
+                name: ctx.session.email ?? "Bilinmeyen Kullanıcı",
                 customerId: customer.id,
                 orgId: ctx.session.orgId,
                 dealerId: ctx.session.dealerId,
@@ -1143,5 +1143,24 @@ export const itemsRouter = createTRPCRouter({
         })
         return [transaction, sellHistory]
     }),
+    itemCount: protectedProcedure.input(
+        z.object({
+            storageId: nonEmptyString,
+            items: z.object({
+                itemId: nonEmptyString,
+                barcode: nonEmptyString,
+                totalAdded: z.number().min(1),
+            }).array().min(1)
+        })).mutation(async ({ ctx, input }) => {
+
+            if (!ctx.session.permissions.includes(PERMS.manage_items)) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this!",
+                });
+            }
+            await ctx.db.itemStock.deleteMany({ where: { storageId: input.storageId } })
+            return await ctx.db.itemStock.createMany({ data: input.items.map(i => ({ itemId: i.itemId, stock: i.totalAdded, storageId: input.storageId })) })
+        })
 
 });

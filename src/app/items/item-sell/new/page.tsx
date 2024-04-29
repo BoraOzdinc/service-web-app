@@ -48,9 +48,17 @@ const NewItemSell = () => {
   const { data: session } = api.utilRouter.getSession.useQuery();
   const storages = api.items.getStorages.useQuery(undefined, {
     enabled: !!session,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchInterval: false,
+    refetchOnMount: false,
   });
   const customers = api.customer.getCustomers.useQuery(undefined, {
     enabled: !!session,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchInterval: false,
+    refetchOnMount: false,
   });
   const [selectedStorageId, setSelectedStorageId] = useState<
     string | undefined
@@ -83,12 +91,14 @@ const NewItemSell = () => {
   const [isTransferToDealerChecked, setIsTransferToDealerChecked] =
     useState(true);
   const [updateQuantity, setUpdateQuantity] = useState(1);
+  const [updateSerialNumbers, setUpdateSerialNumbers] = useState<string[]>([]);
   const [data, setData] = useState("");
 
   const [addedItems, setAddedItem] = useState<
     {
       item: ItemWithBarcode;
       barcode: string;
+      serialNumbers: string[];
       quantity: number;
       totalAdded: number;
     }[]
@@ -120,7 +130,11 @@ const NewItemSell = () => {
     }
   }, [ItemsData.isFetching]);
 
-  const onAddItem = (item: ItemWithBarcode, quantity: number) => {
+  const onAddItem = (
+    item: ItemWithBarcode,
+    quantity: number,
+    serialNumbers: string[],
+  ) => {
     const existingItem = addedItems.find((i) => i.barcode === data);
     if (!existingItem) {
       const itemBarcode = item?.itemBarcode.find((b) => b.barcode === data);
@@ -129,12 +143,14 @@ const NewItemSell = () => {
         {
           item,
           barcode: data,
+          serialNumbers,
           quantity,
           totalAdded: (itemBarcode?.quantity ?? 1) * quantity,
         },
       ]);
     } else {
       setUpdateQuantity(quantity);
+      setUpdateSerialNumbers(serialNumbers);
       setIsUpdateItemOpen(true);
     }
     toast.success("Eklendi");
@@ -145,6 +161,7 @@ const NewItemSell = () => {
     barcode: string,
     quantity: number,
     conflict: boolean,
+    serialNumbers?: string[],
   ) => {
     const existingItem = addedItems.find((i) => i.barcode === barcode);
     const itemIndex = addedItems.findIndex((i) => i.barcode === barcode);
@@ -159,6 +176,8 @@ const NewItemSell = () => {
           newItems[itemIndex] = {
             ...existingItem,
             quantity: existingItem.quantity + quantity,
+            serialNumbers:
+              existingItem.serialNumbers.concat(updateSerialNumbers) ?? [],
             totalAdded:
               existingItem.totalAdded + (itemBarcode?.quantity ?? 1) * quantity,
           };
@@ -166,6 +185,7 @@ const NewItemSell = () => {
           newItems[itemIndex] = {
             ...existingItem,
             quantity: quantity,
+            serialNumbers: serialNumbers ?? [],
             totalAdded: (itemBarcode?.quantity ?? 1) * quantity,
           };
         }
@@ -189,7 +209,7 @@ const NewItemSell = () => {
     setIsUpdateItemOpen(false);
     setIsAddItemOpen(false);
   };
-
+  /* 
   const uniqueItems = useMemo(() => {
     const itemMap = new Map<string, (typeof addedItems)[0]>();
 
@@ -207,13 +227,13 @@ const NewItemSell = () => {
     });
 
     return Array.from(itemMap.values());
-  }, [addedItems]);
+  }, [addedItems]); */
 
   const columns = useMemo(() => {
     return summaryColumns(selectedPriceType);
   }, [selectedPriceType]);
 
-  const totalPayAmount = uniqueItems.reduce((acc, curVal) => {
+  const totalPayAmount = addedItems.reduce((acc, curVal) => {
     if (selectedPriceType) {
       const price = curVal.item?.[selectedPriceType];
       acc += curVal.totalAdded * Number(price);
@@ -239,15 +259,20 @@ const NewItemSell = () => {
       transferToDealer: isTransferToDealerChecked,
       paidAmount: paidAmount,
       saleCancel: saleCancel,
-      items: uniqueItems.map((i) => ({
+      items: addedItems.map((i) => ({
         itemId: i.item?.id ?? "",
         price: selectedPriceType && (i.item?.[selectedPriceType] ?? undefined),
         barcode: i.barcode,
         totalAdded: i.totalAdded,
       })),
     };
-    itemSell.mutate(payload);
+    itemSell.mutate(payload, {
+      onSuccess: () => {
+        setAddedItem([]);
+      },
+    });
   };
+  console.log(addedItems);
 
   if (!hydrated) {
     return null;
@@ -265,49 +290,51 @@ const NewItemSell = () => {
           <DialogTrigger asChild>
             <Button disabled={!addedItems.length}>Kaydet</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-min overflow-scroll sm:overflow-hidden">
+          <DialogContent className="max-h-min max-w-min overflow-scroll sm:overflow-hidden">
             <DialogHeader>
               <DialogTitle>Özet</DialogTitle>
               <DialogDescription>Satışınızın Özeti</DialogDescription>
             </DialogHeader>
-            <DataTable data={uniqueItems} columns={columns} />
+            <DataTable data={addedItems} columns={columns} />
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <div>
                 <Label>Toplam Tutar</Label>
                 <Input disabled value={`${totalPayAmount}€`} />
               </div>
-              <div>
-                <Label>{`Bayii Tutarı (${PriceTypes.find(
-                  (t) => t.value === dealerPriceType,
-                )?.label})`}</Label>
-                <Input
-                  onClick={(e) => {
-                    if (e.currentTarget.value === "*****") {
-                      e.currentTarget.value = `${uniqueItems.reduce(
-                        (acc, curVal) => {
-                          if (dealerPriceType) {
-                            const price = curVal.item?.[dealerPriceType];
-                            acc += curVal.totalAdded * Number(price);
-                          }
-                          return acc;
-                        },
-                        0,
-                      )}€`;
-                    } else {
-                      e.currentTarget.value = "*****";
-                    }
-                  }}
-                  value={`${uniqueItems
-                    .reduce((acc, curVal) => {
-                      if (dealerPriceType) {
-                        const price = curVal.item?.[dealerPriceType];
-                        acc += curVal.totalAdded * Number(price);
+              {dealerPriceType && (
+                <div>
+                  <Label>{`Bayii Tutarı (${PriceTypes.find(
+                    (t) => t.value === dealerPriceType,
+                  )?.label})`}</Label>
+                  <Input
+                    onClick={(e) => {
+                      if (e.currentTarget.value === "*****") {
+                        e.currentTarget.value = `${addedItems.reduce(
+                          (acc, curVal) => {
+                            if (dealerPriceType) {
+                              const price = curVal.item?.[dealerPriceType];
+                              acc += curVal.totalAdded * Number(price);
+                            }
+                            return acc;
+                          },
+                          0,
+                        )}€`;
+                      } else {
+                        e.currentTarget.value = "*****";
                       }
-                      return acc;
-                    }, 0)
-                    .toFixed(2)}€`}
-                />
-              </div>
+                    }}
+                    value={`${addedItems
+                      .reduce((acc, curVal) => {
+                        if (dealerPriceType) {
+                          const price = curVal.item?.[dealerPriceType];
+                          acc += curVal.totalAdded * Number(price);
+                        }
+                        return acc;
+                      }, 0)
+                      .toFixed(2)}€`}
+                  />
+                </div>
+              )}
 
               <div>
                 <div>
@@ -324,6 +351,11 @@ const NewItemSell = () => {
                         setPriceToPay(
                           totalPayAmount -
                             (totalPayAmount * Number(e.target.value)) / 100,
+                        );
+                        setPriceToPayTr(
+                          (totalPayAmount -
+                            (totalPayAmount * Number(e.target.value)) / 100) *
+                            (euroPrice.data?.satisEkran ?? 1),
                         );
                       }
                     }}
@@ -458,9 +490,9 @@ const NewItemSell = () => {
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
           <DialogHeader>
-            <DialogTitle>Ürün Kabul</DialogTitle>
+            <DialogTitle>Ürün Sevk/Satış</DialogTitle>
             <DialogDescription>
-              Ürün Kabul için Depo ve Müşteri Seçin.
+              Ürün Sevk/Satış için Depo ve Müşteri Seçin.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-2">
@@ -580,6 +612,7 @@ const NewItemSell = () => {
                     onDeleteItem={onDeleteItem}
                     addedItems={addedItems}
                     selectedStorageId={selectedStorageId}
+                    sellUpdate
                   />
                 );
               }
