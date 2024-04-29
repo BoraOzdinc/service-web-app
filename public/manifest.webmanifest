@@ -1,12 +1,11 @@
 {
-    "theme_color": "#000000",
-    "background_color": "#000000",
+    "theme_color": "#0f1417",
+    "background_color": "#0f1417",
     "display": "standalone",
     "scope": "/",
     "start_url": "/",
-    "name": "Service App",
-    "short_name": "SApp",
-    "description": "Best App",
+    "name": "InventoryArk",
+    "short_name": "InvArk",
     "icons": [
         {
             "src": "/icon-192x192.png",
