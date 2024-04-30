@@ -57,14 +57,13 @@ export async function signup({ email, password }: { email: string, password: str
     if (error) {
         console.log(error.message);
         redirect(`/login?msg=${error.message}`)
-
     }
 
     console.log("data:", data);
     console.log("err:", error);
 
     revalidatePath('/', 'layout')
-    redirect('/')
+    redirect('/login?q=Please check your inbox for verification.')
 }
 export async function signOut() {
     const supabase = createClient()
