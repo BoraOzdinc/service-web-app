@@ -4,6 +4,7 @@ import { PERMS } from "../../../_constants/perms";
 import { TRPCError } from "@trpc/server";
 import { nonEmptyString } from "./items";
 import { $Enums } from "@prisma/client";
+import { createAdminClient } from "~/utils/supabase/server";
 
 export const organizationRouter = createTRPCRouter({
 
@@ -144,7 +145,13 @@ export const organizationRouter = createTRPCRouter({
                 });
             }
             const userPermission = ctx.session.permissions
-            const { data: { users: authUsers } } = await ctx.supabase.auth.admin.listUsers()
+            const supabase = createAdminClient();
+            const { data: { users: authUsers }, error } = await supabase.auth.admin.listUsers({
+                page: 1,
+                perPage: 9999
+            })
+            console.log(authUsers);
+
             const invitedUser = authUsers.find(u => u.email === input.email)
             if (!invitedUser) {
                 throw new TRPCError({
