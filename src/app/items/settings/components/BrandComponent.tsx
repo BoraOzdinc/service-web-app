@@ -74,6 +74,7 @@ const BrandComp = () => {
           data={brands.data }
           columns={columns}
           isLoading={brands.isLoading}
+          pagination
         />
       </CardContent>
     </Card>

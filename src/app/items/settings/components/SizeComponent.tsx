@@ -31,8 +31,8 @@ const SizeComp = () => {
   return (
     <Card className=" w-full">
       <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Ürün Bedenleri</CardTitle>
-          
+        <CardTitle>Ürün Bedenleri</CardTitle>
+
         <Dialog>
           <DialogTrigger asChild>
             <Button
@@ -83,7 +83,12 @@ const SizeComp = () => {
         </Dialog>
       </CardHeader>
       <CardContent className="overflow-x-auto">
-        <DataTable data={sizes.data} columns={columns} isLoading={sizes.isLoading} />
+        <DataTable
+          data={sizes.data}
+          columns={columns}
+          isLoading={sizes.isLoading}
+          pagination
+        />
       </CardContent>
     </Card>
   );

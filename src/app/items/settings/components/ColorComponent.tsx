@@ -91,6 +91,7 @@ const ColorComp = () => {
           data={colors.data }
           columns={columns}
           isLoading={colors.isLoading}
+          pagination
         />
       </CardContent>
     </Card>

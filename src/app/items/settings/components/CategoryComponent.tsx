@@ -76,6 +76,7 @@ const CategoryComp = () => {
           data={categories.data }
           columns={columns}
           isLoading={categories.isLoading}
+          pagination
         />
       </CardContent>
     </Card>
