@@ -32,7 +32,25 @@ const MainItemsList = ({
       dealerId: session?.dealerId ?? undefined,
       searchInput: debouncedSearchInput,
     },
-    { enabled: Boolean(session) },
+    {
+      enabled: Boolean(session),
+      /* select(data) {
+        return data
+          .filter(
+            (o) =>
+              (o.itemBarcode.find((b) =>
+                b.barcode.toLowerCase().includes(searchInput.toLowerCase()),
+              ) ??
+                o.itemCode.toLowerCase().includes(searchInput.toLowerCase())) ||
+              o.name.toLowerCase().includes(searchInput.toLowerCase()),
+          )
+          .map((o) => {
+            const totalStock =
+              o.ItemStock.reduce((sum, s) => sum + s.stock, 0) ?? 0;
+            return { ...o, totalStock: totalStock };
+          });
+      }, */
+    },
   );
   const router = useRouter();
   return (
