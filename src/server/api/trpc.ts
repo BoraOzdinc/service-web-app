@@ -28,6 +28,8 @@ import { createClient } from "~/utils/supabase/server";
 export const createTRPCContext = async (opts: { headers: Headers }) => {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser()
+
+
   const userMember = await db.member.findUnique({
     where: { userEmail: user?.email },
     include: { roles: { include: { permissions: true } } },
@@ -44,7 +46,6 @@ export const createTRPCContext = async (opts: { headers: Headers }) => {
     email: userMember?.userEmail,
     id: user?.id
   }
-  console.log(session);
 
   return {
     db,

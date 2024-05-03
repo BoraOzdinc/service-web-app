@@ -1,461 +1,411 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider  = "postgresql"
-    url       = env("DATABASE_URL")
-    directUrl = env("DIRECT_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Customer {
-    id                String    @id @default(cuid())
-    name              String
-    surname           String
-    phoneNumber       String
-    email             String
-    identificationNo  String?
-    connectedDealer   Dealer?   @relation("connectedDealer", fields: [connectedDealerId], references: [id])
-    connectedDealerId String?
-    priceType         PriceType
-
-    companyName String?
-    taxDep      String?
-    taxNumber   String?
-
-    adresses Adress[]
-
-    org               Org?                @relation(fields: [orgId], references: [id])
-    orgId             String?
-    dealer            Dealer?             @relation("Dealer", fields: [dealerId], references: [id])
-    dealerId          String?
-    ItemAcceptHistory ItemAcceptHistory[]
-    ItemSellHistory   ItemSellHistory[]
-    Transactions      Transaction[]
+  id                String              @id @default(cuid())
+  name              String
+  surname           String
+  phoneNumber       String
+  email             String
+  identificationNo  String?
+  connectedDealerId String?
+  priceType         PriceType
+  companyName       String?
+  taxDep            String?
+  taxNumber         String?
+  orgId             String?
+  dealerId          String?
+  adresses          Adress[]
+  connectedDealer   Dealer?             @relation("connectedDealer", fields: [connectedDealerId], references: [id])
+  dealer            Dealer?             @relation("Dealer", fields: [dealerId], references: [id])
+  org               Org?                @relation(fields: [orgId], references: [id])
+  ItemAcceptHistory ItemAcceptHistory[]
+  ItemSellHistory   ItemSellHistory[]
+  Transactions      Transaction[]
 }
 
 model Transaction {
-    id         String   @id @default(cuid())
-    customer   Customer @relation(fields: [customerId], references: [id])
-    customerId String
-
-    createDate      DateTime        @default(now())
-    transactionType transactionType
-
-    payAmount   String
-    totalAmount String
-
-    discount     String
-    priceType    PriceType
-    exchangeRate String
-
-    storage     Storage                 @relation(fields: [storageId], references: [id])
-    boughtItems TransactionItemDetail[]
-
-    dealer          Dealer?           @relation(fields: [dealerId], references: [id])
-    dealerId        String?
-    storageId       String
-    ItemSellHistory ItemSellHistory[]
+  id              String                  @id @default(cuid())
+  customerId      String
+  createDate      DateTime                @default(now())
+  transactionType transactionType
+  payAmount       String
+  totalAmount     String
+  discount        String
+  priceType       PriceType
+  exchangeRate    String
+  dealerId        String?
+  storageId       String
+  ItemSellHistory ItemSellHistory[]
+  customer        Customer                @relation(fields: [customerId], references: [id])
+  dealer          Dealer?                 @relation(fields: [dealerId], references: [id])
+  storage         Storage                 @relation(fields: [storageId], references: [id])
+  boughtItems     TransactionItemDetail[]
 }
 
 model TransactionItemDetail {
-    id       String  @id @default(cuid())
-    item     Item    @relation(fields: [itemId], references: [id])
-    itemId   String
-    price    String?
-    quantity Int
-
-    CustomerTransaction   Transaction? @relation(fields: [customerTransactionId], references: [id])
-    customerTransactionId String?
-}
-
-enum transactionType {
-    Sale
-    Cancel
-    Return
+  id                    String       @id @default(cuid())
+  itemId                String
+  price                 String?
+  quantity              Int
+  customerTransactionId String?
+  CustomerTransaction   Transaction? @relation(fields: [customerTransactionId], references: [id])
+  item                  Item         @relation(fields: [itemId], references: [id])
 }
 
 model Adress {
-    id String @id @default(cuid())
-
-    Type        AdressType
-    PhoneNumber String?
-    Country     String?
-    Province    String?
-    District    String?
-    Neighbour   String?
-    ZipCode     String?
-    Adress      String?
-
-    Customer   Customer? @relation(fields: [customerId], references: [id])
-    customerId String?
-}
-
-enum AdressType {
-    Normal
-    Billing
-    Shipping
+  id          String     @id @default(cuid())
+  Type        AdressType
+  PhoneNumber String?
+  Country     String?
+  Province    String?
+  District    String?
+  Neighbour   String?
+  ZipCode     String?
+  Adress      String?
+  customerId  String?
+  Customer    Customer?  @relation(fields: [customerId], references: [id])
 }
 
 model DealerView {
-    id       String @id @default(cuid())
-    dealer   Dealer @relation(fields: [dealerId], references: [id])
-    item     Item   @relation(fields: [itemId], references: [id])
-    itemId   String
-    stock    Int
-    dealerId String
+  id       String @id @default(cuid())
+  itemId   String
+  stock    Int
+  dealerId String
+  dealer   Dealer @relation(fields: [dealerId], references: [id])
+  item     Item   @relation(fields: [itemId], references: [id])
 
-    @@unique([dealerId, itemId])
-    @@index([itemId])
+  @@unique([dealerId, itemId])
+  @@index([itemId])
 }
 
 model Dealer {
-    id   String @id @default(cuid())
-    name String
+  id                  String              @id @default(cuid())
+  name                String
+  orgId               String
+  priceType           PriceType
+  connectedCustomer   Customer[]          @relation("connectedDealer")
+  Customer            Customer[]          @relation("Dealer")
+  org                 Org                 @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  views               DealerView[]
+  items               Item[]
+  ItemAcceptDetail    ItemAcceptDetail[]
+  ItemAcceptHistory   ItemAcceptHistory[]
+  ItemBrand           ItemBrand[]
+  ItemCategory        ItemCategory[]
+  ItemColor           ItemColor[]
+  ItemHistory         ItemHistory[]
+  ItemSellHistory     ItemSellHistory[]
+  ItemSize            ItemSize[]
+  members             Member[]
+  roles               MemberRole[]
+  dealerStorages      Storage[]
+  CustomerTransaction Transaction[]
 
-    org   Org    @relation(fields: [orgId], references: [id], onDelete: Cascade)
-    orgId String
-
-    priceType PriceType
-
-    dealerStorages Storage[]
-
-    items        Item[]
-    ItemHistory  ItemHistory[]
-    ItemColor    ItemColor[]
-    ItemSize     ItemSize[]
-    ItemCategory ItemCategory[]
-    ItemBrand    ItemBrand[]
-
-    members Member[]
-    views   DealerView[]
-
-    roles               MemberRole[]
-    ItemAcceptHistory   ItemAcceptHistory[]
-    ItemAcceptDetail    ItemAcceptDetail[]
-    Customer            Customer[]          @relation("Dealer")
-    connectedCustomer   Customer[]          @relation("connectedDealer")
-    ItemSellHistory     ItemSellHistory[]
-    CustomerTransaction Transaction[]
-
-    @@index([orgId])
-}
-
-enum PriceType {
-    mainDealerPrice
-    dealerPrice
-    multiPrice
-    singlePrice
+  @@index([orgId])
 }
 
 model Member {
-    id        String  @id @default(cuid())
-    userEmail String  @unique
-    dealer    Dealer? @relation(fields: [dealerId], references: [id])
-    org       Org?    @relation(fields: [orgId], references: [id])
+  id        String       @id @default(cuid())
+  orgId     String?
+  dealerId  String?
+  userEmail String       @unique
+  uid       String?      @unique @db.Uuid
+  dealer    Dealer?      @relation(fields: [dealerId], references: [id])
+  org       Org?         @relation(fields: [orgId], references: [id])
+  roles     MemberRole[] @relation("MemberToMemberRole")
 
-    roles MemberRole[]
-
-    orgId    String?
-    dealerId String?
-
-    @@index([dealerId])
+  @@index([dealerId])
 }
 
 model MemberRole {
-    id          String             @id @default(cuid())
-    name        String
-    permissions MemberPermission[]
-
-    members Member[]
-
-    Dealer   Dealer? @relation(fields: [dealerId], references: [id])
-    dealerId String?
-    Org      Org?    @relation(fields: [orgId], references: [id])
-    orgId    String?
+  id          String             @id @default(cuid())
+  name        String
+  dealerId    String?
+  orgId       String?
+  Dealer      Dealer?            @relation(fields: [dealerId], references: [id])
+  Org         Org?               @relation(fields: [orgId], references: [id])
+  permissions MemberPermission[] @relation("MemberPermissionToMemberRole")
+  members     Member[]           @relation("MemberToMemberRole")
 }
 
 model MemberPermission {
-    id          String @id @default(cuid())
-    name        String
-    description String
-
-    assignableTo MemberType[]
-
-    MemberRole MemberRole[]
-}
-
-enum MemberType {
-    Dealer
-    Organization
+  id           String       @id @default(cuid())
+  name         String
+  description  String
+  assignableTo MemberType[]
+  MemberRole   MemberRole[] @relation("MemberPermissionToMemberRole")
 }
 
 model Item {
-    id                 String        @id @default(cuid())
-    createDate         DateTime      @default(now())
-    updateDate         DateTime      @updatedAt
-    name               String
-    itemBarcode        itemBarcode[]
-    itemCode           String
-    isSerialNoRequired Boolean
-    image              String?
-    netWeight          String?
-    volume             String?
-    color              ItemColor     @relation(fields: [itemColorId], references: [id])
-    size               ItemSize      @relation(fields: [itemSizeId], references: [id])
-    category           ItemCategory  @relation(fields: [itemCategoryId], references: [id])
-    brand              ItemBrand     @relation(fields: [itemBrandId], references: [id])
+  id                            String                  @id @default(cuid())
+  createDate                    DateTime                @default(now())
+  updateDate                    DateTime                @updatedAt
+  name                          String
+  itemCode                      String
+  isSerialNoRequired            Boolean
+  image                         String?
+  netWeight                     String?
+  volume                        String?
+  mainDealerPrice               String?
+  multiPrice                    String?
+  dealerPrice                   String?
+  singlePrice                   String?
+  isServiceItem                 Boolean
+  itemColorId                   String
+  itemSizeId                    String
+  itemCategoryId                String
+  itemBrandId                   String
+  orgId                         String?
+  dealerId                      String?
+  DealerView                    DealerView[]
+  Dealer                        Dealer?                 @relation(fields: [dealerId], references: [id])
+  brand                         ItemBrand               @relation(fields: [itemBrandId], references: [id])
+  category                      ItemCategory            @relation(fields: [itemCategoryId], references: [id])
+  color                         ItemColor               @relation(fields: [itemColorId], references: [id])
+  size                          ItemSize                @relation(fields: [itemSizeId], references: [id])
+  Org                           Org?                    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  ItemAcceptDetail              ItemAcceptDetail[]
+  ItemHistory                   ItemHistory[]
+  ItemSellDetail                ItemSellDetail[]
+  ItemStock                     ItemStock[]
+  CustomerTransactionItemDetail TransactionItemDetail[]
+  itemBarcode                   itemBarcode[]
 
-    mainDealerPrice String?
-    multiPrice      String?
-    dealerPrice     String?
-    singlePrice     String?
-
-    isServiceItem Boolean
-
-    ItemHistory ItemHistory[]
-    ItemStock   ItemStock[]
-
-    itemColorId    String
-    itemSizeId     String
-    itemCategoryId String
-    itemBrandId    String
-    DealerView     DealerView[]
-
-    Org   Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
-    orgId String?
-
-    Dealer                        Dealer?                 @relation(fields: [dealerId], references: [id])
-    dealerId                      String?
-    ItemAcceptDetail              ItemAcceptDetail[]
-    ItemSellDetail                ItemSellDetail[]
-    CustomerTransactionItemDetail TransactionItemDetail[]
-
-    @@index([orgId])
-    @@index([itemColorId])
-    @@index([itemSizeId])
-    @@index([itemCategoryId])
-    @@index([itemBrandId])
+  @@index([orgId])
+  @@index([itemColorId])
+  @@index([itemSizeId])
+  @@index([itemCategoryId])
+  @@index([itemBrandId])
 }
 
 model itemBarcode {
-    id               String             @id @default(cuid())
-    barcode          String
-    unit             String
-    isMaster         Boolean
-    quantity         Int
-    item             Item               @relation(fields: [itemId], references: [id])
-    itemId           String
-    ItemAcceptDetail ItemAcceptDetail[]
+  id               String             @id @default(cuid())
+  barcode          String
+  unit             String
+  isMaster         Boolean
+  quantity         Int
+  itemId           String
+  ItemAcceptDetail ItemAcceptDetail[]
+  item             Item               @relation(fields: [itemId], references: [id])
 
-    @@index([itemId])
+  @@index([itemId])
 }
 
 model ItemColor {
-    id        String  @id @default(cuid())
-    colorCode String
-    colorText String
-    Item      Item[]
-    Org       Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
-    orgId     String?
-    Dealer    Dealer? @relation(fields: [dealerId], references: [id])
-    dealerId  String?
+  id        String  @id @default(cuid())
+  colorCode String
+  colorText String
+  orgId     String?
+  dealerId  String?
+  Item      Item[]
+  Dealer    Dealer? @relation(fields: [dealerId], references: [id])
+  Org       Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
-    @@index([orgId])
+  @@index([orgId])
 }
 
 model ItemSize {
-    id       String  @id @default(cuid())
-    sizeCode String
-    sizeText String
-    Item     Item[]
-    Org      Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
-    orgId    String?
-    Dealer   Dealer? @relation(fields: [dealerId], references: [id])
-    dealerId String?
+  id       String  @id @default(cuid())
+  sizeCode String
+  sizeText String
+  orgId    String?
+  dealerId String?
+  Item     Item[]
+  Dealer   Dealer? @relation(fields: [dealerId], references: [id])
+  Org      Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
-    @@index([orgId])
+  @@index([orgId])
 }
 
 model ItemCategory {
-    id   String @id @default(cuid())
-    name String
+  id       String  @id @default(cuid())
+  name     String
+  orgId    String?
+  dealerId String?
+  Item     Item[]
+  Dealer   Dealer? @relation(fields: [dealerId], references: [id])
+  Org      Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
-    Org      Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
-    orgId    String?
-    Item     Item[]
-    Dealer   Dealer? @relation(fields: [dealerId], references: [id])
-    dealerId String?
-
-    @@index([orgId])
+  @@index([orgId])
 }
 
 model ItemBrand {
-    id   String @id @default(cuid())
-    name String
+  id       String  @id @default(cuid())
+  name     String
+  orgId    String?
+  dealerId String?
+  Item     Item[]
+  Dealer   Dealer? @relation(fields: [dealerId], references: [id])
+  Org      Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
-    Org      Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
-    orgId    String?
-    Item     Item[]
-    Dealer   Dealer? @relation(fields: [dealerId], references: [id])
-    dealerId String?
-
-    @@index([orgId])
+  @@index([orgId])
 }
 
 model ItemStock {
-    id        String  @id @default(cuid())
-    item      Item    @relation(fields: [itemId], references: [id], onDelete: Cascade)
-    itemId    String
-    storage   Storage @relation(fields: [storageId], references: [id], onDelete: Cascade)
-    storageId String
-    stock     Int
+  id        String  @id @default(cuid())
+  itemId    String
+  storageId String
+  stock     Int
+  item      Item    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  storage   Storage @relation(fields: [storageId], references: [id], onDelete: Cascade)
 
-    @@index([storageId])
-    @@index([itemId])
+  @@index([storageId])
+  @@index([itemId])
 }
 
 model ItemHistory {
-    id          String             @id @default(cuid())
-    createDate  DateTime           @default(now())
-    action      ItemHistoryActions
-    description String
-    item        Item               @relation(fields: [itemId], references: [id])
-    itemId      String
-    quantity    Int
+  id            String             @id @default(cuid())
+  createDate    DateTime           @default(now())
+  action        ItemHistoryActions
+  description   String
+  itemId        String
+  quantity      Int
+  orgId         String?
+  createdBy     String
+  fromStorageId String?
+  toStorageId   String?
+  dealerId      String?
+  Dealer        Dealer?            @relation(fields: [dealerId], references: [id])
+  fromStorage   Storage?           @relation("FromStorage", fields: [fromStorageId], references: [id])
+  item          Item               @relation(fields: [itemId], references: [id])
+  org           Org?               @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  toStorage     Storage?           @relation("ToStorage", fields: [toStorageId], references: [id])
 
-    org       Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
-    orgId     String?
-    createdBy String
-
-    fromStorage   Storage? @relation("FromStorage", fields: [fromStorageId], references: [id])
-    fromStorageId String?
-    toStorage     Storage? @relation("ToStorage", fields: [toStorageId], references: [id])
-    toStorageId   String?
-
-    Dealer   Dealer? @relation(fields: [dealerId], references: [id])
-    dealerId String?
-
-    @@index([itemId])
-    @@index([fromStorageId])
-    @@index([toStorageId])
-    @@index([orgId])
-}
-
-enum ItemHistoryActions {
-    AddItem
-    UpdateItem
-    DeleteItem
+  @@index([itemId])
+  @@index([fromStorageId])
+  @@index([toStorageId])
+  @@index([orgId])
 }
 
 model ItemAcceptHistory {
-    id         String   @id @default(cuid())
-    createDate DateTime @default(now())
-
-    items ItemAcceptDetail[]
-    from  Customer           @relation(fields: [customerId], references: [id])
-
-    storage   Storage @relation(fields: [storageId], references: [id])
-    storageId String
-    name      String
-
-    org        Org?    @relation(fields: [orgId], references: [id])
-    orgId      String?
-    dealer     Dealer? @relation(fields: [dealerId], references: [id])
-    dealerId   String?
-    customerId String
+  id         String             @id @default(cuid())
+  createDate DateTime           @default(now())
+  storageId  String
+  name       String
+  orgId      String?
+  dealerId   String?
+  customerId String
+  items      ItemAcceptDetail[]
+  from       Customer           @relation(fields: [customerId], references: [id])
+  dealer     Dealer?            @relation(fields: [dealerId], references: [id])
+  org        Org?               @relation(fields: [orgId], references: [id])
+  storage    Storage            @relation(fields: [storageId], references: [id])
 }
 
 model ItemAcceptDetail {
-    id          String      @id @default(cuid())
-    item        Item        @relation(fields: [itemId], references: [id])
-    itemId      String
-    itemBarcode itemBarcode @relation(fields: [itemBarcodeId], references: [id])
-    quantity    Int
-
-    ItemAcceptHistory   ItemAcceptHistory? @relation(fields: [itemAcceptHistoryId], references: [id])
-    itemAcceptHistoryId String?
-    Dealer              Dealer?            @relation(fields: [dealerId], references: [id])
-    dealerId            String?
-    Org                 Org?               @relation(fields: [orgId], references: [id])
-    orgId               String?
-    itemBarcodeId       String
+  id                  String             @id @default(cuid())
+  itemId              String
+  quantity            Int
+  itemAcceptHistoryId String?
+  dealerId            String?
+  orgId               String?
+  itemBarcodeId       String
+  Dealer              Dealer?            @relation(fields: [dealerId], references: [id])
+  ItemAcceptHistory   ItemAcceptHistory? @relation(fields: [itemAcceptHistoryId], references: [id])
+  itemBarcode         itemBarcode        @relation(fields: [itemBarcodeId], references: [id])
+  item                Item               @relation(fields: [itemId], references: [id])
+  Org                 Org?               @relation(fields: [orgId], references: [id])
 }
 
 model ItemSellHistory {
-    id         String   @id @default(cuid())
-    createDate DateTime @default(now())
-
-    items           ItemSellDetail[]
-    to              Customer         @relation(fields: [customerId], references: [id])
-    customerId      String
-    transactionType transactionType
-
-    storage   Storage @relation(fields: [storageId], references: [id])
-    storageId String
-    name      String
-
-    connectedTransaction Transaction @relation(fields: [transactionId], references: [id])
-
-    org           Org?    @relation(fields: [orgId], references: [id])
-    orgId         String?
-    dealer        Dealer? @relation(fields: [dealerId], references: [id])
-    dealerId      String?
-    transactionId String
+  id                   String           @id @default(cuid())
+  createDate           DateTime         @default(now())
+  customerId           String
+  transactionType      transactionType
+  storageId            String
+  name                 String
+  orgId                String?
+  dealerId             String?
+  transactionId        String
+  items                ItemSellDetail[]
+  to                   Customer         @relation(fields: [customerId], references: [id])
+  dealer               Dealer?          @relation(fields: [dealerId], references: [id])
+  org                  Org?             @relation(fields: [orgId], references: [id])
+  storage              Storage          @relation(fields: [storageId], references: [id])
+  connectedTransaction Transaction      @relation(fields: [transactionId], references: [id])
 }
 
 model ItemSellDetail {
-    id            String   @id @default(cuid())
-    item          Item     @relation(fields: [itemId], references: [id])
-    itemId        String
-    quantity      Int
-    serialNumbers String[]
-
-    ItemAcceptHistory   ItemSellHistory? @relation(fields: [itemAcceptHistoryId], references: [id])
-    itemAcceptHistoryId String?
+  id                  String           @id @default(cuid())
+  itemId              String
+  quantity            Int
+  itemAcceptHistoryId String?
+  serialNumbers       String[]
+  ItemAcceptHistory   ItemSellHistory? @relation(fields: [itemAcceptHistoryId], references: [id])
+  item                Item             @relation(fields: [itemId], references: [id])
 }
 
 model Org {
-    id      String @id @default(cuid())
-    orgName String
-
-    storages Storage[]
-
-    items        Item[]
-    ItemHistory  ItemHistory[]
-    ItemColor    ItemColor[]
-    ItemSize     ItemSize[]
-    ItemCategory ItemCategory[]
-    ItemBrand    ItemBrand[]
-    dealers      Dealer[]
-    members      Member[]
-
-    roles             MemberRole[]
-    ItemAcceptHistory ItemAcceptHistory[]
-    ItemAcceptDetail  ItemAcceptDetail[]
-    Customer          Customer[]
-    ItemSellHistory   ItemSellHistory[]
+  id                String              @id @default(cuid())
+  orgName           String
+  Customer          Customer[]
+  dealers           Dealer[]
+  items             Item[]
+  ItemAcceptDetail  ItemAcceptDetail[]
+  ItemAcceptHistory ItemAcceptHistory[]
+  ItemBrand         ItemBrand[]
+  ItemCategory      ItemCategory[]
+  ItemColor         ItemColor[]
+  ItemHistory       ItemHistory[]
+  ItemSellHistory   ItemSellHistory[]
+  ItemSize          ItemSize[]
+  members           Member[]
+  roles             MemberRole[]
+  storages          Storage[]
 }
 
 model Storage {
-    id    String  @id @default(cuid())
-    name  String
-    Org   Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
-    orgId String?
+  id                String              @id @default(cuid())
+  name              String
+  orgId             String?
+  dealerId          String?
+  ItemAcceptHistory ItemAcceptHistory[]
+  fromItemHistory   ItemHistory[]       @relation("FromStorage")
+  toItemHistory     ItemHistory[]       @relation("ToStorage")
+  ItemSellHistory   ItemSellHistory[]
+  ItemStock         ItemStock[]
+  Dealer            Dealer?             @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  Org               Org?                @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  Transaction       Transaction[]
 
-    ItemStock ItemStock[]
+  @@index([orgId])
+  @@index([dealerId])
+}
 
-    fromItemHistory ItemHistory[] @relation("FromStorage")
-    toItemHistory   ItemHistory[] @relation("ToStorage")
+enum transactionType {
+  Sale
+  Cancel
+  Return
+}
 
-    Dealer            Dealer?             @relation(fields: [dealerId], references: [id], onDelete: Cascade)
-    dealerId          String?
-    ItemAcceptHistory ItemAcceptHistory[]
-    ItemSellHistory   ItemSellHistory[]
-    Transaction       Transaction[]
+enum AdressType {
+  Normal
+  Billing
+  Shipping
+}
 
-    @@index([orgId])
-    @@index([dealerId])
+enum PriceType {
+  mainDealerPrice
+  dealerPrice
+  multiPrice
+  singlePrice
+}
+
+enum MemberType {
+  Dealer
+  Organization
+}
+
+enum ItemHistoryActions {
+  AddItem
+  UpdateItem
+  DeleteItem
 }

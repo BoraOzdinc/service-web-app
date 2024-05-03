@@ -58,62 +58,34 @@ export const itemsRouter = createTRPCRouter({
             }
             const userPerms = ctx.session.permissions
 
-            if (Boolean(ctx.session.dealerId)) {
-                if (!userPerms.includes(PERMS.item_view)) {
-                    throw new TRPCError({
-                        code: "UNAUTHORIZED",
-                        message: "You don't have permission to do this!",
-                    });
-                }
-            }
-            if (Boolean(ctx.session.orgId)) {
-                if (!userPerms.includes(PERMS.dealer_item_view) && !userPerms.includes(PERMS.item_view)) {
-                    throw new TRPCError({
-                        code: "UNAUTHORIZED",
-                        message: "You don't have permission to do this!",
-                    });
-                }
-            }
-            if (input.dealerId) {
-                const ItemList = await ctx.db.item.findMany({
-                    where: { dealerId: input.dealerId },
-                    include: {
-                        ItemStock: { select: { stock: true, storage: true } },
-                        color: true,
-                        size: true,
-                        category: true,
-                        itemBarcode: true,
-                        brand: true,
-                    }
-                })
 
-                return ItemList.filter((o) => (o.itemBarcode.find((b) => b.barcode.toLowerCase().includes(input.searchInput.toLowerCase())) ?? o.itemCode.toLowerCase().includes(input.searchInput.toLowerCase())) || o.name.toLowerCase().includes(input.searchInput.toLowerCase())).map((o) => {
-                    const totalStock = o.ItemStock.reduce((sum, s) => sum + s.stock, 0) ?? 0;
-                    return { ...o, totalStock: totalStock };
+            if (!userPerms.includes(PERMS.item_view)) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this!",
                 });
             }
-            if (input.orgId) {
-                const ItemList = await ctx.db.item.findMany({
-                    where: { orgId: input.orgId },
-                    include: {
-                        ItemStock: { select: { stock: true, storage: true } },
-                        color: true,
-                        size: true,
-                        category: true,
-                        itemBarcode: true,
-                        brand: true,
-                    }
-                })
 
-                return ItemList.filter((o) => (o.itemBarcode.find((b) => b.barcode.toLowerCase().includes(input.searchInput.toLowerCase())) ?? o.itemCode.toLowerCase().includes(input.searchInput.toLowerCase())) || o.name.toLowerCase().includes(input.searchInput.toLowerCase())).map((o) => {
-                    const totalStock = o.ItemStock.reduce((sum, s) => sum + s.stock, 0) ?? 0;
-                    return { ...o, totalStock: totalStock };
+            if (!userPerms.includes(PERMS.dealer_item_view) && !userPerms.includes(PERMS.item_view)) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this!",
                 });
             }
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You don't have permission to do this!",
-            });
+
+
+            return await ctx.db.item.findMany({
+                where: { OR: [{ orgId: ctx.session.orgId }, { dealerId: ctx.session.dealerId }] },
+                include: {
+                    ItemStock: { select: { stock: true, storage: true } },
+                    color: true,
+                    size: true,
+                    category: true,
+                    itemBarcode: true,
+                    brand: true,
+                }
+            })
+
         }),
     getItemWithBarcode: protectedProcedure
         .input(z.object({ dealerId: z.string().optional(), orgId: z.string().optional(), barcode: nonEmptyString }))
@@ -177,6 +149,7 @@ export const itemsRouter = createTRPCRouter({
             }
             const userPerms = ctx.session.permissions
 
+
             if (Boolean(ctx.session.dealerId)) {
                 if (!userPerms.includes(PERMS.item_view)) {
                     throw new TRPCError({
@@ -193,8 +166,9 @@ export const itemsRouter = createTRPCRouter({
                     });
                 }
             }
+
             const item = await ctx.db.item.findFirst({
-                where: { id: input },
+                where: { id: input, OR: [{ orgId: ctx.session.orgId }, { dealerId: ctx.session.dealerId }] },
                 include: {
                     brand: true,
                     category: true,
@@ -212,31 +186,8 @@ export const itemsRouter = createTRPCRouter({
                 });
             }
 
-            const stockMap = new Map<string, number>();
+            return item
 
-            item.ItemStock.forEach((stock) => {
-                const { storageId, stock: currentStock } = stock;
-                if (stockMap.has(storageId)) {
-                    // If storageId already exists in the map, add to the existing stock
-                    stockMap.set(storageId, stockMap.get(storageId)! + currentStock);
-                } else {
-                    // Otherwise, initialize the stock for this storageId
-                    stockMap.set(storageId, currentStock);
-                }
-            });
-
-            // Create an array of unique storage objects with combined stock
-            const uniqueStoragesWithStocks: typeof item.ItemStock = Array.from(stockMap.entries()).map(([storageId, stock]) => {
-                const existingStorage = item.ItemStock.find((stock) => stock.storageId === storageId);
-                return {
-                    ...existingStorage!,
-                    stock,
-                };
-            });
-            const updatedItemData = { ...item, ItemStock: uniqueStoragesWithStocks }
-
-
-            return updatedItemData
 
         }),
     getStorages: protectedProcedure.query(async ({ ctx }) => {

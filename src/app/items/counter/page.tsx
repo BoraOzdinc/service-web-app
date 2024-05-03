@@ -1,5 +1,4 @@
 "use client";
-import { useQuery } from "@tanstack/react-query";
 import { useDebounce } from "@uidotdev/usehooks";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -38,7 +37,7 @@ import UpdateItemDialog from "../item-accept/components/UpdateItemDialog";
 import ItemCard from "../item-accept/components/ItemCard";
 import { ScrollArea } from "~/app/_components/ui/scroll-area";
 import { DataTable } from "~/app/_components/tables/generic-table";
-import { ColumnDef } from "@tanstack/react-table";
+import { type ColumnDef } from "@tanstack/react-table";
 
 const ItemCount = () => {
   const storages = api.items.getStorages.useQuery();

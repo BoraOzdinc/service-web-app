@@ -7,7 +7,6 @@ import {
 } from "../_components/ui/card";
 import { Button } from "../_components/ui/button";
 import { PERMS } from "~/_constants/perms";
-import { redirect } from "next/navigation";
 import { getSession } from "~/utils/getSession";
 import CustomerList from "./components/CustomersListComp";
 import Link from "next/link";

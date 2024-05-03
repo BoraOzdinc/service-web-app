@@ -12,7 +12,6 @@ import {
   WarehouseIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Button } from "~/app/_components/ui/button";
 
 const MainItemsList = ({
   session,
@@ -34,7 +33,7 @@ const MainItemsList = ({
     },
     {
       enabled: Boolean(session),
-      /* select(data) {
+      select(data) {
         return data
           .filter(
             (o) =>
@@ -49,7 +48,7 @@ const MainItemsList = ({
               o.ItemStock.reduce((sum, s) => sum + s.stock, 0) ?? 0;
             return { ...o, totalStock: totalStock };
           });
-      }, */
+      },
     },
   );
   const router = useRouter();

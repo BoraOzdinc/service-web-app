@@ -146,9 +146,9 @@ export const organizationRouter = createTRPCRouter({
             }
             const userPermission = ctx.session.permissions
             const supabase = createAdminClient();
-            const { data: { users: authUsers }, error } = await supabase.auth.admin.listUsers({
+            const { data: { users: authUsers } } = await supabase.auth.admin.listUsers({
                 page: 1,
-                perPage: 9999
+                perPage: 9999999
             })
             console.log(authUsers);
 
@@ -168,7 +168,7 @@ export const organizationRouter = createTRPCRouter({
                     });
                 }
                 try {
-                    return await ctx.db.member.create({ data: { orgId: input.orgId, userEmail: invitedUser.email ?? "" } })
+                    return await ctx.db.member.create({ data: { orgId: input.orgId, userEmail: invitedUser.email ?? "", uid: invitedUser.id } })
                 } catch {
                     throw new TRPCError({
                         code: "BAD_REQUEST",
@@ -184,7 +184,7 @@ export const organizationRouter = createTRPCRouter({
                     });
                 }
                 try {
-                    return await ctx.db.member.create({ data: { dealerId: input.dealerId, userEmail: invitedUser.email ?? "" } })
+                    return await ctx.db.member.create({ data: { dealerId: input.dealerId, userEmail: invitedUser.email ?? "", uid: invitedUser.id } })
                 } catch {
                     throw new TRPCError({
                         code: "BAD_REQUEST",

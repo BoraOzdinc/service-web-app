@@ -38,7 +38,7 @@ const NavbarRoutes: (userEmail: string) => Promise<
       ],
     },
     {
-      title: "Ürünler",
+      title: "İşlemler",
       children: [
         {
           title: "Tüm Ürünler",
@@ -62,13 +62,7 @@ const NavbarRoutes: (userEmail: string) => Promise<
             userPermission.includes(PERMS.item_sell_history_view),
           ),
         },
-        {
-          title: "Ürün ayarları",
-          route: "/items/settings",
-          description:
-            "Ürünlerinizin marka, renk, beden gibi değişkenlerini ayarlayın.",
-          isVisible: Boolean(userPermission.includes(PERMS.item_setting_view)),
-        },
+
         {
           title: "Ürün Sayımı",
           route: "/items/counter",
@@ -91,6 +85,13 @@ const NavbarRoutes: (userEmail: string) => Promise<
           isVisible: Boolean(
             userMember?.orgId && userPermission.includes(PERMS.dealers_view),
           ),
+        },
+        {
+          title: "Ürün ayarları",
+          route: "/items/settings",
+          description:
+            "Ürünlerinizin marka, renk, beden gibi değişkenlerini ayarlayın.",
+          isVisible: Boolean(userPermission.includes(PERMS.item_setting_view)),
         },
         {
           title: "Organizasyon Ayarları",
