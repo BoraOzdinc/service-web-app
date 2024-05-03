@@ -75,7 +75,7 @@ export const itemsRouter = createTRPCRouter({
 
 
             return await ctx.db.item.findMany({
-                where: { OR: [{ orgId: ctx.session.orgId }, { dealerId: ctx.session.dealerId }] },
+                where: { orgId: ctx.session.orgId, dealerId: ctx.session.dealerId },
                 include: {
                     ItemStock: { select: { stock: true, storage: true } },
                     color: true,
