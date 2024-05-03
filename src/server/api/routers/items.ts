@@ -16,10 +16,10 @@ const addItemSchema = z.object({
     itemColorId: nonEmptyString,
     itemSizeId: nonEmptyString,
     itemCategoryId: nonEmptyString,
-    mainDealerPrice: z.string().optional(),
-    multiPrice: z.string().optional(),
-    dealerPrice: z.string().optional(),
-    singlePrice: z.string().optional(),
+    mainDealerPrice: z.number().optional(),
+    multiPrice: z.number().optional(),
+    dealerPrice: z.number().optional(),
+    singlePrice: z.number().optional(),
     stock: z.number().optional(),
     isSerialNoRequired: z.boolean(),
     isServiceItem: z.boolean(),
@@ -40,7 +40,7 @@ const itemSellSchema = z.object({
     saleCancel: z.boolean(),
     items: z.array(z.object({
         itemId: z.string(),
-        price: z.string().optional(),
+        price: z.number().optional(),
         barcode: nonEmptyString,
         totalAdded: z.number(),
     }))
@@ -105,15 +105,6 @@ export const itemsRouter = createTRPCRouter({
                         message: "You don't have permission to do this!",
                     });
                 }
-                return await ctx.db.item.findFirst({
-                    where: { dealerId: input.dealerId, itemBarcode: { some: { barcode: input.barcode } } },
-                    include: {
-                        ItemStock: { select: { stock: true, storage: true } },
-                        itemBarcode: true,
-                        color: true,
-                        size: true
-                    }
-                })
             }
             if (input.orgId) {
                 if (!userPerms.includes(PERMS.item_accept)) {
@@ -122,21 +113,18 @@ export const itemsRouter = createTRPCRouter({
                         message: "You don't have permission to do this!",
                     });
                 }
-                return await ctx.db.item.findFirst({
-                    where: { orgId: input.orgId, itemBarcode: { some: { barcode: input.barcode } } },
-                    include: {
-                        ItemStock: { select: { stock: true, storage: true } },
-                        itemBarcode: true,
-                        color: true,
-                        size: true
-                    },
 
-                })
             }
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You don't have permission to do this!",
-            });
+            return await ctx.db.item.findFirst({
+                where: { dealerId: input.dealerId, orgId: input.orgId, itemBarcode: { some: { barcode: input.barcode } } },
+                include: {
+                    ItemStock: { select: { stock: true, storage: true } },
+                    itemBarcode: true,
+                    color: true,
+                    size: true
+                },
+
+            })
         }),
     getItemWithId: protectedProcedure
         .input(nonEmptyString)
@@ -465,10 +453,10 @@ export const itemsRouter = createTRPCRouter({
                 itemColorId: nonEmptyString,
                 itemSizeId: nonEmptyString,
                 itemCategoryId: nonEmptyString,
-                mainDealerPrice: z.string().optional(),
-                multiPrice: z.string().optional(),
-                dealerPrice: z.string().optional(),
-                singlePrice: z.string().optional(),
+                mainDealerPrice: z.number().optional(),
+                multiPrice: z.number().optional(),
+                dealerPrice: z.number().optional(),
+                singlePrice: z.number().optional(),
                 stock: z.number().optional(),
                 isSerialNoRequired: z.boolean(),
                 isServiceItem: z.boolean(),
@@ -1071,7 +1059,7 @@ export const itemsRouter = createTRPCRouter({
                 totalAmount: String(input.totalPayAmount),
                 transactionType: input.saleCancel ? "Cancel" : "Sale",
                 payAmount: String(input.paidAmount),
-                boughtItems: { createMany: { data: input.items.map(i => ({ itemId: i.itemId, price: i.price, quantity: i.totalAdded })) } }
+                boughtItems: { createMany: { data: input.items.map(i => ({ itemId: i.itemId, price: String(i.price), quantity: i.totalAdded })) } }
             }
         })
         const sellHistory = await ctx.db.itemSellHistory.create({

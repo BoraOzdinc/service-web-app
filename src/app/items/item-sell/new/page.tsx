@@ -261,7 +261,9 @@ const NewItemSell = () => {
       saleCancel: saleCancel,
       items: addedItems.map((i) => ({
         itemId: i.item?.id ?? "",
-        price: selectedPriceType && (i.item?.[selectedPriceType] ?? undefined),
+        price:
+          selectedPriceType &&
+          (Number(i.item?.[selectedPriceType]) ?? undefined),
         barcode: i.barcode,
         totalAdded: i.totalAdded,
       })),
@@ -272,7 +274,7 @@ const NewItemSell = () => {
       },
     });
   };
-  console.log(addedItems);
+  addedItems;
 
   if (!hydrated) {
     return null;

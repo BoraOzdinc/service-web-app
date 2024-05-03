@@ -111,7 +111,6 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
   if (!ctx.session || (!ctx.session.orgId && !ctx.session.dealerId)) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "You don't have permission to do this!" });
   }
-  console.log(ctx.session);
 
   return next({
     ctx: {

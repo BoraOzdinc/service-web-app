@@ -154,10 +154,10 @@ model Item {
   image                         String?
   netWeight                     String?
   volume                        String?
-  mainDealerPrice               String?
-  multiPrice                    String?
-  dealerPrice                   String?
-  singlePrice                   String?
+  mainDealerPrice               Float?
+  multiPrice                    Float?
+  dealerPrice                   Float?
+  singlePrice                   Float?
   isServiceItem                 Boolean
   itemColorId                   String
   itemSizeId                    String

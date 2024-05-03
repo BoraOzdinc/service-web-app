@@ -239,6 +239,8 @@ const ItemDetailForm = ({
       isServiceItem: itemData?.isServiceItem,
     },
   });
+  itemData;
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmitForm)}>

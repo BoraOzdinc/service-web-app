@@ -39,10 +39,10 @@ export interface FormInput {
   itemColorId: string;
   itemSizeId: string;
   itemCategoryId: string;
-  mainDealerPrice: string;
-  multiPrice: string;
-  dealerPrice: string;
-  singlePrice: string;
+  mainDealerPrice: number;
+  multiPrice: number;
+  dealerPrice: number;
+  singlePrice: number;
   stock: number;
   netWeight: string;
   volume: string;

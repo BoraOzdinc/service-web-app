@@ -8,14 +8,11 @@ import { createClient } from '../../utils/supabase/server'
 export async function login({ email, password }: { email: string, password: string }) {
     const supabase = createClient()
 
-    console.log("email: ", email);
-    console.log("password: ", password);
 
     const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
 
-        console.log(error.message);
         redirect(`/login?msg=${error.message}`)
     }
 
@@ -50,17 +47,13 @@ export async function loginWithGoogle() {
 
 export async function signup({ email, password }: { email: string, password: string }) {
     const supabase = createClient()
-    console.log("email: ", email);
-    console.log("password: ", password);
-    const { data, error } = await supabase.auth.signUp({ email, password })
+
+    const { error } = await supabase.auth.signUp({ email, password })
 
     if (error) {
-        console.log(error.message);
         redirect(`/login?msg=${error.message}`)
     }
 
-    console.log("data:", data);
-    console.log("err:", error);
 
     revalidatePath('/', 'layout')
     redirect('/login?q=Please check your inbox for verification.')
@@ -68,12 +61,10 @@ export async function signup({ email, password }: { email: string, password: str
 export async function signOut() {
     const supabase = createClient()
 
-    console.log("signout");
 
     const { error } = await supabase.auth.signOut()
 
     if (error) {
-        console.log(error.message);
         redirect(`/login?msg=${error.message}`)
 
     }

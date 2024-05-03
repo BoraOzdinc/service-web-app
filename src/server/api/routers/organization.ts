@@ -150,7 +150,6 @@ export const organizationRouter = createTRPCRouter({
                 page: 1,
                 perPage: 9999999
             })
-            console.log(authUsers);
 
             const invitedUser = authUsers.find(u => u.email === input.email)
             if (!invitedUser) {
