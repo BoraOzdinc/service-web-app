@@ -89,9 +89,8 @@ export const dealerRouter = createTRPCRouter({
 
         const dealer = await ctx.db.dealer.findMany({
             where: {
-                OR: [
-                    { id: ctx.session.dealerId ?? undefined },
-                    { orgId: ctx.session.orgId ?? undefined, }]
+                id: ctx.session.dealerId ?? undefined,
+                orgId: ctx.session.orgId ?? undefined,
             },
             include: { members: true, items: true, views: true }
 
@@ -122,9 +121,8 @@ export const dealerRouter = createTRPCRouter({
         }
         const dealer = await ctx.db.dealer.findMany({
             where: {
-                OR: [
-                    { id: ctx.session.dealerId ?? undefined },
-                    { orgId: ctx.session.orgId ?? undefined, }]
+                id: ctx.session.dealerId ?? undefined,
+                orgId: ctx.session.orgId ?? undefined
             },
             include: { members: true, items: true, views: true }
 
@@ -174,9 +172,8 @@ export const dealerRouter = createTRPCRouter({
         }
         const dealer = await ctx.db.dealer.findMany({
             where: {
-                OR: [
-                    { id: ctx.session.dealerId ?? undefined },
-                    { orgId: ctx.session.orgId ?? undefined, }]
+                id: ctx.session.dealerId ?? undefined,
+                orgId: ctx.session.orgId ?? undefined,
             },
             include: { members: true, items: true, views: true }
 
@@ -219,9 +216,11 @@ export const dealerRouter = createTRPCRouter({
             }
             const Org = await ctx.db.org.findFirst({
                 where: {
-                    OR: [
-                        { id: ctx.session.orgId ?? undefined },
-                        { dealers: { some: { id: ctx.session.dealerId ?? undefined } } }]
+
+                    id: ctx.session.orgId ?? undefined,
+                    dealers: {
+                        some: { id: ctx.session.dealerId ?? undefined }
+                    },
                 },
                 include: { dealers: { include: { members: true } } }
             })

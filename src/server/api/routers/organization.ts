@@ -70,9 +70,8 @@ export const organizationRouter = createTRPCRouter({
             }
             const Org = await ctx.db.org.findFirst({
                 where: {
-                    OR: [
-                        { id: ctx.session.orgId ?? undefined },
-                        { dealers: { some: { id: ctx.session.dealerId ?? undefined } } }]
+                    id: ctx.session.orgId ?? undefined,
+                    dealers: { some: { id: ctx.session.dealerId ?? undefined } }
                 },
                 include: { dealers: { include: { members: true } } }
             })

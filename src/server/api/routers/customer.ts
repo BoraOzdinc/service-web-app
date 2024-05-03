@@ -79,10 +79,8 @@ export const customerRouter = createTRPCRouter({
     return await ctx.db.customer.findFirst({
       where: {
         id: input,
-        OR: [
-          { orgId: ctx.session.orgId },
-          { dealerId: ctx.session.dealerId }
-        ]
+        orgId: ctx.session.orgId,
+        dealerId: ctx.session.dealerId
       },
       include: { adresses: true, connectedDealer: true }
     })
@@ -200,10 +198,9 @@ export async function getAllCustomers({ permissions, orgId, dealerId }: { permis
   }
   return await db.customer.findMany({
     where: {
-      OR: [
-        { orgId: orgId },
-        { dealerId: dealerId }
-      ]
+      orgId: orgId,
+      dealerId: dealerId
+
     },
     include: { connectedDealer: true }
   })

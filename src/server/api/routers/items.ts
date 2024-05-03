@@ -156,7 +156,7 @@ export const itemsRouter = createTRPCRouter({
             }
 
             const item = await ctx.db.item.findFirst({
-                where: { id: input, OR: [{ orgId: ctx.session.orgId }, { dealerId: ctx.session.dealerId }] },
+                where: { id: input, orgId: ctx.session.orgId, dealerId: ctx.session.dealerId },
                 include: {
                     brand: true,
                     category: true,
@@ -883,12 +883,9 @@ export const itemsRouter = createTRPCRouter({
 
             const storage = await ctx.db.storage.findFirst({
                 where: {
-                    AND: [{
-                        OR: [
-                            { orgId: ctx.session.orgId },
-                            { dealerId: ctx.session.dealerId }]
-                    },
-                    { id: input.storageId }]
+                    orgId: ctx.session.orgId,
+                    dealerId: ctx.session.dealerId,
+                    id: input.storageId
                 },
                 include: { ItemStock: { include: { item: true } } }
             })
@@ -910,23 +907,14 @@ export const itemsRouter = createTRPCRouter({
             input.items.map(async (i) => {
                 const existingItemStock = await ctx.db.itemStock.findFirst({
                     where: {
-                        AND: [{
-                            OR: [
-                                { item: { orgId: ctx.session.orgId } },
-                                { item: { dealerId: ctx.session.dealerId } }]
-                        },
-                        { itemId: i.itemId }]
+                        item: { orgId: ctx.session.orgId, dealerId: ctx.session.dealerId },
+                        itemId: i.itemId
                     }
                 })
                 const barcodeDetails = await ctx.db.itemBarcode.findFirst({
                     where: {
-                        AND: [{ barcode: i.barcode },
-                        {
-                            OR: [
-                                { item: { orgId: ctx.session.orgId } },
-                                { item: { dealerId: ctx.session.dealerId } }
-                            ]
-                        }]
+                        barcode: i.barcode,
+                        item: { orgId: ctx.session.orgId, dealerId: ctx.session.dealerId },
                     }
                 })
 
@@ -964,10 +952,9 @@ export const itemsRouter = createTRPCRouter({
         }
         return await ctx.db.itemAcceptHistory.findMany({
             where: {
-                OR: [
-                    { orgId: ctx.session.orgId },
-                    { dealerId: ctx.session.dealerId }
-                ]
+                orgId: ctx.session.orgId,
+                dealerId: ctx.session.dealerId
+
             },
             orderBy: { createDate: "desc" },
             include: {
@@ -991,10 +978,8 @@ export const itemsRouter = createTRPCRouter({
         }
         return await ctx.db.itemSellHistory.findMany({
             where: {
-                OR: [
-                    { orgId: ctx.session.orgId },
-                    { dealerId: ctx.session.dealerId }
-                ]
+                orgId: ctx.session.orgId,
+                dealerId: ctx.session.dealerId
             },
             orderBy: { createDate: "desc" },
             include: {
