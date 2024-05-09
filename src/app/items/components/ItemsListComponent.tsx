@@ -15,6 +15,10 @@ import { useQuery } from "@tanstack/react-query";
 import { getSession } from "~/utils/getSession";
 import { createClient } from "~/utils/supabase/client";
 
+export type SingleItemType = NonNullable<
+  Awaited<ReturnType<typeof getItems>>
+>[number];
+
 const MainItemsList = () => {
   const [searchInput, setSearchInput] = useState<string>("");
   const debouncedSearchInput = useDebounce(searchInput, 750);

@@ -1,7 +1,7 @@
 import { type ColumnDef } from "@tanstack/react-table";
-import { type Item } from "~/utils/useItems";
+import { type SingleItemType } from "./ItemsListComponent";
 
-export const columns: ColumnDef<Item>[] = [
+export const columns: ColumnDef<SingleItemType>[] = [
   { accessorKey: "itemCode", header: "Ürün Kodu" },
   {
     accessorKey: "itemBarcode",
@@ -127,8 +127,8 @@ export const columns: ColumnDef<Item>[] = [
     header: "Toplam Stok",
     filterFn: (row, id, value: Array<string>) => {
       return Boolean(
-        row.original.ItemStock.find(
-          (i) => "Storage" in i && value.includes(String(i.Storage?.id)),
+        row.original.ItemStock.find((i) =>
+          value.includes(String(i.Storage?.id)),
         ),
       );
     },

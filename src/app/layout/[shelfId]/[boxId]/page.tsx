@@ -1,5 +1,5 @@
 "use client";
-import { ColumnDef } from "@tanstack/react-table";
+import { type ColumnDef } from "@tanstack/react-table";
 import { useParams } from "next/navigation";
 import Loader from "~/app/_components/loader";
 import { DataTable } from "~/app/_components/tables/generic-table";
@@ -10,13 +10,13 @@ import {
   CardTitle,
 } from "~/app/_components/ui/card";
 import { api } from "~/trpc/server";
-import { RouterOutputs } from "~/trpc/shared";
+import { type RouterOutputs } from "~/trpc/shared";
 
 type itemsDataType =
   RouterOutputs["storage"]["getBoxDetailsWithId"]["items"][number];
 
 const BoxDetail = () => {
-  const { boxId, shelfId } = useParams<{ shelfId: string; boxId: string }>();
+  const { boxId } = useParams<{ shelfId: string; boxId: string }>();
   const { data: boxDetails, isLoading } =
     api.storage.getBoxDetailsWithId.useQuery({ boxId });
 
