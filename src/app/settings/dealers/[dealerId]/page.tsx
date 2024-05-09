@@ -45,6 +45,8 @@ import {
 import { useDebounce } from "@uidotdev/usehooks";
 import { isValidEmail } from "~/utils";
 import { dealerTransactionsColumns } from "./components/dealerTransactionsColumns";
+import { useQuery } from "@tanstack/react-query";
+import { getItems } from "~/app/items/components/ItemsListComponent";
 
 const DealerDetails = () => {
   const params = useParams<{ dealerId: string }>();
@@ -61,19 +63,38 @@ const DealerDetails = () => {
   const dealerRoles = api.dealer.getDealerRoles.useQuery(params.dealerId, {
     enabled: session?.permissions.includes(PERMS.view_dealer_role),
   });
-  const dealerItems = api.items.getItems.useQuery(
-    {
-      dealerId: params.dealerId,
-      orgId: undefined,
-      searchInput: debouncedSearchInput,
-    },
-    {
-      enabled:
-        (!!session?.orgId &&
-          session?.permissions.includes(PERMS.dealer_item_view)) ||
-        (!!session?.dealerId && session?.permissions.includes(PERMS.item_view)),
-    },
-  );
+  const { data, isLoading } = useQuery({
+    queryKey: ["getItems"],
+    queryFn: () => getItems(undefined, params.dealerId),
+    enabled:
+      (!!session?.orgId &&
+        session?.permissions.includes(PERMS.dealer_item_view)) ||
+      (!!session?.dealerId && session?.permissions.includes(PERMS.item_view)),
+  });
+  const dealerItems = useMemo(() => {
+    if (data) {
+      return data
+        .filter(
+          (o) =>
+            (o.itemBarcode.find((b) =>
+              b.barcode
+                .toLowerCase()
+                .includes(debouncedSearchInput.toLowerCase()),
+            ) ??
+              o.itemCode
+                .toLowerCase()
+                .includes(debouncedSearchInput.toLowerCase())) ||
+            o.name.toLowerCase().includes(debouncedSearchInput.toLowerCase()),
+        )
+        .map((o) => {
+          const totalStock = o.ItemStock.reduce((sum, s) => sum + s.stock, 0);
+          return { ...o, totalStock };
+        })
+        .sort((a, b) => b.totalStock - a.totalStock);
+    }
+    return [];
+  }, [data, debouncedSearchInput]);
+
   const dealerTransactions = api.dealer.getDealerTransactions.useQuery(
     params.dealerId,
     { enabled: session?.permissions.includes(PERMS.dealers_view) },
@@ -213,18 +234,18 @@ const DealerDetails = () => {
               </CardHeader>
               <CardContent className="overflow-x-scroll md:overflow-x-hidden">
                 <DataTable
-                  data={dealerItems.data}
+                  data={dealerItems}
                   columns={dealerItemsColumns}
-                  isLoading={dealerItems.isLoading}
+                  isLoading={isLoading}
                   columnFilter={[
                     {
                       columnToFilter: "itemBrandId",
                       title: "Marka",
                       options: [
-                        ...new Set(dealerItems.data?.flatMap((i) => i.brand)),
+                        ...new Set(dealerItems?.flatMap((i) => i.ItemBrand)),
                       ].map((b) => ({
-                        label: b.name,
-                        value: b.id,
+                        label: b?.name ?? "",
+                        value: b?.id ?? "",
                       })),
                       icon: <TagsIcon className="mr-2 h-5 w-5" />,
                     },
@@ -232,10 +253,10 @@ const DealerDetails = () => {
                       columnToFilter: "itemColorId",
                       title: "Renk",
                       options: [
-                        ...new Set(dealerItems.data?.flatMap((i) => i.color)),
+                        ...new Set(dealerItems?.flatMap((i) => i.ItemColor)),
                       ].map((b) => ({
-                        label: b.colorCode,
-                        value: b.id,
+                        label: b?.colorCode ?? "",
+                        value: b?.id ?? "",
                       })),
                       icon: <PaletteIcon className="mr-2 h-5 w-5" />,
                     },
@@ -243,10 +264,10 @@ const DealerDetails = () => {
                       columnToFilter: "itemSizeId",
                       title: "Beden",
                       options: [
-                        ...new Set(dealerItems.data?.flatMap((i) => i.size)),
+                        ...new Set(dealerItems?.flatMap((i) => i.ItemSize)),
                       ].map((b) => ({
-                        label: b.sizeCode,
-                        value: b.id,
+                        label: b?.sizeCode ?? "",
+                        value: b?.id ?? "",
                       })),
                       icon: <RulerIcon className="mr-2 h-5 w-5" />,
                     },
@@ -254,12 +275,10 @@ const DealerDetails = () => {
                       columnToFilter: "itemCategoryId",
                       title: "Kategori",
                       options: [
-                        ...new Set(
-                          dealerItems.data?.flatMap((i) => i.category),
-                        ),
+                        ...new Set(dealerItems?.flatMap((i) => i.ItemCategory)),
                       ].map((b) => ({
-                        label: b.name,
-                        value: b.id,
+                        label: b?.name ?? "",
+                        value: b?.id ?? "",
                       })),
                       icon: <Layers3Icon className="mr-2 h-5 w-5" />,
                     },

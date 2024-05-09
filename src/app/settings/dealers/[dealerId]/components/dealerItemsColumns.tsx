@@ -1,9 +1,7 @@
 import { type ColumnDef } from "@tanstack/react-table";
-import { type RouterOutputs } from "~/trpc/shared";
+import { type SingleItemType } from "~/app/items/components/ItemsListComponent";
 
-export type dealerItemType = RouterOutputs["items"]["getItems"][number];
-
-export const columns: ColumnDef<dealerItemType>[] = [
+export const columns: ColumnDef<SingleItemType>[] = [
   { accessorKey: "itemCode", header: "Ürün Kodu" },
   {
     accessorKey: "itemBarcode",
@@ -30,12 +28,10 @@ export const columns: ColumnDef<dealerItemType>[] = [
     },
     cell: ({
       row: {
-        original: {
-          color: { colorCode, colorText },
-        },
+        original: { ItemColor },
       },
     }) => {
-      return `${colorCode} ${colorText}`;
+      return `${ItemColor?.colorCode} ${ItemColor?.colorText}`;
     },
   },
   {
@@ -46,12 +42,10 @@ export const columns: ColumnDef<dealerItemType>[] = [
     },
     cell: ({
       row: {
-        original: {
-          size: { sizeCode },
-        },
+        original: { ItemSize },
       },
     }) => {
-      return sizeCode;
+      return ItemSize?.sizeCode;
     },
   },
   {
@@ -62,12 +56,10 @@ export const columns: ColumnDef<dealerItemType>[] = [
     },
     cell: ({
       row: {
-        original: {
-          category: { name },
-        },
+        original: { ItemCategory },
       },
     }) => {
-      return name;
+      return ItemCategory?.name;
     },
   },
   {
@@ -78,10 +70,10 @@ export const columns: ColumnDef<dealerItemType>[] = [
     },
     cell: ({
       row: {
-        original: { brand },
+        original: { ItemBrand },
       },
     }) => {
-      return brand.name;
+      return ItemBrand?.name;
     },
   },
 

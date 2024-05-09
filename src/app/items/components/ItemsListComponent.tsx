@@ -24,7 +24,7 @@ const MainItemsList = () => {
   const debouncedSearchInput = useDebounce(searchInput, 750);
   const { data, isLoading } = useQuery({
     queryKey: ["getItems"],
-    queryFn: getItems,
+    queryFn: () => getItems(undefined, undefined),
   });
   const modifiedItemsData = useMemo(() => {
     if (data) {
@@ -133,30 +133,57 @@ const MainItemsList = () => {
     />
   );
 };
-const getItems = async () => {
+export const getItems = async (orgId?: string, dealerId?: string) => {
   const session = await getSession();
   const supabase = createClient();
   let itemData;
-  if (session.orgId) {
+  if (!orgId && !dealerId) {
+    if (session.orgId) {
+      const { data } = await supabase
+        .from("Item")
+        .select(
+          "*,ItemColor(*),ItemSize(*),ItemCategory(*),ItemBrand(*),ItemStock(*,Storage(*)),itemBarcode(*)",
+        )
+        .eq("orgId", session.orgId);
+
+      if (data) {
+        itemData = data;
+      }
+    }
+
+    if (session.dealerId) {
+      const { data } = await supabase
+        .from("Item")
+        .select(
+          "*,ItemColor(*),ItemSize(*),ItemCategory(*),ItemBrand(*),ItemStock(*,Storage(*)),itemBarcode(*)",
+        )
+        .eq("dealerId", session.dealerId);
+
+      if (data) {
+        itemData = data;
+      }
+    }
+  }
+  if (orgId) {
     const { data } = await supabase
       .from("Item")
       .select(
         "*,ItemColor(*),ItemSize(*),ItemCategory(*),ItemBrand(*),ItemStock(*,Storage(*)),itemBarcode(*)",
       )
-      .eq("orgId", session.orgId);
+      .eq("orgId", orgId);
 
     if (data) {
       itemData = data;
     }
   }
 
-  if (session.dealerId) {
+  if (dealerId) {
     const { data } = await supabase
       .from("Item")
       .select(
         "*,ItemColor(*),ItemSize(*),ItemCategory(*),ItemBrand(*),ItemStock(*,Storage(*)),itemBarcode(*)",
       )
-      .eq("dealerId", session.dealerId);
+      .eq("dealerId", dealerId);
 
     if (data) {
       itemData = data;
