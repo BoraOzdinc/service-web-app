@@ -73,18 +73,33 @@ export const itemsRouter = createTRPCRouter({
                 });
             }
 
-            return await ctx.db.item.findMany({
-                where: { orgId: ctx.session.orgId, dealerId: ctx.session.dealerId },
-                include: {
-                    ItemStock: { select: { stock: true, storage: true } },
-                    color: true,
-                    size: true,
-                    category: true,
-                    itemBarcode: true,
-                    brand: true,
-                }
-            })
+            if(ctx.session.orgId){
+                const {data,error} = await ctx.supabase
+                    .from("Item")
+                    .select("*,ItemColor(*),ItemSize(*),ItemCategory(*),ItemBrand(*),ItemStock(*,Storage(*)),itemBarcode(*)")
+                    .eq("orgId",ctx.session.orgId)
 
+
+                if(data){
+                    return data
+                }
+
+                
+                throw new TRPCError({code:"NOT_FOUND",message:JSON.stringify(error)})
+            }
+
+            if(ctx.session.dealerId){
+                const a = await ctx.supabase
+                    .from("Item")
+                    .select("*,ItemColor(*),ItemSize(*),ItemCategory(*),ItemBrand(*),ItemStock(*,storage(*)),itemBarcode(*)")
+                    .eq("dealerId",ctx.session.dealerId)
+
+                if(a.data){
+                        return a.data
+                    }
+                    throw new TRPCError({code:"NOT_FOUND",message:"Ürün Bulunamadı!"})
+            }
+            throw new TRPCError({code:"UNAUTHORIZED",message:"You don't have permission to do this!"})
         }),
     getItemWithBarcode: protectedProcedure
         .input(z.object({ dealerId: z.string().optional(), orgId: z.string().optional(), barcode: nonEmptyString }))

@@ -55,7 +55,7 @@ export default async function RootLayout({
             {user && (
               <NavigationMenu className="flex gap-3">
                 <NavigationMenuList>
-                  {(await NavbarRoutes(user.email ?? "")).map((parent) => {
+                  {(await NavbarRoutes()).map((parent) => {
                     return (
                       <NavigationMenuItem key={parent.title}>
                         <NavigationMenuTrigger>

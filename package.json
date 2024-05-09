@@ -10,7 +10,8 @@
     "dev": "next dev",
     "postinstall": "prisma generate",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "gendbtype": "npx supabase gen types typescript --project-id pxlaxikopxmloftkitta --schema public > types/supabase.ts"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^2.5.0",

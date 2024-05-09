@@ -24,62 +24,56 @@ export const columns: ColumnDef<Item>[] = [
     accessorKey: "itemColorId",
     header: "Renk",
     filterFn: (row, id, value: Array<string>) => {
-      return value.includes(row.original.color.colorCode);
+      return value.includes(row.original.ItemColor?.colorCode ?? "");
     },
     cell: ({
       row: {
-        original: {
-          color: { colorCode, colorText },
-        },
+        original: { ItemColor },
       },
     }) => {
-      return `${colorCode} ${colorText}`;
+      return `${ItemColor?.colorCode} ${ItemColor?.colorText}`;
     },
   },
   {
     accessorKey: "itemSizeId",
     header: "Beden",
     filterFn: (row, id, value: Array<string>) => {
-      return value.includes(row.original.size.sizeCode);
+      return value.includes(row.original.ItemSize?.sizeCode ?? "");
     },
     cell: ({
       row: {
-        original: {
-          size: { sizeCode },
-        },
+        original: { ItemSize },
       },
     }) => {
-      return sizeCode;
+      return ItemSize?.sizeCode;
     },
   },
   {
     accessorKey: "itemCategoryId",
     header: "Kategori",
     filterFn: (row, id, value: Array<string>) => {
-      return value.includes(row.original.category.name);
+      return value.includes(row.original.ItemCategory?.name ?? "");
     },
     cell: ({
       row: {
-        original: {
-          category: { name },
-        },
+        original: { ItemCategory },
       },
     }) => {
-      return name;
+      return ItemCategory?.name;
     },
   },
   {
     accessorKey: "itemBrandId",
     header: "Marka",
     filterFn: (row, id, value: Array<string>) => {
-      return value.includes(row.original.brand.name);
+      return value.includes(row.original.ItemBrand?.name ?? "");
     },
     cell: ({
       row: {
-        original: { brand },
+        original: { ItemBrand },
       },
     }) => {
-      return brand.name;
+      return ItemBrand?.name;
     },
   },
 
@@ -133,7 +127,9 @@ export const columns: ColumnDef<Item>[] = [
     header: "Toplam Stok",
     filterFn: (row, id, value: Array<string>) => {
       return Boolean(
-        row.original.ItemStock.find((i) => value.includes(i.storage.id)),
+        row.original.ItemStock.find(
+          (i) => "Storage" in i && value.includes(String(i.Storage?.id)),
+        ),
       );
     },
   },

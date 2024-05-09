@@ -1,8 +1,7 @@
 "use client";
 import { useDebounce } from "@uidotdev/usehooks";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { DataTable } from "~/app/_components/tables/generic-table";
-import { api } from "~/trpc/server";
 import { columns } from "./columns";
 import {
   Layers3Icon,
@@ -12,61 +11,56 @@ import {
   WarehouseIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { getSession } from "~/utils/getSession";
+import { createClient } from "~/utils/supabase/client";
 
-const MainItemsList = ({
-  session,
-}: {
-  session: {
-    permissions: string[];
-    orgId: string | null | undefined;
-    dealerId: string | null | undefined;
-    email: string | undefined;
-  };
-}) => {
+const MainItemsList = () => {
   const [searchInput, setSearchInput] = useState<string>("");
   const debouncedSearchInput = useDebounce(searchInput, 750);
-  const ItemsData = api.items.getItems.useQuery(
-    {
-      orgId: session?.orgId ?? undefined,
-      dealerId: session?.dealerId ?? undefined,
-      searchInput: debouncedSearchInput,
-    },
-    {
-      enabled: Boolean(session),
-      select(data) {
-        return data
-          .filter(
-            (o) =>
-              (o.itemBarcode.find((b) =>
-                b.barcode.toLowerCase().includes(searchInput.toLowerCase()),
-              ) ??
-                o.itemCode.toLowerCase().includes(searchInput.toLowerCase())) ||
-              o.name.toLowerCase().includes(searchInput.toLowerCase()),
-          )
-          .map((o) => {
-            const totalStock =
-              o.ItemStock.reduce((sum, s) => sum + s.stock, 0) ?? 0;
-            return { ...o, totalStock: totalStock };
-          });
-      },
-    },
-  );
+  const { data, isLoading } = useQuery({
+    queryKey: ["getItems"],
+    queryFn: getItems,
+  });
+  const modifiedItemsData = useMemo(() => {
+    if (data) {
+      return data
+        .filter(
+          (o) =>
+            (o.itemBarcode.find((b) =>
+              b.barcode
+                .toLowerCase()
+                .includes(debouncedSearchInput.toLowerCase()),
+            ) ??
+              o.itemCode
+                .toLowerCase()
+                .includes(debouncedSearchInput.toLowerCase())) ||
+            o.name.toLowerCase().includes(debouncedSearchInput.toLowerCase()),
+        )
+        .map((o) => {
+          const totalStock = o.ItemStock.reduce((sum, s) => sum + s.stock, 0);
+          return { ...o, totalStock };
+        })
+        .sort((a, b) => b.totalStock - a.totalStock);
+    }
+    return [];
+  }, [data, debouncedSearchInput]);
 
   const router = useRouter();
   return (
     <DataTable
-      data={ItemsData.data}
+      data={modifiedItemsData}
       columns={columns}
-      isLoading={ItemsData.isLoading}
+      isLoading={isLoading}
       columnFilter={[
         {
           columnToFilter: "itemBrandId",
           title: "Marka",
           options: [
-            ...new Set(ItemsData.data?.flatMap((i) => i.brand.name)),
+            ...new Set(modifiedItemsData?.flatMap((i) => i.ItemBrand?.name)),
           ].map((b) => ({
-            label: b,
-            value: b,
+            label: b ?? "",
+            value: b ?? "",
           })),
           icon: <TagsIcon className="mr-2 h-5 w-5" />,
         },
@@ -74,10 +68,12 @@ const MainItemsList = ({
           columnToFilter: "itemColorId",
           title: "Renk",
           options: [
-            ...new Set(ItemsData.data?.flatMap((i) => i.color.colorCode)),
+            ...new Set(
+              modifiedItemsData?.flatMap((i) => i.ItemColor?.colorCode),
+            ),
           ].map((b) => ({
-            label: b,
-            value: b,
+            label: b ?? "",
+            value: b ?? "",
           })),
           icon: <PaletteIcon className="mr-2 h-5 w-5" />,
         },
@@ -85,10 +81,10 @@ const MainItemsList = ({
           columnToFilter: "itemSizeId",
           title: "Beden",
           options: [
-            ...new Set(ItemsData.data?.flatMap((i) => i.size.sizeCode)),
+            ...new Set(modifiedItemsData?.flatMap((i) => i.ItemSize?.sizeCode)),
           ].map((b) => ({
-            label: b,
-            value: b,
+            label: b ?? "",
+            value: b ?? "",
           })),
           icon: <RulerIcon className="mr-2 h-5 w-5" />,
         },
@@ -96,10 +92,10 @@ const MainItemsList = ({
           columnToFilter: "itemCategoryId",
           title: "Kategori",
           options: [
-            ...new Set(ItemsData.data?.flatMap((i) => i.category.name)),
+            ...new Set(modifiedItemsData?.flatMap((i) => i.ItemCategory?.name)),
           ].map((b) => ({
-            label: b,
-            value: b,
+            label: b ?? "",
+            value: b ?? "",
           })),
           icon: <Layers3Icon className="mr-2 h-5 w-5" />,
         },
@@ -108,13 +104,17 @@ const MainItemsList = ({
           title: "Depo",
           options: [
             ...new Set(
-              ItemsData.data?.flatMap((i) =>
-                i.ItemStock.flatMap((s) => s.storage),
+              modifiedItemsData?.flatMap((i) =>
+                i.ItemStock.flatMap((s) => {
+                  if ("Storage" in s) {
+                    return s.Storage;
+                  }
+                }),
               ),
             ),
-          ].map((b) => ({
-            label: b.name,
-            value: b.id,
+          ].map((c) => ({
+            label: c?.name ?? "",
+            value: c?.id ?? "",
           })),
           icon: <WarehouseIcon className="mr-2 h-5 w-5" />,
         },
@@ -129,5 +129,35 @@ const MainItemsList = ({
     />
   );
 };
+const getItems = async () => {
+  const session = await getSession();
+  const supabase = createClient();
+  let itemData;
+  if (session.orgId) {
+    const { data } = await supabase
+      .from("Item")
+      .select(
+        "*,ItemColor(*),ItemSize(*),ItemCategory(*),ItemBrand(*),ItemStock(*,Storage(*)),itemBarcode(*)",
+      )
+      .eq("orgId", session.orgId);
 
+    if (data) {
+      itemData = data;
+    }
+  }
+
+  if (session.dealerId) {
+    const { data } = await supabase
+      .from("Item")
+      .select(
+        "*,ItemColor(*),ItemSize(*),ItemCategory(*),ItemBrand(*),ItemStock(*,Storage(*)),itemBarcode(*)",
+      )
+      .eq("dealerId", session.dealerId);
+
+    if (data) {
+      itemData = data;
+    }
+  }
+  return itemData;
+};
 export default MainItemsList;

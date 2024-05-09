@@ -1,7 +1,7 @@
 import { PERMS } from "~/_constants/perms";
-import { db } from "~/server/db";
+import { getSession } from "~/utils/getSession";
 
-const NavbarRoutes: (userEmail: string) => Promise<
+const NavbarRoutes: () => Promise<
   {
     title: string;
     isVisible?: boolean;
@@ -12,17 +12,11 @@ const NavbarRoutes: (userEmail: string) => Promise<
       isVisible: boolean;
     }[];
   }[]
-> = async (userEmail: string) => {
-  const userMember = await db.member.findUnique({
-    where: { userEmail },
-    include: { roles: { include: { permissions: true } } },
-  });
-  const userPermission = [
-    ...new Set(
-      userMember?.roles.flatMap((r) => r.permissions.map((p) => p.name)),
-    ),
-  ];
-  if (!userMember?.orgId && !userMember?.dealerId) {
+> = async () => {
+  const session = await getSession();
+  console.log(session);
+
+  if (session?.orgId && session?.dealerId) {
     return [];
   }
   return [
@@ -33,7 +27,9 @@ const NavbarRoutes: (userEmail: string) => Promise<
           title: "Tüm Müşteriler",
           route: "/customers",
           description: "Bütün Müşterilerinizi Görüntüleyin ve Yönetin",
-          isVisible: Boolean(userPermission.includes(PERMS.customers_view)),
+          isVisible: Boolean(
+            session.permissions.includes(PERMS.customers_view),
+          ),
         },
       ],
     },
@@ -44,14 +40,14 @@ const NavbarRoutes: (userEmail: string) => Promise<
           title: "Tüm Ürünler",
           route: "/items",
           description: "Bütün ürünlerinizi görüntüleyin ve yönetin",
-          isVisible: Boolean(userPermission.includes(PERMS.item_view)),
+          isVisible: Boolean(session.permissions.includes(PERMS.item_view)),
         },
         {
           title: "Ürün Kabul",
           route: "/items/item-accept",
           description: "Ürün Kabul işlemleri.",
           isVisible: Boolean(
-            userPermission.includes(PERMS.item_accept_history_view),
+            session.permissions.includes(PERMS.item_accept_history_view),
           ),
         },
         {
@@ -59,7 +55,7 @@ const NavbarRoutes: (userEmail: string) => Promise<
           route: "/items/item-sell",
           description: "Ürün Sevk Edin veya Satın.",
           isVisible: Boolean(
-            userPermission.includes(PERMS.item_sell_history_view),
+            session.permissions.includes(PERMS.item_sell_history_view),
           ),
         },
 
@@ -69,15 +65,17 @@ const NavbarRoutes: (userEmail: string) => Promise<
           description:
             "Deponuzdaki ürünlerin sayımını yapın. eksik veya fazla ürünleri tespit edin.",
           isVisible: Boolean(
-            userPermission.includes(PERMS.item_view) &&
-              userPermission.includes(PERMS.manage_storage),
+            session.permissions.includes(PERMS.item_view) &&
+              session.permissions.includes(PERMS.manage_storage),
           ),
         },
         {
           title: "Depo Düzeni",
           route: "/layout",
           description: "Deponuzdaki ürünleri düzene sokun.",
-          isVisible: Boolean(userPermission.includes(PERMS.manage_storage)),
+          isVisible: Boolean(
+            session.permissions.includes(PERMS.manage_storage),
+          ),
         },
       ],
     },
@@ -89,7 +87,7 @@ const NavbarRoutes: (userEmail: string) => Promise<
           route: "/settings/dealers",
           description: "Bütün Bayiileriniz",
           isVisible: Boolean(
-            userMember?.orgId && userPermission.includes(PERMS.dealers_view),
+            session?.orgId && session.permissions.includes(PERMS.dealers_view),
           ),
         },
         {
@@ -97,28 +95,30 @@ const NavbarRoutes: (userEmail: string) => Promise<
           route: "/items/settings",
           description:
             "Ürünlerinizin marka, renk, beden gibi değişkenlerini ayarlayın.",
-          isVisible: Boolean(userPermission.includes(PERMS.item_setting_view)),
+          isVisible: Boolean(
+            session.permissions.includes(PERMS.item_setting_view),
+          ),
         },
         {
           title: "Organizasyon Ayarları",
-          route: `/settings/${userMember?.orgId}`,
+          route: `/settings/${session?.orgId}`,
           description: "Organizasyon Üyelerini ve Rolleri Yönetin",
           isVisible: Boolean(
-            userMember?.orgId &&
-              userPermission.includes(
+            session?.orgId &&
+              session.permissions.includes(
                 PERMS.view_org_members || PERMS.view_org_role,
               ),
           ),
         },
         {
           title: "Bayii Ayarları",
-          route: `/settings/dealers/${userMember?.dealerId}`,
+          route: `/settings/dealers/${session?.dealerId}`,
           description: "Bayii Yönetimi",
           isVisible: Boolean(
-            userMember?.dealerId &&
+            session?.dealerId &&
               // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-              (userPermission.includes(PERMS.view_dealer_members) ||
-                userPermission.includes(PERMS.view_dealer_role)),
+              (session.permissions.includes(PERMS.view_dealer_members) ||
+                session.permissions.includes(PERMS.view_dealer_role)),
           ),
         },
       ],

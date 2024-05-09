@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { createClient as createAdmin } from "@supabase/supabase-js"
+import {type Database} from "../../../types/supabase"
 
 export function createAdminClient() {
     const SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4bGF4aWtvcHhtbG9mdGtpdHRhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcxMzE4MjQyMCwiZXhwIjoyMDI4NzU4NDIwfQ.Xsn4thNBJousAaqO9dMryEwBuziAn_bLraw-d3tVDyQ"
@@ -15,7 +16,7 @@ export function createAdminClient() {
 export function createClient() {
     const cookieStore = cookies()
 
-    return createServerClient(
+    return createServerClient<Database>(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
