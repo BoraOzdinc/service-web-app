@@ -73,7 +73,6 @@ export const itemsRouter = createTRPCRouter({
                 });
             }
 
-
             return await ctx.db.item.findMany({
                 where: { orgId: ctx.session.orgId, dealerId: ctx.session.dealerId },
                 include: {

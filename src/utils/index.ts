@@ -18,3 +18,18 @@ export const isValidEmail = (email: string | undefined) => {
     }
 };
 
+export const memberFinder: (session: {
+    permissions: string[];
+    orgId: string | null | undefined;
+    dealerId: string | null | undefined;
+    email: string | undefined;
+    id: string | undefined;
+}) => "org" | "dealer" | "none" = (session) => {
+    if (session.orgId) {
+        return "org"
+    }
+    if (session.dealerId) {
+        return "dealer"
+    }
+    return "none"
+}

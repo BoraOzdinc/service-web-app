@@ -178,12 +178,63 @@ model Item {
   ItemStock                     ItemStock[]
   CustomerTransactionItemDetail TransactionItemDetail[]
   itemBarcode                   itemBarcode[]
+  Shelf                         Shelf?                  @relation(fields: [shelfId], references: [id])
+  shelfId                       String?
+  ShelfBox                      ShelfBox?               @relation(fields: [shelfBoxId], references: [id])
+  shelfBoxId                    String?
+  ShelfItemDetail               ShelfItemDetail[]
 
   @@index([orgId])
   @@index([itemColorId])
   @@index([itemSizeId])
   @@index([itemCategoryId])
   @@index([itemBrandId])
+}
+
+model Shelf {
+  id         String     @id @default(cuid())
+  createDate DateTime   @default(now())
+  updateDate DateTime   @updatedAt
+  name       String?
+  boxes      ShelfBox[]
+
+  items ShelfItemDetail[]
+
+  storage   Storage @relation(fields: [storageId], references: [id])
+  storageId String
+  Item      Item[]
+}
+
+model ShelfBox {
+  id         String   @id @default(cuid())
+  createDate DateTime @default(now())
+  updateDate DateTime @updatedAt
+  name       String?
+
+  Shelf   Shelf?  @relation(fields: [shelfId], references: [id])
+  shelfId String?
+
+  items ShelfItemDetail[]
+
+  storage   Storage @relation(fields: [storageId], references: [id])
+  storageId String
+  Item      Item[]
+}
+
+model ShelfItemDetail {
+  id         String   @id @default(cuid())
+  createDate DateTime @default(now())
+  updateDate DateTime @updatedAt
+
+  Shelf   Shelf?  @relation(fields: [shelfId], references: [id])
+  shelfId String?
+
+  ShelfBox   ShelfBox? @relation(fields: [shelfBoxId], references: [id])
+  shelfBoxId String?
+
+  item     Item   @relation(fields: [itemId], references: [id])
+  itemId   String
+  quantity Int
 }
 
 model itemBarcode {
@@ -375,6 +426,8 @@ model Storage {
   Dealer            Dealer?             @relation(fields: [dealerId], references: [id], onDelete: Cascade)
   Org               Org?                @relation(fields: [orgId], references: [id], onDelete: Cascade)
   Transaction       Transaction[]
+  Shelf             Shelf[]
+  ShelfBox          ShelfBox[]
 
   @@index([orgId])
   @@index([dealerId])

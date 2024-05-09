@@ -51,6 +51,7 @@ const MainItemsList = ({
       },
     },
   );
+
   const router = useRouter();
   return (
     <DataTable

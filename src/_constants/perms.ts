@@ -20,5 +20,6 @@ export const PERMS = {
     item_sell: "SELL_ITEMS",
     item_sell_history_view: "SELL_ITEMS_VIEW",
     customers_view: "CUSTOMERS_VIEW",
-    manage_customers: "MANAGE_CUSTOMERS"
+    manage_customers: "MANAGE_CUSTOMERS",
+    manage_layout: "MANAGE_STORAGE_LAYOUT"
 } as const;

@@ -73,6 +73,12 @@ const NavbarRoutes: (userEmail: string) => Promise<
               userPermission.includes(PERMS.manage_storage),
           ),
         },
+        {
+          title: "Depo Düzeni",
+          route: "/layout",
+          description: "Deponuzdaki ürünleri düzene sokun.",
+          isVisible: Boolean(userPermission.includes(PERMS.manage_storage)),
+        },
       ],
     },
     {
