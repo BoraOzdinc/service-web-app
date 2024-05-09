@@ -29,6 +29,10 @@ model Customer {
   ItemAcceptHistory ItemAcceptHistory[]
   ItemSellHistory   ItemSellHistory[]
   Transactions      Transaction[]
+
+  @@index([connectedDealerId])
+  @@index([dealerId])
+  @@index([orgId])
 }
 
 model Transaction {
@@ -48,6 +52,11 @@ model Transaction {
   dealer          Dealer?                 @relation(fields: [dealerId], references: [id])
   storage         Storage                 @relation(fields: [storageId], references: [id])
   boughtItems     TransactionItemDetail[]
+
+  @@index([customerId])
+  @@index([dealerId])
+  @@index([dealerId, storageId])
+  @@index([storageId])
 }
 
 model TransactionItemDetail {
@@ -58,6 +67,9 @@ model TransactionItemDetail {
   customerTransactionId String?
   CustomerTransaction   Transaction? @relation(fields: [customerTransactionId], references: [id])
   item                  Item         @relation(fields: [itemId], references: [id])
+
+  @@index([customerTransactionId])
+  @@index([itemId])
 }
 
 model Adress {
@@ -72,6 +84,8 @@ model Adress {
   Adress      String?
   customerId  String?
   Customer    Customer?  @relation(fields: [customerId], references: [id])
+
+  @@index([customerId])
 }
 
 model DealerView {
@@ -84,6 +98,7 @@ model DealerView {
 
   @@unique([dealerId, itemId])
   @@index([itemId])
+  @@index([dealerId])
 }
 
 model Dealer {
@@ -123,6 +138,7 @@ model Member {
   roles     MemberRole[] @relation("MemberToMemberRole")
 
   @@index([dealerId])
+  @@index([orgId])
 }
 
 model MemberRole {
@@ -134,6 +150,9 @@ model MemberRole {
   Org         Org?               @relation(fields: [orgId], references: [id])
   permissions MemberPermission[] @relation("MemberPermissionToMemberRole")
   members     Member[]           @relation("MemberToMemberRole")
+
+  @@index([dealerId])
+  @@index([orgId])
 }
 
 model MemberPermission {
@@ -165,6 +184,8 @@ model Item {
   itemBrandId                   String
   orgId                         String?
   dealerId                      String?
+  shelfBoxId                    String?
+  shelfId                       String?
   DealerView                    DealerView[]
   Dealer                        Dealer?                 @relation(fields: [dealerId], references: [id])
   brand                         ItemBrand               @relation(fields: [itemBrandId], references: [id])
@@ -172,69 +193,71 @@ model Item {
   color                         ItemColor               @relation(fields: [itemColorId], references: [id])
   size                          ItemSize                @relation(fields: [itemSizeId], references: [id])
   Org                           Org?                    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  ShelfBox                      ShelfBox?               @relation(fields: [shelfBoxId], references: [id])
+  Shelf                         Shelf?                  @relation(fields: [shelfId], references: [id])
   ItemAcceptDetail              ItemAcceptDetail[]
   ItemHistory                   ItemHistory[]
   ItemSellDetail                ItemSellDetail[]
   ItemStock                     ItemStock[]
+  ShelfItemDetail               ShelfItemDetail[]
   CustomerTransactionItemDetail TransactionItemDetail[]
   itemBarcode                   itemBarcode[]
-  Shelf                         Shelf?                  @relation(fields: [shelfId], references: [id])
-  shelfId                       String?
-  ShelfBox                      ShelfBox?               @relation(fields: [shelfBoxId], references: [id])
-  shelfBoxId                    String?
-  ShelfItemDetail               ShelfItemDetail[]
 
   @@index([orgId])
   @@index([itemColorId])
   @@index([itemSizeId])
   @@index([itemCategoryId])
   @@index([itemBrandId])
+  @@index([dealerId])
+  @@index([shelfBoxId])
+  @@index([shelfId])
 }
 
 model Shelf {
-  id         String     @id @default(cuid())
-  createDate DateTime   @default(now())
-  updateDate DateTime   @updatedAt
+  id         String            @id @default(cuid())
+  createDate DateTime          @default(now())
+  updateDate DateTime          @updatedAt
+  storageId  String
   name       String?
+  Item       Item[]
+  storage    Storage           @relation(fields: [storageId], references: [id])
   boxes      ShelfBox[]
+  items      ShelfItemDetail[]
 
-  items ShelfItemDetail[]
-
-  storage   Storage @relation(fields: [storageId], references: [id])
-  storageId String
-  Item      Item[]
+  @@index([storageId])
 }
 
 model ShelfBox {
-  id         String   @id @default(cuid())
-  createDate DateTime @default(now())
-  updateDate DateTime @updatedAt
+  id         String            @id @default(cuid())
+  createDate DateTime          @default(now())
+  updateDate DateTime          @updatedAt
+  shelfId    String?
+  storageId  String
   name       String?
+  Item       Item[]
+  Shelf      Shelf?            @relation(fields: [shelfId], references: [id])
+  storage    Storage           @relation(fields: [storageId], references: [id])
+  items      ShelfItemDetail[]
 
-  Shelf   Shelf?  @relation(fields: [shelfId], references: [id])
-  shelfId String?
-
-  items ShelfItemDetail[]
-
-  storage   Storage @relation(fields: [storageId], references: [id])
-  storageId String
-  Item      Item[]
+  @@index([shelfId])
+  @@index([storageId])
 }
 
 model ShelfItemDetail {
-  id         String   @id @default(cuid())
-  createDate DateTime @default(now())
-  updateDate DateTime @updatedAt
-
-  Shelf   Shelf?  @relation(fields: [shelfId], references: [id])
-  shelfId String?
-
-  ShelfBox   ShelfBox? @relation(fields: [shelfBoxId], references: [id])
+  id         String    @id @default(cuid())
+  createDate DateTime  @default(now())
+  updateDate DateTime  @updatedAt
+  shelfId    String?
   shelfBoxId String?
+  itemId     String
+  quantity   Int
+  item       Item      @relation(fields: [itemId], references: [id])
+  ShelfBox   ShelfBox? @relation(fields: [shelfBoxId], references: [id])
+  Shelf      Shelf?    @relation(fields: [shelfId], references: [id])
 
-  item     Item   @relation(fields: [itemId], references: [id])
-  itemId   String
-  quantity Int
+  @@index([itemId])
+  @@index([shelfBoxId])
+  @@index([shelfId])
 }
 
 model itemBarcode {
@@ -261,6 +284,7 @@ model ItemColor {
   Org       Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@index([orgId])
+  @@index([dealerId])
 }
 
 model ItemSize {
@@ -274,6 +298,7 @@ model ItemSize {
   Org      Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@index([orgId])
+  @@index([dealerId])
 }
 
 model ItemCategory {
@@ -286,6 +311,7 @@ model ItemCategory {
   Org      Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@index([orgId])
+  @@index([dealerId])
 }
 
 model ItemBrand {
@@ -298,6 +324,7 @@ model ItemBrand {
   Org      Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@index([orgId])
+  @@index([dealerId])
 }
 
 model ItemStock {
@@ -334,6 +361,7 @@ model ItemHistory {
   @@index([fromStorageId])
   @@index([toStorageId])
   @@index([orgId])
+  @@index([dealerId])
 }
 
 model ItemAcceptHistory {
@@ -349,6 +377,11 @@ model ItemAcceptHistory {
   dealer     Dealer?            @relation(fields: [dealerId], references: [id])
   org        Org?               @relation(fields: [orgId], references: [id])
   storage    Storage            @relation(fields: [storageId], references: [id])
+
+  @@index([customerId])
+  @@index([dealerId])
+  @@index([orgId])
+  @@index([storageId])
 }
 
 model ItemAcceptDetail {
@@ -364,6 +397,12 @@ model ItemAcceptDetail {
   itemBarcode         itemBarcode        @relation(fields: [itemBarcodeId], references: [id])
   item                Item               @relation(fields: [itemId], references: [id])
   Org                 Org?               @relation(fields: [orgId], references: [id])
+
+  @@index([dealerId])
+  @@index([itemAcceptHistoryId])
+  @@index([itemBarcodeId])
+  @@index([itemId])
+  @@index([orgId])
 }
 
 model ItemSellHistory {
@@ -382,6 +421,12 @@ model ItemSellHistory {
   org                  Org?             @relation(fields: [orgId], references: [id])
   storage              Storage          @relation(fields: [storageId], references: [id])
   connectedTransaction Transaction      @relation(fields: [transactionId], references: [id])
+
+  @@index([customerId])
+  @@index([dealerId])
+  @@index([orgId])
+  @@index([storageId])
+  @@index([transactionId])
 }
 
 model ItemSellDetail {
@@ -392,6 +437,9 @@ model ItemSellDetail {
   serialNumbers       String[]
   ItemAcceptHistory   ItemSellHistory? @relation(fields: [itemAcceptHistoryId], references: [id])
   item                Item             @relation(fields: [itemId], references: [id])
+
+  @@index([itemAcceptHistoryId])
+  @@index([itemId])
 }
 
 model Org {
@@ -423,11 +471,11 @@ model Storage {
   toItemHistory     ItemHistory[]       @relation("ToStorage")
   ItemSellHistory   ItemSellHistory[]
   ItemStock         ItemStock[]
+  Shelf             Shelf[]
+  ShelfBox          ShelfBox[]
   Dealer            Dealer?             @relation(fields: [dealerId], references: [id], onDelete: Cascade)
   Org               Org?                @relation(fields: [orgId], references: [id], onDelete: Cascade)
   Transaction       Transaction[]
-  Shelf             Shelf[]
-  ShelfBox          ShelfBox[]
 
   @@index([orgId])
   @@index([dealerId])
