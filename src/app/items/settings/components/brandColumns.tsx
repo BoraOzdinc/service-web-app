@@ -1,7 +1,7 @@
 import { type ColumnDef } from "@tanstack/react-table";
-import { type RouterOutputs } from "~/trpc/shared";
+import { type getBrandsType } from "./queryFunctions";
 
-type brandType = RouterOutputs["items"]["getBrands"][number];
+type brandType = NonNullable<getBrandsType["data"]>[number];
 
 export const columns: ColumnDef<brandType>[] = [
   { accessorKey: "name", header: "Marka" },

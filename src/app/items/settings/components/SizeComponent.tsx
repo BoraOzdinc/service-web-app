@@ -7,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from "~/app/_components/ui/card";
-import { api } from "~/trpc/server";
 import { columns } from "./sizeColumns";
 import {
   Dialog,
@@ -21,9 +20,9 @@ import { Label } from "~/app/_components/ui/label";
 import { Input } from "~/app/_components/ui/input";
 import { useState } from "react";
 import { useAddSize } from "~/utils/useItems";
+import { type getSizesType } from "./queryFunctions";
 
-const SizeComp = () => {
-  const sizes = api.items.getSizes.useQuery(undefined, { retry: false });
+const SizeComp = ({ sizes }: { sizes: getSizesType }) => {
   const [sizeCode, setSizeCode] = useState<string>("");
   const [size, setSize] = useState<string>("");
   const addSize = useAddSize();
@@ -84,7 +83,7 @@ const SizeComp = () => {
       </CardHeader>
       <CardContent className="overflow-x-auto">
         <DataTable
-          data={sizes.data}
+          data={sizes.data ?? []}
           columns={columns}
           isLoading={sizes.isLoading}
           pagination
