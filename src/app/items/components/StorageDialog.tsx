@@ -1,5 +1,4 @@
 "use client";
-import { useQuery } from "@tanstack/react-query";
 import { TrashIcon } from "lucide-react";
 import { useState } from "react";
 import { PERMS } from "~/_constants/perms";
@@ -22,19 +21,17 @@ import {
 } from "~/app/_components/ui/dialog";
 import { Input } from "~/app/_components/ui/input";
 import { Label } from "~/app/_components/ui/label";
-import { getSession } from "~/utils/getSession";
-import { createClient } from "~/utils/supabase/client";
 import { useAddStorage, useDeleteStorage } from "~/utils/useItems";
+import {type getStorages } from "../page";
 
-const StorageDialog = () => {
-  const { data: storages, isLoading } = useQuery({
-    queryKey: ["getStorages"],
-    queryFn: getStorages,
-  });
+export type StorageDataType = Awaited<ReturnType<typeof getStorages>>;
+
+const StorageDialog = ({ storages }: { storages: StorageDataType }) => {
+
   const addStorage = useAddStorage();
   const deleteStorage = useDeleteStorage();
   const [storageInput, setStorageInput] = useState<string>();
-  if (isLoading || !storages?.storageData) {
+  if (!storages?.storageData) {
     return <Loader />;
   }
   return (
@@ -124,24 +121,5 @@ const StorageDialog = () => {
     </Dialog>
   );
 };
-const getStorages = async () => {
-  const supabase = createClient();
-  const session = await getSession();
-  let storageData;
-  if (session.orgId) {
-    const storages = await supabase
-      .from("Storage")
-      .select("*")
-      .eq("orgId", session.orgId);
-    storageData = storages.data;
-  }
-  if (session.dealerId) {
-    const storages = await supabase
-      .from("Storage")
-      .select("*")
-      .eq("dealerId", session.dealerId);
-    storageData = storages.data;
-  }
-  return { storageData, session };
-};
+
 export default StorageDialog;

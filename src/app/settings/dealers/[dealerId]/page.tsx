@@ -46,7 +46,7 @@ import { useDebounce } from "@uidotdev/usehooks";
 import { isValidEmail } from "~/utils";
 import { dealerTransactionsColumns } from "./components/dealerTransactionsColumns";
 import { useQuery } from "@tanstack/react-query";
-import { getItems } from "~/app/items/components/ItemsListComponent";
+import { getItems } from "~/app/items/page";
 
 const DealerDetails = () => {
   const params = useParams<{ dealerId: string }>();

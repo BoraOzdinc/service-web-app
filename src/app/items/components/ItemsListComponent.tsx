@@ -11,21 +11,16 @@ import {
   WarehouseIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
-import { getSession } from "~/utils/getSession";
-import { createClient } from "~/utils/supabase/client";
+import { type getItems } from "../page";
 
-export type SingleItemType = NonNullable<
-  Awaited<ReturnType<typeof getItems>>
->[number];
+export type ItemDataType = Awaited<ReturnType<typeof getItems>>;
 
-const MainItemsList = () => {
+export type SingleItemType = NonNullable<ItemDataType>[number];
+
+const MainItemsList = ({ data }: { data: ItemDataType }) => {
   const [searchInput, setSearchInput] = useState<string>("");
   const debouncedSearchInput = useDebounce(searchInput, 750);
-  const { data, isLoading } = useQuery({
-    queryKey: ["getItems"],
-    queryFn: () => getItems(undefined, undefined),
-  });
+
   const modifiedItemsData = useMemo(() => {
     if (data) {
       return data
@@ -55,7 +50,6 @@ const MainItemsList = () => {
     <DataTable
       data={modifiedItemsData}
       columns={columns}
-      isLoading={isLoading}
       columnFilter={[
         {
           columnToFilter: "itemBrandId",
@@ -133,62 +127,5 @@ const MainItemsList = () => {
     />
   );
 };
-export const getItems = async (orgId?: string, dealerId?: string) => {
-  const session = await getSession();
-  const supabase = createClient();
-  let itemData;
-  if (!orgId && !dealerId) {
-    if (session.orgId) {
-      const { data } = await supabase
-        .from("Item")
-        .select(
-          "*,ItemColor(*),ItemSize(*),ItemCategory(*),ItemBrand(*),ItemStock(*,Storage(*)),itemBarcode(*)",
-        )
-        .eq("orgId", session.orgId);
 
-      if (data) {
-        itemData = data;
-      }
-    }
-
-    if (session.dealerId) {
-      const { data } = await supabase
-        .from("Item")
-        .select(
-          "*,ItemColor(*),ItemSize(*),ItemCategory(*),ItemBrand(*),ItemStock(*,Storage(*)),itemBarcode(*)",
-        )
-        .eq("dealerId", session.dealerId);
-
-      if (data) {
-        itemData = data;
-      }
-    }
-  }
-  if (orgId) {
-    const { data } = await supabase
-      .from("Item")
-      .select(
-        "*,ItemColor(*),ItemSize(*),ItemCategory(*),ItemBrand(*),ItemStock(*,Storage(*)),itemBarcode(*)",
-      )
-      .eq("orgId", orgId);
-
-    if (data) {
-      itemData = data;
-    }
-  }
-
-  if (dealerId) {
-    const { data } = await supabase
-      .from("Item")
-      .select(
-        "*,ItemColor(*),ItemSize(*),ItemCategory(*),ItemBrand(*),ItemStock(*,Storage(*)),itemBarcode(*)",
-      )
-      .eq("dealerId", dealerId);
-
-    if (data) {
-      itemData = data;
-    }
-  }
-  return itemData;
-};
 export default MainItemsList;
