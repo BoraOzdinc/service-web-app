@@ -1,7 +1,7 @@
 import { type ColumnDef } from "@tanstack/react-table";
-import {type RouterOutputs } from "~/trpc/shared";
+import { type getCategoriesType } from "./queryFunctions";
 
-type categoryType = RouterOutputs["items"]["getCategory"][number]
+type categoryType = NonNullable<getCategoriesType["data"]>[number];
 
 export const columns: ColumnDef<categoryType>[] = [
   { accessorKey: "name", header: "Kategori" },

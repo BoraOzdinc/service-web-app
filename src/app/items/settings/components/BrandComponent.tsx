@@ -7,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from "~/app/_components/ui/card";
-import { api } from "~/trpc/server";
 import { columns } from "./brandColumns";
 import {
   Dialog,
@@ -21,9 +20,9 @@ import { Label } from "~/app/_components/ui/label";
 import { Input } from "~/app/_components/ui/input";
 import { useState } from "react";
 import { useAddBrand } from "~/utils/useItems";
+import { type getBrandsType } from "./queryFunctions";
 
-const BrandComp = () => {
-  const brands = api.items.getBrands.useQuery(undefined, { retry: false });
+const BrandComp = ({ brands }: { brands: getBrandsType }) => {
   const [brand, setBrand] = useState<string>("");
   const addBrand = useAddBrand();
 
@@ -71,7 +70,7 @@ const BrandComp = () => {
       </CardHeader>
       <CardContent className=" w-full overflow-x-auto ">
         <DataTable
-          data={brands.data }
+          data={brands.data ?? []}
           columns={columns}
           isLoading={brands.isLoading}
           pagination

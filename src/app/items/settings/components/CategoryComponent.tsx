@@ -7,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from "~/app/_components/ui/card";
-import { api } from "~/trpc/server";
 import { columns } from "./categoryColumns";
 import {
   Dialog,
@@ -21,11 +20,9 @@ import { Label } from "~/app/_components/ui/label";
 import { Input } from "~/app/_components/ui/input";
 import { useState } from "react";
 import { useAddCategory } from "~/utils/useItems";
+import { type getCategoriesType } from "./queryFunctions";
 
-const CategoryComp = () => {
-  const categories = api.items.getCategory.useQuery(undefined, {
-    retry: false,
-  });
+const CategoryComp = ({ categories }: { categories: getCategoriesType }) => {
   const [category, setCategory] = useState<string>("");
   const addCategory = useAddCategory();
 
@@ -73,7 +70,7 @@ const CategoryComp = () => {
       </CardHeader>
       <CardContent className=" w-full overflow-x-auto ">
         <DataTable
-          data={categories.data }
+          data={categories.data ?? []}
           columns={columns}
           isLoading={categories.isLoading}
           pagination

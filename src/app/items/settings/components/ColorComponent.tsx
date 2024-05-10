@@ -8,7 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from "~/app/_components/ui/card";
-import { api } from "~/trpc/server";
 import { columns } from "./colorColumns";
 import {
   Dialog,
@@ -22,9 +21,9 @@ import { Label } from "~/app/_components/ui/label";
 import { Input } from "~/app/_components/ui/input";
 import { useState } from "react";
 import { useAddColor } from "~/utils/useItems";
+import { type getColorsType } from "./queryFunctions";
 
-const ColorComp = () => {
-  const colors = api.items.getColors.useQuery(undefined, { retry: false });
+const ColorComp = ({ colors }: { colors: getColorsType }) => {
   const [colorCode, setColorCode] = useState<string>("");
   const [color, setColor] = useState<string>("");
   const addColor = useAddColor();
@@ -88,7 +87,7 @@ const ColorComp = () => {
       </CardHeader>
       <CardContent className=" w-full overflow-x-auto ">
         <DataTable
-          data={colors.data }
+          data={colors.data ?? []}
           columns={columns}
           isLoading={colors.isLoading}
           pagination
