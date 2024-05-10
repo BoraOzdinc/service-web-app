@@ -11,7 +11,7 @@ import {
   WarehouseIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { type getItems } from "../page";
+import { type getItems } from "./queryFunctions";
 
 export type ItemDataType = Awaited<ReturnType<typeof getItems>>;
 

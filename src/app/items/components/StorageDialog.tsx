@@ -22,12 +22,11 @@ import {
 import { Input } from "~/app/_components/ui/input";
 import { Label } from "~/app/_components/ui/label";
 import { useAddStorage, useDeleteStorage } from "~/utils/useItems";
-import {type getStorages } from "../page";
+import { type getStorages } from "./queryFunctions";
 
 export type StorageDataType = Awaited<ReturnType<typeof getStorages>>;
 
 const StorageDialog = ({ storages }: { storages: StorageDataType }) => {
-
   const addStorage = useAddStorage();
   const deleteStorage = useDeleteStorage();
   const [storageInput, setStorageInput] = useState<string>();
