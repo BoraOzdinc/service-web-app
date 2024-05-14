@@ -1,4 +1,5 @@
 "use client";
+import { useQuery } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import Loader from "~/app/_components/loader";
 import {
@@ -8,11 +9,14 @@ import {
   CardHeader,
   CardTitle,
 } from "~/app/_components/ui/card";
-import { api } from "~/trpc/server";
+import { getShelfDetailsWithId } from "./components/queryFunctions";
 
 const ShelfDetail = () => {
   const { shelfId } = useParams<{ shelfId: string }>();
-  const shelfDetails = api.storage.getShelfDetailsWithId.useQuery({ shelfId });
+  const shelfDetails = useQuery({
+    queryKey: ["getShelfDetail", shelfId],
+    queryFn: async () => getShelfDetailsWithId(shelfId),
+  });
   const router = useRouter();
   if (shelfDetails.isLoading) {
     return <Loader />;
@@ -29,7 +33,7 @@ const ShelfDetail = () => {
             <CardTitle>Raftaki Kutular</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-3">
-            {shelfDetails.data?.boxes.map((b) => {
+            {shelfDetails.data?.ShelfBox.map((b) => {
               return (
                 <Card
                   key={b.id}
@@ -42,7 +46,7 @@ const ShelfDetail = () => {
                     <CardTitle>{b.name}</CardTitle>
                   </CardHeader>
                   <CardContent className="p-4">
-                    Kutudaki ürün sayısı: {b.items.length}
+                    Kutudaki ürün sayısı: {b.ShelfItemDetail.length}
                   </CardContent>
                 </Card>
               );
@@ -54,11 +58,11 @@ const ShelfDetail = () => {
             <CardTitle>Raftaki Ürünler</CardTitle>
           </CardHeader>
           <CardContent>
-            {shelfDetails.data?.items.map((b) => {
+            {shelfDetails.data?.ShelfItemDetail.map((b) => {
               return (
                 <Card key={b.id}>
                   <div className="flex flex-row items-center justify-between p-2">
-                    <CardDescription>{b.item.name}</CardDescription>
+                    <CardDescription>{b.Item?.name}</CardDescription>
                     <CardDescription>{b.quantity}</CardDescription>
                   </div>
                 </Card>

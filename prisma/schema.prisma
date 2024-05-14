@@ -193,8 +193,6 @@ model Item {
   color                         ItemColor               @relation(fields: [itemColorId], references: [id])
   size                          ItemSize                @relation(fields: [itemSizeId], references: [id])
   Org                           Org?                    @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  ShelfBox                      ShelfBox?               @relation(fields: [shelfBoxId], references: [id])
-  Shelf                         Shelf?                  @relation(fields: [shelfId], references: [id])
   ItemAcceptDetail              ItemAcceptDetail[]
   ItemHistory                   ItemHistory[]
   ItemSellDetail                ItemSellDetail[]
@@ -219,7 +217,6 @@ model Shelf {
   updateDate DateTime          @updatedAt
   storageId  String
   name       String?
-  Item       Item[]
   storage    Storage           @relation(fields: [storageId], references: [id])
   boxes      ShelfBox[]
   items      ShelfItemDetail[]
@@ -234,7 +231,6 @@ model ShelfBox {
   shelfId    String?
   storageId  String
   name       String?
-  Item       Item[]
   Shelf      Shelf?            @relation(fields: [shelfId], references: [id])
   storage    Storage           @relation(fields: [storageId], references: [id])
   items      ShelfItemDetail[]

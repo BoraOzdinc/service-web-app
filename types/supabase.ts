@@ -367,20 +367,6 @@ export type Database = {
             referencedRelation: "Org"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "Item_shelfBoxId_fkey"
-            columns: ["shelfBoxId"]
-            isOneToOne: false
-            referencedRelation: "ShelfBox"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "Item_shelfId_fkey"
-            columns: ["shelfId"]
-            isOneToOne: false
-            referencedRelation: "Shelf"
-            referencedColumns: ["id"]
-          },
         ]
       }
       ItemAcceptDetail: {
