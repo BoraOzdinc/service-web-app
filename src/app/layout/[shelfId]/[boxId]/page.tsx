@@ -1,4 +1,5 @@
 "use client";
+import { useQuery } from "@tanstack/react-query";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useParams } from "next/navigation";
 import Loader from "~/app/_components/loader";
@@ -9,44 +10,50 @@ import {
   CardHeader,
   CardTitle,
 } from "~/app/_components/ui/card";
-import { api } from "~/trpc/server";
-import { type RouterOutputs } from "~/trpc/shared";
-
-type itemsDataType =
-  RouterOutputs["storage"]["getBoxDetailsWithId"]["items"][number];
+import {
+  type BoxDetailsType,
+  getBoxDetailsWithId,
+} from "./components/queryFunctions";
+import Link from "next/link";
+import { CircleArrowLeftIcon } from "lucide-react";
 
 const BoxDetail = () => {
-  const { boxId } = useParams<{ shelfId: string; boxId: string }>();
-  const { data: boxDetails, isLoading } =
-    api.storage.getBoxDetailsWithId.useQuery({ boxId });
+  const { shelfId, boxId } = useParams<{ shelfId: string; boxId: string }>();
+  const { data: boxDetails, isLoading } = useQuery({
+    queryKey: ["getShelfBox", boxId],
+    queryFn: async () => await getBoxDetailsWithId(boxId),
+  });
 
   if (isLoading) {
     return <Loader />;
   }
   return (
     <Card className="w-full">
-      <CardHeader>
-        <CardTitle>{boxDetails?.name}</CardTitle>
+      <CardHeader className="flex flex-row items-center gap-1 space-y-0">
+        <Link href={`/layout/${shelfId}`}>
+          <CircleArrowLeftIcon />
+        </Link>
+        <CardTitle className="mt-0">{boxDetails?.name}</CardTitle>
       </CardHeader>
       <CardContent>
-        <DataTable data={boxDetails?.items} columns={columns} />
+        <DataTable data={boxDetails?.ShelfItemDetail} columns={columns} />
       </CardContent>
     </Card>
   );
 };
 
-const columns: ColumnDef<itemsDataType>[] = [
+const columns: ColumnDef<
+  NonNullable<BoxDetailsType>["ShelfItemDetail"][number]
+>[] = [
   {
     accessorKey: "item",
     header: "Ürün",
     cell({
       row: {
-        original: {
-          item: { name },
-        },
+        original: { Item },
       },
     }) {
-      return name;
+      return Item?.name;
     },
   },
   { accessorKey: "quantity", header: "Adet" },
