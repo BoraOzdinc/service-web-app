@@ -22,6 +22,23 @@ export const useCreateShelf = () => {
         },
     });
 };
+export const useCreateQrCodes = () => {
+    return api.storage.generateQrCodes.useMutation({
+        onSuccess: async (_d,) => {
+            toast.success("Kodlar Oluşturuldu. İndiriliyor...", { id: "org.generateQrPdf" });
+        },
+        onMutate: () => {
+            toast.loading("Kodlar Oluşturuluyor...", {
+                id: "org.generateQrPdf",
+            });
+        },
+        onError(error) {
+            toast.error(String(error.data?.zodError ?? error.message), {
+                id: "org.generateQrPdf",
+            });
+        },
+    });
+};
 export const useCreateShelfBox = () => {
     const utils = api.useUtils()
     return api.storage.addBox.useMutation({
