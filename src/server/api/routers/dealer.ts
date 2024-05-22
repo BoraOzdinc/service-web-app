@@ -258,7 +258,7 @@ export const dealerRouter = createTRPCRouter({
                 });
             }
             const member = await ctx.db.member.findUnique({ where: { id: input.memberId } })
-            if (member?.id === ctx.session.id) {
+            if (member?.userEmail === ctx.session.email) {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
                     message: "Kendi Hesabını Silemezsin!",

@@ -75,7 +75,7 @@ export const StorageRouter = createTRPCRouter({
         }
         return await ctx.db.shelfBox.create({ data: { name, shelfId, storageId } })
     }),
-    qrGenerate: protectedProcedure.input(z.object({ text: nonEmptyString })).mutation(async ({ ctx, input: { text } }) => {
+    qrGenerate: protectedProcedure.input(z.object({ text: nonEmptyString })).mutation(async ({ input: { text } }) => {
         return await generateQR(text)
 
     })
