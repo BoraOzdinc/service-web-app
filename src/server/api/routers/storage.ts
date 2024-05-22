@@ -158,7 +158,7 @@ export const StorageRouter = createTRPCRouter({
             });
         }),
     generateQrCodes: protectedProcedure
-        .input(z.object({ storageId: nonEmptyString }))
+        .input(z.object({ storageId: nonEmptyString, }))
         .mutation(async ({ ctx, input: { storageId } }) => {
             const storage = (
                 await ctx.supabase
@@ -185,7 +185,7 @@ export const StorageRouter = createTRPCRouter({
                 });
             }
             const mainLink = () => {
-                if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`; // SSR should use vercel url
+                if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`; // SSR should use vercel url
                 return `http://localhost:${process.env.PORT ?? 3000}`
             }
             const qrlinks = await Promise.all(

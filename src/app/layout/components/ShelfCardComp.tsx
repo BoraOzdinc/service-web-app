@@ -47,6 +47,7 @@ const ShelfCard = ({ storages }: { storages: getStoragesType }) => {
     { storageId: selectedStorageID },
     { enabled: !!selectedStorageID.length },
   );
+
   const generateQr = useCreateQrCodes();
   const addShelf = useCreateShelf();
   const deleteShelf = useDeleteShelf();
