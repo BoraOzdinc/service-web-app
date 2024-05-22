@@ -3,62 +3,88 @@ import { PERMS } from "~/_constants/perms";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { nonEmptyString } from "./items";
+import QRCode from "qrcode"
 
 export const StorageRouter = createTRPCRouter({
-    getStorages: protectedProcedure.query(async ({ ctx }) => {
-        if (!ctx.session.permissions.includes(PERMS.manage_storage)) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You don't have permission to do this"
-            })
+    addShelf: protectedProcedure.input(z.object({ storageId: nonEmptyString, name: nonEmptyString })).mutation(async ({ ctx, input }) => {
+        if (!ctx.session.permissions.includes(PERMS.manage_layout)) {
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "You Don't Have Permission To Do This!" })
         }
-        return await ctx.db.storage.findMany({
-            where: {
-                orgId: ctx.session.orgId,
-                dealerId: ctx.session.dealerId
-            }
-        })
+        const storage = (await ctx.supabase.from("Storage").select("orgId,dealerId").eq("id", input.storageId).maybeSingle()).data
+
+        if (!storage) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "Depo Bulunamadı!" })
+        }
+        if (storage.orgId !== ctx.session.orgId) {
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "Bu Depo Size Ait Değil!" })
+        }
+        if (storage.dealerId !== ctx.session.dealerId) {
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "Bu Depo Size Ait Değil!" })
+        }
+        return await ctx.db.shelf.create({ data: { storageId: input.storageId, name: input.name } })
     }),
-    getStorageLayoutItems: protectedProcedure.input(z.object({ storageId: z.string() })).query(async ({ input: { storageId }, ctx }) => {
+    deleteShelf: protectedProcedure.input(z.object({ shelfId: nonEmptyString })).mutation(async ({ ctx, input: { shelfId } }) => {
+        if (!ctx.session.permissions.includes(PERMS.manage_layout)) {
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "You Don't Have Permission To Do This!" })
+        }
+        return await ctx.db.shelf.delete({ where: { id: shelfId } })
+    }),
+    getStorageLayoutItems: protectedProcedure.input(z.object({ storageId: nonEmptyString })).query(async ({ ctx, input: { storageId } }) => {
         if (!ctx.session.permissions.includes(PERMS.manage_storage)) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You don't have permission to do this"
-            })
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "You don't have permission to do this" })
         }
         if (!storageId) {
             throw new TRPCError({ code: "BAD_REQUEST", message: "Depo Seçilmedi!" })
         }
-        return await ctx.db.shelf.findMany({ where: { storageId }, include: { items: true, boxes: true } })
+        if (ctx.session.orgId) {
+            return (await ctx.supabase.from("Shelf").select("*,ShelfItemDetail(*,Item(*)),ShelfBox(*),Storage(orgId,dealerId)").eq("storageId", storageId)).data?.filter(a => a.Storage?.orgId === ctx.session.orgId)
+        }
+        if (ctx.session.dealerId) {
+            return (await ctx.supabase.from("Shelf").select("*,ShelfItemDetail(*,Item(*)),ShelfBox(*),Storage(orgId,dealerId)").eq("storageId", storageId)).data?.filter(a => a.Storage?.dealerId === ctx.session.dealerId)
+        }
     }),
     getShelfDetailsWithId: protectedProcedure.input(z.object({ shelfId: nonEmptyString })).query(async ({ ctx, input: { shelfId } }) => {
-
-        if (!ctx.session.permissions.includes(PERMS.manage_storage)) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You don't have permission to do this"
-            })
+        const supabase = ctx.supabase
+        const session = ctx.session
+        if (!session.permissions.includes(PERMS.manage_storage)) {
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "You don't have permission to do this" })
         }
         if (!shelfId) {
             throw new TRPCError({ code: "BAD_REQUEST", message: "Depo Seçilmedi!" })
         }
-        return await ctx.db.shelf.findUnique({ where: { id: shelfId }, include: { items: { include: { item: true } }, boxes: { include: { items: { include: { item: true } } } } } })
-    }),
-    getBoxDetailsWithId: protectedProcedure.input(z.object({ boxId: nonEmptyString })).query(async ({ ctx, input: { boxId } }) => {
+        if (session.orgId) {
+            const data = (await supabase.from("Shelf").select("*,ShelfItemDetail(*,Item(*)),ShelfBox(*,ShelfItemDetail(*)),Storage(id,orgId,dealerId)").eq("id", shelfId).maybeSingle()).data
+            if (data?.Storage?.orgId === session.orgId) {
+                return data
+            }
+        }
+        if (session.dealerId) {
+            const data = (await supabase.from("Shelf").select("*,ShelfItemDetail(*,Item(*)),ShelfBox(*,ShelfItemDetail(*)),Storage(id,orgId,dealerId)").eq("id", shelfId).maybeSingle()).data
+            if (data?.Storage?.dealerId === session.dealerId) {
+                return data
+            }
+        }
 
+    }),
+    addBox: protectedProcedure.input(z.object({ shelfId: nonEmptyString, storageId: nonEmptyString, name: nonEmptyString })).mutation(async ({ ctx, input: { name, shelfId, storageId } }) => {
         if (!ctx.session.permissions.includes(PERMS.manage_storage)) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You don't have permission to do this"
-            })
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "You don't have permission to do this" })
         }
-        if (!boxId) {
-            throw new TRPCError({ code: "BAD_REQUEST", message: "Depo Seçilmedi!" })
+        if (!shelfId) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Raf Seçilmedi!" })
         }
-        const boxDetails = await ctx.db.shelfBox.findUnique({ where: { id: boxId }, include: { items: { include: { item: true } } } })
-        if (!boxDetails) {
-            throw new TRPCError({ code: "NOT_FOUND", message: "Kayıtlı kutu bulunamadı." })
-        }
-        return boxDetails
+        return await ctx.db.shelfBox.create({ data: { name, shelfId, storageId } })
+    }),
+    qrGenerate: protectedProcedure.input(z.object({ text: nonEmptyString })).mutation(async ({ ctx, input: { text } }) => {
+        return await generateQR(text)
+
     })
 })
+
+const generateQR = async (text: string) => {
+    try {
+        return (await QRCode.toDataURL(text))
+    } catch (err) {
+        return (err)
+    }
+}

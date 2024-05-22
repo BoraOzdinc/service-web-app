@@ -6,7 +6,7 @@ const Layout = async () => {
   const session = await getSession();
   const storages = await getStorages(session);
 
-  return <ShelfCard storages={storages} session={session} />;
+  return <ShelfCard storages={storages} />;
 };
 
 export default Layout;

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "~/utils/supabase/server";
 import { signOut } from "./login/actions";
 import { Button } from "./_components/ui/button";
+import Test from "./_components/test";
 
 export default async function Home() {
   noStore();
@@ -27,6 +28,7 @@ export default async function Home() {
               Signout
             </Button>
           </form>
+          <Test />
         </div>
       </div>
     </main>
