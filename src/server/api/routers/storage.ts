@@ -4,7 +4,6 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { nonEmptyString } from "./items";
 import QRCode from "qrcode";
-import { getBaseUrl } from "~/trpc/server";
 
 export const StorageRouter = createTRPCRouter({
     addShelf: protectedProcedure
@@ -185,10 +184,14 @@ export const StorageRouter = createTRPCRouter({
                     message: "Bu Depo Size Ait Değil!",
                 });
             }
+            const mainLink = () => {
+                if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`; // SSR should use vercel url
+                return `http://localhost:${process.env.PORT ?? 3000}`
+            }
             const qrlinks = await Promise.all(
                 storage.Shelf.map(async (shelf) => {
                     const qrlink = await generateQR(
-                        `${getBaseUrl()}/layout/${shelf.id}`,
+                        `${mainLink()}/layout/${shelf.id}`,
                     );
                     return {
                         qrLink: qrlink,
@@ -196,7 +199,7 @@ export const StorageRouter = createTRPCRouter({
                         boxes: await Promise.all(
                             shelf.ShelfBox.map(async (box) => {
                                 const qrlink = await generateQR(
-                                    `${getBaseUrl()}/layout/${shelf.id}/${box.id}`,
+                                    `${mainLink()}/layout/${shelf.id}/${box.id}`,
                                 );
                                 return { qrLink: qrlink, name: box.name };
                             }),
