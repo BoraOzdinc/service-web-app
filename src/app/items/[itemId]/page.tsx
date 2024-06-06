@@ -65,6 +65,8 @@ const ItemDetail = () => {
     api.items.getItemWithId.useQuery(itemId);
 
   async function onSubmitForm(data: FormInput) {
+    console.log(data);
+
     update.mutate({ itemId: itemId, ...data });
   }
 
@@ -237,6 +239,7 @@ const ItemDetailForm = ({
       volume: itemData?.volume ?? undefined,
       isSerialNoRequired: itemData?.isSerialNoRequired,
       isServiceItem: itemData?.isServiceItem,
+      description: "",
     },
   });
   itemData;
@@ -379,6 +382,7 @@ const ItemDetailForm = ({
                       min={0}
                       placeholder=""
                       {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -398,6 +402,7 @@ const ItemDetailForm = ({
                       min={0}
                       placeholder=""
                       {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -417,6 +422,7 @@ const ItemDetailForm = ({
                       min={0}
                       placeholder=""
                       {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -436,6 +442,7 @@ const ItemDetailForm = ({
                       min={0}
                       placeholder=""
                       {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />

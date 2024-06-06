@@ -151,76 +151,64 @@ const ShelfCard = ({ storages }: { storages: getStoragesType }) => {
                 },
                 {
                   async onSuccess(qrCodes) {
+                    const doc = new jsPDF();
+                    const qrCodesPerPage = 12;
+                    const qrCodeWidth = 50;
+                    const qrCodeHeight = 50;
+                    const horizontalSpacing = 20;
+                    const verticalSpacing = 20;
+
+                    const numColumns = 3;
+                    const startX =
+                      (doc.internal.pageSize.width -
+                        numColumns * qrCodeWidth -
+                        (numColumns - 1) * horizontalSpacing) /
+                      2;
                     if (!qrCodes) {
                       return;
                     }
-                    const doc = new jsPDF();
-                    const margin = 10;
-                    let xOffset = margin;
-                    let yOffset = margin;
-                    const qrSize = 50;
-                    const boxSize = 30;
-                    const padding = 10;
-                    const fontSize = 15;
-
-                    qrCodes.forEach(({ qrLink, boxes, name: shelfName }) => {
-                      const shelfHeight =
-                        qrSize +
-                        padding +
-                        Math.ceil(boxes.length / 2) * (boxSize + padding);
-
-                      if (
-                        yOffset + shelfHeight >
-                        doc.internal.pageSize.getHeight()
-                      ) {
+                    for (let i = 0; i < qrCodes.length; i += qrCodesPerPage) {
+                      if (i > 0) {
                         doc.addPage();
-                        yOffset = margin;
-                        xOffset = margin;
                       }
-                      // Add shelf QR code and name
-                      doc.addImage(
-                        qrLink,
-                        "PNG",
-                        xOffset,
-                        yOffset,
-                        qrSize,
-                        qrSize,
+
+                      const locationsOnPage = qrCodes.slice(
+                        i,
+                        i + qrCodesPerPage,
                       );
-                      doc.setFontSize(fontSize);
-                      doc.text(shelfName ?? "-", xOffset, yOffset + qrSize + 5); // Add shelf name below QR code
-                      yOffset += qrSize + padding + fontSize + 5; // Update yOffset including text height
+                      for (let j = 0; j < locationsOnPage.length; j++) {
+                        const location = locationsOnPage[j];
 
-                      let boxXOffset = xOffset;
-                      boxes.forEach(({ qrLink, name: boxName }, j) => {
+                        const columnIndex = j % numColumns;
+                        const rowIndex = Math.floor(j / numColumns);
+
+                        const qrCodeX =
+                          startX +
+                          columnIndex * (qrCodeWidth + horizontalSpacing);
+                        const qrCodeY =
+                          verticalSpacing +
+                          rowIndex * (qrCodeHeight + verticalSpacing);
+
+                        const qrCodeDataUrl = location?.qrLink;
+
                         doc.addImage(
-                          qrLink,
+                          qrCodeDataUrl ?? "",
                           "PNG",
-                          boxXOffset,
-                          yOffset,
-                          boxSize,
-                          boxSize,
+                          qrCodeX,
+                          qrCodeY,
+                          qrCodeWidth,
+                          qrCodeHeight,
                         );
 
-                        // Add box name below QR code
-                        doc.setFontSize(fontSize);
                         doc.text(
-                          boxName ?? "-",
-                          boxXOffset,
-                          yOffset + boxSize + 5,
+                          location?.name ?? "",
+                          qrCodeX,
+                          qrCodeY + qrCodeHeight + 5,
                         );
+                      }
+                    }
 
-                        if ((j + 1) % 2 === 0) {
-                          yOffset += boxSize + padding + fontSize + 5; // Update yOffset including text height
-                          boxXOffset = xOffset;
-                        } else {
-                          boxXOffset += boxSize + padding;
-                        }
-                      });
-
-                      yOffset = Math.max(yOffset, yOffset + boxSize + padding);
-                    });
-
-                    doc.save("qr_codes.pdf");
+                    doc.save("locations_qr_codes.pdf");
                   },
                 },
               );
