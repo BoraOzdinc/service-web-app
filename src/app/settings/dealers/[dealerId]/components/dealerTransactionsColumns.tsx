@@ -102,11 +102,11 @@ export const dealerTransactionsColumns: ColumnDef<getDealerTransactions>[] = [
     cell({ row: { original } }) {
       const customerPriceType = original.priceType;
       const dealerPriceType = original.dealer?.priceType;
-      const customerTotal = original.boughtItems.reduce((acc, curVal) => {
+      const customerTotal = original.items.reduce((acc, curVal) => {
         acc += Number(curVal.item?.[customerPriceType]) * curVal.quantity;
         return acc;
       }, 0);
-      const dealerTotal = original.boughtItems.reduce((acc, curVal) => {
+      const dealerTotal = original.items.reduce((acc, curVal) => {
         if (dealerPriceType) {
           acc += Number(curVal.item?.[dealerPriceType]) * curVal.quantity;
         }
@@ -121,7 +121,7 @@ export const dealerTransactionsColumns: ColumnDef<getDealerTransactions>[] = [
     header: "Ürünler",
     cell({
       row: {
-        original: { boughtItems },
+        original: { items },
       },
     }) {
       return (
@@ -137,9 +137,9 @@ export const dealerTransactionsColumns: ColumnDef<getDealerTransactions>[] = [
             </DialogHeader>
             <div className="w-full">
               <DataTable
-                data={boughtItems}
+                data={items}
                 columns={itemsColumns}
-                isLoading={!boughtItems}
+                isLoading={!items}
               />
             </div>
           </DialogContent>
@@ -149,53 +149,52 @@ export const dealerTransactionsColumns: ColumnDef<getDealerTransactions>[] = [
   },
 ];
 
-const itemsColumns: ColumnDef<getDealerTransactions["boughtItems"][number]>[] =
-  [
-    {
-      accessorKey: "item",
-      header: "Ürün",
-      cell({
-        row: {
-          original: {
-            item: { name },
-          },
+const itemsColumns: ColumnDef<getDealerTransactions["items"][number]>[] = [
+  {
+    accessorKey: "item",
+    header: "Ürün",
+    cell({
+      row: {
+        original: {
+          item: { name },
         },
-      }) {
-        return name;
       },
+    }) {
+      return name;
     },
-    {
-      accessorKey: "itemBarcode",
-      header: "Barkod",
-      cell({
-        row: {
-          original: {
-            item: { itemBarcode },
-          },
+  },
+  {
+    accessorKey: "itemBarcode",
+    header: "Barkod",
+    cell({
+      row: {
+        original: {
+          item: { itemBarcode },
         },
-      }) {
-        const masterBarcode = itemBarcode.find((b) => (b.isMaster = true));
-        return masterBarcode ? masterBarcode.barcode : "-";
       },
+    }) {
+      const masterBarcode = itemBarcode.find((b) => (b.isMaster = true));
+      return masterBarcode ? masterBarcode.barcode : "-";
     },
-    {
-      accessorKey: "itemBarcode",
-      header: "Birim/Adet",
-      cell({
-        row: {
-          original: {
-            item: { itemBarcode },
-          },
+  },
+  {
+    accessorKey: "itemBarcode",
+    header: "Birim/Adet",
+    cell({
+      row: {
+        original: {
+          item: { itemBarcode },
         },
-      }) {
-        const masterBarcode = itemBarcode.find((b) => (b.isMaster = true));
-        return masterBarcode
-          ? `${masterBarcode.unit} / ${masterBarcode.quantity}`
-          : "-";
       },
+    }) {
+      const masterBarcode = itemBarcode.find((b) => (b.isMaster = true));
+      return masterBarcode
+        ? `${masterBarcode.unit} / ${masterBarcode.quantity}`
+        : "-";
     },
-    {
-      accessorKey: "quantity",
-      header: "Adet",
-    },
-  ];
+  },
+  {
+    accessorKey: "quantity",
+    header: "Adet",
+  },
+];

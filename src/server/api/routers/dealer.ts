@@ -280,7 +280,7 @@ export const dealerRouter = createTRPCRouter({
                 dealerId: input
             },
             include: {
-                boughtItems: { include: { item: { include: { itemBarcode: true } } } },
+                items: { include: { item: { include: { itemBarcode: true } } } },
                 customer: true,
                 dealer: true
             },
