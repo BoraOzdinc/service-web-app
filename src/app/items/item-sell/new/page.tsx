@@ -266,6 +266,7 @@ const NewItemSell = () => {
           (Number(i.item?.[selectedPriceType]) ?? undefined),
         barcode: i.barcode,
         totalAdded: i.totalAdded,
+        serialNumbers: i.serialNumbers,
       })),
     };
     itemSell.mutate(payload, {

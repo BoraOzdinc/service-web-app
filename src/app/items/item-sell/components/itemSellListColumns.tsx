@@ -1,6 +1,7 @@
 import { type ColumnDef } from "@tanstack/react-table";
 import { PackageIcon } from "lucide-react";
 import { DataTable } from "~/app/_components/tables/generic-table";
+import { Badge } from "~/app/_components/ui/badge";
 import { Button } from "~/app/_components/ui/button";
 import {
   Dialog,
@@ -9,6 +10,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "~/app/_components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "~/app/_components/ui/tooltip";
 import { transactionTypes, type ItemSellHistory } from "~/utils/useItems";
 
 export const columns: ColumnDef<ItemSellHistory>[] = [
@@ -50,14 +57,14 @@ export const columns: ColumnDef<ItemSellHistory>[] = [
     header: "Kime",
     cell({
       row: {
-        original: { to },
+        original: { customer },
       },
     }) {
       return (
         <div>
-          {to.companyName
-            ? `${to.companyName} ${to.name} ${to.surname}`
-            : `${to.name} ${to.surname}`}
+          {customer.companyName
+            ? `${customer.companyName} ${customer.name} ${customer.surname}`
+            : `${customer.name} ${customer.surname}`}
         </div>
       );
     },
@@ -76,17 +83,22 @@ export const columns: ColumnDef<ItemSellHistory>[] = [
     },
   },
   {
-    accessorKey: "name",
+    accessorKey: "employee",
     header: "İşlemi Yapan",
+    cell({
+      row: {
+        original: { employee },
+      },
+    }) {
+      return employee?.userEmail;
+    },
   },
   {
     accessorKey: "connectedTransaction",
     header: "Toplam Fiyat",
     cell({
       row: {
-        original: {
-          connectedTransaction: { totalAmount },
-        },
+        original: { totalAmount },
       },
     }) {
       return `${totalAmount}€`;
@@ -143,7 +155,24 @@ const itemsColumns: ColumnDef<ItemSellHistory["items"][number]>[] = [
         },
       },
     }) {
-      return itemBarcode.find((b) => b.isMaster)?.barcode;
+      return itemBarcode.map((b) => {
+        if (!b.isMaster) {
+          return "-";
+        }
+        if (b.barcode.length > 15) {
+          return (
+            <TooltipProvider key={b.id}>
+              <Tooltip>
+                <TooltipTrigger className="underline">
+                  {b.barcode.slice(0, 15)}...
+                </TooltipTrigger>
+                <TooltipContent>{b.barcode}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          );
+        }
+        return b.barcode;
+      })[0];
     },
   },
   {
@@ -164,5 +193,19 @@ const itemsColumns: ColumnDef<ItemSellHistory["items"][number]>[] = [
   {
     accessorKey: "quantity",
     header: "Adet",
+  },
+  {
+    accessorKey: "serialNumbers",
+    header: "Seri Numaraları",
+    cell({
+      row: {
+        original: { serialNumbers },
+      },
+    }) {
+      if (!serialNumbers.length) {
+        return "-";
+      }
+      return serialNumbers.map((s) => <Badge key={s}>{s}</Badge>);
+    },
   },
 ];

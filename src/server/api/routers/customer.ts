@@ -179,8 +179,7 @@ export const customerRouter = createTRPCRouter({
     return await ctx.db.transaction.findMany({
       where: { customerId: input },
       include: {
-        boughtItems: { include: { item: { include: { itemBarcode: true } } } },
-        ItemSellHistory: true,
+        items: { include: { CustomerTransaction: true, item: { include: { itemBarcode: true } } } },
         storage: { select: { name: true } }
       },
       orderBy: { createDate: "desc" }

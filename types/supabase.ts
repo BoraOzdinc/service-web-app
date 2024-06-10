@@ -718,117 +718,6 @@ export type Database = {
           },
         ]
       }
-      ItemSellDetail: {
-        Row: {
-          id: string
-          itemAcceptHistoryId: string | null
-          itemId: string
-          quantity: number
-          serialNumbers: string[] | null
-        }
-        Insert: {
-          id: string
-          itemAcceptHistoryId?: string | null
-          itemId: string
-          quantity: number
-          serialNumbers?: string[] | null
-        }
-        Update: {
-          id?: string
-          itemAcceptHistoryId?: string | null
-          itemId?: string
-          quantity?: number
-          serialNumbers?: string[] | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ItemSellDetail_itemAcceptHistoryId_fkey"
-            columns: ["itemAcceptHistoryId"]
-            isOneToOne: false
-            referencedRelation: "ItemSellHistory"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ItemSellDetail_itemId_fkey"
-            columns: ["itemId"]
-            isOneToOne: false
-            referencedRelation: "Item"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ItemSellHistory: {
-        Row: {
-          createDate: string
-          customerId: string
-          dealerId: string | null
-          id: string
-          name: string
-          orgId: string | null
-          storageId: string
-          transactionId: string
-          transactionType: Database["public"]["Enums"]["transactionType"]
-        }
-        Insert: {
-          createDate?: string
-          customerId: string
-          dealerId?: string | null
-          id: string
-          name: string
-          orgId?: string | null
-          storageId: string
-          transactionId: string
-          transactionType: Database["public"]["Enums"]["transactionType"]
-        }
-        Update: {
-          createDate?: string
-          customerId?: string
-          dealerId?: string | null
-          id?: string
-          name?: string
-          orgId?: string | null
-          storageId?: string
-          transactionId?: string
-          transactionType?: Database["public"]["Enums"]["transactionType"]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ItemSellHistory_customerId_fkey"
-            columns: ["customerId"]
-            isOneToOne: false
-            referencedRelation: "Customer"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ItemSellHistory_dealerId_fkey"
-            columns: ["dealerId"]
-            isOneToOne: false
-            referencedRelation: "Dealer"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ItemSellHistory_orgId_fkey"
-            columns: ["orgId"]
-            isOneToOne: false
-            referencedRelation: "Org"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ItemSellHistory_storageId_fkey"
-            columns: ["storageId"]
-            isOneToOne: false
-            referencedRelation: "Storage"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ItemSellHistory_transactionId_fkey"
-            columns: ["transactionId"]
-            isOneToOne: false
-            referencedRelation: "Transaction"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ItemSize: {
         Row: {
           dealerId: string | null
@@ -1185,11 +1074,13 @@ export type Database = {
           discount: string
           exchangeRate: string
           id: string
+          orgId: string | null
           payAmount: string
           priceType: Database["public"]["Enums"]["PriceType"]
           storageId: string
           totalAmount: string
           transactionType: Database["public"]["Enums"]["transactionType"]
+          updatedAt: string
         }
         Insert: {
           createDate?: string
@@ -1198,11 +1089,13 @@ export type Database = {
           discount: string
           exchangeRate: string
           id: string
+          orgId?: string | null
           payAmount: string
           priceType: Database["public"]["Enums"]["PriceType"]
           storageId: string
           totalAmount: string
           transactionType: Database["public"]["Enums"]["transactionType"]
+          updatedAt: string
         }
         Update: {
           createDate?: string
@@ -1211,11 +1104,13 @@ export type Database = {
           discount?: string
           exchangeRate?: string
           id?: string
+          orgId?: string | null
           payAmount?: string
           priceType?: Database["public"]["Enums"]["PriceType"]
           storageId?: string
           totalAmount?: string
           transactionType?: Database["public"]["Enums"]["transactionType"]
+          updatedAt?: string
         }
         Relationships: [
           {
@@ -1233,6 +1128,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "Transaction_orgId_fkey"
+            columns: ["orgId"]
+            isOneToOne: false
+            referencedRelation: "Org"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "Transaction_storageId_fkey"
             columns: ["storageId"]
             isOneToOne: false
@@ -1243,25 +1145,28 @@ export type Database = {
       }
       TransactionItemDetail: {
         Row: {
-          customerTransactionId: string | null
+          customerTransactionId: string
           id: string
           itemId: string
           price: string | null
           quantity: number
+          serialNumbers: string[] | null
         }
         Insert: {
-          customerTransactionId?: string | null
+          customerTransactionId: string
           id: string
           itemId: string
           price?: string | null
           quantity: number
+          serialNumbers?: string[] | null
         }
         Update: {
-          customerTransactionId?: string | null
+          customerTransactionId?: string
           id?: string
           itemId?: string
           price?: string | null
           quantity?: number
+          serialNumbers?: string[] | null
         }
         Relationships: [
           {
@@ -1287,13 +1192,12 @@ export type Database = {
     Functions: {
       get_user_permissions: {
         Args: {
-          inputemail: string
+          user_email: string
         }
         Returns: {
-          orgid: string
-          dealerid: string
-          useremail: string
+          permission_id: string
           permission_name: string
+          permission_description: string
         }[]
       }
     }
@@ -1306,7 +1210,7 @@ export type Database = {
         | "dealerPrice"
         | "multiPrice"
         | "singlePrice"
-      transactionType: "Sale" | "Cancel" | "Return"
+      transactionType: "Sale" | "Accept" | "Cancel" | "Return"
     }
     CompositeTypes: {
       [_ in never]: never

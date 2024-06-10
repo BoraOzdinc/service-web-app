@@ -20,9 +20,10 @@ import { Label } from "~/app/_components/ui/label";
 import { Input } from "~/app/_components/ui/input";
 import { useState } from "react";
 import { useAddCategory } from "~/utils/useItems";
-import { type getCategoriesType } from "./queryFunctions";
+import { api } from "~/trpc/server";
 
-const CategoryComp = ({ categories }: { categories: getCategoriesType }) => {
+const CategoryComp = () => {
+  const categories = api.items.getCategory.useQuery();
   const [category, setCategory] = useState<string>("");
   const addCategory = useAddCategory();
 

@@ -24,7 +24,8 @@ export type ItemSellHistory = RouterOutputs["items"]["getItemSellHistory"][numbe
 export const transactionTypes = {
     "Sale": "Satış",
     "Cancel": "İptal",
-    "Return": "İade"
+    "Return": "İade",
+    "Accept": "Kabul"
 }
 
 export const useAddItem = () => {

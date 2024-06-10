@@ -4,9 +4,11 @@ import { createClient } from "./supabase/server";
 export async function getSession() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser()
-    const userMember = (await supabase.from("Member").select("orgId,dealerId,userEmail").eq("userEmail", user?.email ?? "").maybeSingle()).data
+
+    const { data: userMember } = await supabase.from("Member").select("*").eq("uid", user?.id ?? "").maybeSingle()
+
     const { data } = await supabase.rpc('get_user_permissions', {
-        inputemail: userMember?.userEmail ?? "",
+        user_email: userMember?.userEmail ?? ""
     });
 
     const userPermission = [

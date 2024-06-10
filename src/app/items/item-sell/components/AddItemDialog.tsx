@@ -146,9 +146,9 @@ const AddItemDialog = ({
               Boolean(
                 quantity * (itemBarcode?.quantity ?? 0) > (totalStock ?? 0),
               ) ||
-              !(
-                item.isSerialNoRequired && serialNumberList.length === quantity
-              ),
+              !(item.isSerialNoRequired
+                ? serialNumberList.length === quantity
+                : true),
           )}
           onClick={() => {
             if (item) {

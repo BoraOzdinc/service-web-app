@@ -1,6 +1,7 @@
 import { type ColumnDef } from "@tanstack/react-table";
 import { PackageIcon } from "lucide-react";
 import { DataTable } from "~/app/_components/tables/generic-table";
+import { Badge } from "~/app/_components/ui/badge";
 import { Button } from "~/app/_components/ui/button";
 import {
   Dialog,
@@ -48,7 +49,7 @@ export const customerTransactionColumns: ColumnDef<customerTransaction>[] = [
       row: {
         original: { transactionType },
       },
-    }) {
+    }): string {
       return transactionTypes[transactionType];
     },
   },
@@ -103,10 +104,14 @@ export const customerTransactionColumns: ColumnDef<customerTransaction>[] = [
     header: "Kalan Borç",
     cell({
       row: {
-        original: { totalAmount, payAmount },
+        original: { totalAmount, payAmount, discount },
       },
     }) {
-      return `${Number(totalAmount) - Number(payAmount)}€`;
+      const discountedAmount =
+        Number(totalAmount) -
+        (Number(totalAmount) * Number(discount)) / 100 -
+        Number(payAmount);
+      return `${discountedAmount.toFixed(2)}€`;
     },
   },
   {
@@ -114,7 +119,7 @@ export const customerTransactionColumns: ColumnDef<customerTransaction>[] = [
     header: "Ürünler",
     cell({
       row: {
-        original: { boughtItems },
+        original: { items },
       },
     }) {
       return (
@@ -130,9 +135,9 @@ export const customerTransactionColumns: ColumnDef<customerTransaction>[] = [
             </DialogHeader>
             <div className="w-full">
               <DataTable
-                data={boughtItems}
+                data={items}
                 columns={itemsColumns}
-                isLoading={!boughtItems}
+                isLoading={!items}
               />
             </div>
           </DialogContent>
@@ -142,7 +147,7 @@ export const customerTransactionColumns: ColumnDef<customerTransaction>[] = [
   },
 ];
 
-const itemsColumns: ColumnDef<customerTransaction["boughtItems"][number]>[] = [
+const itemsColumns: ColumnDef<customerTransaction["items"][number]>[] = [
   {
     accessorKey: "item",
     header: "Ürün",
@@ -189,5 +194,15 @@ const itemsColumns: ColumnDef<customerTransaction["boughtItems"][number]>[] = [
   {
     accessorKey: "quantity",
     header: "Adet",
+  },
+  {
+    accessorKey: "item",
+    cell({
+      row: {
+        original: { serialNumbers },
+      },
+    }) {
+      return serialNumbers.map((s) => <Badge key={s}>{s}</Badge>);
+    },
   },
 ];

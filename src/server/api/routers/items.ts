@@ -43,6 +43,7 @@ const itemSellSchema = z.object({
         price: z.number().optional(),
         barcode: nonEmptyString,
         totalAdded: z.number(),
+        serialNumbers: z.string().array()
     }))
 })
 
@@ -73,33 +74,33 @@ export const itemsRouter = createTRPCRouter({
                 });
             }
 
-            if(ctx.session.orgId){
-                const {data,error} = await ctx.supabase
+            if (ctx.session.orgId) {
+                const { data, error } = await ctx.supabase
                     .from("Item")
                     .select("*,ItemColor(*),ItemSize(*),ItemCategory(*),ItemBrand(*),ItemStock(*,Storage(*)),itemBarcode(*)")
-                    .eq("orgId",ctx.session.orgId)
+                    .eq("orgId", ctx.session.orgId)
 
 
-                if(data){
+                if (data) {
                     return data
                 }
 
-                
-                throw new TRPCError({code:"NOT_FOUND",message:JSON.stringify(error)})
+
+                throw new TRPCError({ code: "NOT_FOUND", message: JSON.stringify(error) })
             }
 
-            if(ctx.session.dealerId){
+            if (ctx.session.dealerId) {
                 const a = await ctx.supabase
                     .from("Item")
                     .select("*,ItemColor(*),ItemSize(*),ItemCategory(*),ItemBrand(*),ItemStock(*,storage(*)),itemBarcode(*)")
-                    .eq("dealerId",ctx.session.dealerId)
+                    .eq("dealerId", ctx.session.dealerId)
 
-                if(a.data){
-                        return a.data
-                    }
-                    throw new TRPCError({code:"NOT_FOUND",message:"Ürün Bulunamadı!"})
+                if (a.data) {
+                    return a.data
+                }
+                throw new TRPCError({ code: "NOT_FOUND", message: "Ürün Bulunamadı!" })
             }
-            throw new TRPCError({code:"UNAUTHORIZED",message:"You don't have permission to do this!"})
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "You don't have permission to do this!" })
         }),
     getItemWithBarcode: protectedProcedure
         .input(z.object({ dealerId: z.string().optional(), orgId: z.string().optional(), barcode: nonEmptyString }))
@@ -573,7 +574,7 @@ export const itemsRouter = createTRPCRouter({
                     message: "You don't have permission to do this!",
                 });
             }
-            return await ctx.db.itemColor.findMany({ where: { orgId: ctx.session.orgId } })
+            return (await ctx.supabase.from("ItemColor").select("*").eq("orgId", ctx.session.orgId)).data
         }
 
         if (ctx.session.dealerId) {
@@ -583,7 +584,7 @@ export const itemsRouter = createTRPCRouter({
                     message: "You don't have permission to do this!",
                 });
             }
-            return await ctx.db.itemColor.findMany({ where: { dealerId: ctx.session.dealerId } })
+            return (await ctx.supabase.from("ItemColor").select("*").eq("dealerId", ctx.session.dealerId)).data
         }
         throw new TRPCError({
             code: "UNAUTHORIZED",
@@ -625,7 +626,7 @@ export const itemsRouter = createTRPCRouter({
                     message: "You don't have permission to do this!",
                 });
             }
-            return await ctx.db.itemSize.findMany({ where: { orgId: ctx.session.orgId } })
+            return (await ctx.supabase.from("ItemSize").select("*").eq("orgId", ctx.session.orgId)).data
         }
 
         if (ctx.session.dealerId) {
@@ -635,7 +636,7 @@ export const itemsRouter = createTRPCRouter({
                     message: "You don't have permission to do this!",
                 });
             }
-            return await ctx.db.itemSize.findMany({ where: { dealerId: ctx.session.dealerId } })
+            return (await ctx.supabase.from("ItemSize").select("*").eq("dealerId", ctx.session.dealerId)).data
         }
         throw new TRPCError({
             code: "UNAUTHORIZED",
@@ -677,7 +678,7 @@ export const itemsRouter = createTRPCRouter({
                     message: "You don't have permission to do this!",
                 });
             }
-            return await ctx.db.itemCategory.findMany({ where: { orgId: ctx.session.orgId } })
+            return (await ctx.supabase.from("ItemCategory").select("*").eq("orgId", ctx.session.orgId)).data
         }
 
         if (ctx.session.dealerId) {
@@ -687,7 +688,7 @@ export const itemsRouter = createTRPCRouter({
                     message: "You don't have permission to do this!",
                 });
             }
-            return await ctx.db.itemCategory.findMany({ where: { dealerId: ctx.session.dealerId } })
+            return (await ctx.supabase.from("ItemCategory").select("*").eq("dealerId", ctx.session.dealerId)).data
         }
         throw new TRPCError({
             code: "UNAUTHORIZED",
@@ -727,7 +728,7 @@ export const itemsRouter = createTRPCRouter({
                     message: "You don't have permission to do this!",
                 });
             }
-            return await ctx.db.itemBrand.findMany({ where: { orgId: ctx.session.orgId } })
+            return (await ctx.supabase.from("ItemBrand").select("*").eq("orgId", ctx.session.orgId)).data
         }
 
         if (ctx.session.dealerId) {
@@ -737,7 +738,7 @@ export const itemsRouter = createTRPCRouter({
                     message: "You don't have permission to do this!",
                 });
             }
-            return await ctx.db.itemBrand.findMany({ where: { dealerId: ctx.session.dealerId } })
+            return (await ctx.supabase.from("ItemBrand").select("*").eq("dealerId", ctx.session.dealerId)).data
         }
         throw new TRPCError({
             code: "UNAUTHORIZED",
@@ -968,16 +969,14 @@ export const itemsRouter = createTRPCRouter({
             where: {
                 orgId: ctx.session.orgId,
                 dealerId: ctx.session.dealerId
-
             },
             orderBy: { createDate: "desc" },
             include: {
                 items: {
                     include: { item: true, itemBarcode: true }
                 },
-
+                from: true,
                 storage: true,
-                from: { select: { companyName: true, name: true, surname: true } }
             }
         })
     }),
@@ -990,17 +989,18 @@ export const itemsRouter = createTRPCRouter({
                 message: "You don't have permission to do this!",
             });
         }
-        return await ctx.db.itemSellHistory.findMany({
+        return await ctx.db.transaction.findMany({
             where: {
+                transactionType: "Sale",
                 orgId: ctx.session.orgId,
                 dealerId: ctx.session.dealerId
             },
             orderBy: { createDate: "desc" },
             include: {
-                connectedTransaction: true,
                 items: { include: { item: { include: { itemBarcode: true } } } },
-                to: true,
-                storage: true
+                storage: true,
+                customer: true,
+                employee: true
             }
         })
     }),
@@ -1046,9 +1046,10 @@ export const itemsRouter = createTRPCRouter({
                 await ctx.db.itemStock.update({ where: { id: itemStock?.id }, data: { stock: remainingStock } })
             })
         }
-
+        const member = await ctx.supabase.from("Member").select("*").eq("userEmail", ctx.session.email ?? "").maybeSingle()
         const transaction = await ctx.db.transaction.create({
             data: {
+                memberId: member.data?.id,
                 dealerId: input.transferToDealer ? customer.connectedDealerId : null,
                 customerId: customer.id,
                 discount: String(input.discount),
@@ -1058,28 +1059,11 @@ export const itemsRouter = createTRPCRouter({
                 totalAmount: String(input.totalPayAmount),
                 transactionType: input.saleCancel ? "Cancel" : "Sale",
                 payAmount: String(input.paidAmount),
-                boughtItems: { createMany: { data: input.items.map(i => ({ itemId: i.itemId, price: String(i.price), quantity: i.totalAdded })) } }
+                items: { createMany: { data: input.items.map(i => ({ itemId: i.itemId, price: String(i.price), quantity: i.totalAdded, serialNumbers: i.serialNumbers })) } }
             }
         })
-        const sellHistory = await ctx.db.itemSellHistory.create({
-            data: {
-                name: ctx.session.email ?? "Bilinmeyen Kullanıcı",
-                customerId: customer.id,
-                orgId: ctx.session.orgId,
-                dealerId: ctx.session.dealerId,
-                storageId: storage.id,
-                transactionType: input.saleCancel ? "Cancel" : "Sale",
-                transactionId: transaction.id,
-                items: {
-                    createMany: {
-                        data: input.items.map(i => {
-                            return { itemId: i.itemId, quantity: i.totalAdded }
-                        })
-                    }
-                }
-            }
-        })
-        return [transaction, sellHistory]
+
+        return transaction
     }),
     itemCount: protectedProcedure.input(
         z.object({

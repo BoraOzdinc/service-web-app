@@ -9,6 +9,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "~/app/_components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "~/app/_components/ui/tooltip";
 import { type ItemAcceptHistory } from "~/utils/useItems";
 
 export const columns: ColumnDef<ItemAcceptHistory>[] = [
@@ -111,6 +117,18 @@ const itemsColumns: ColumnDef<ItemAcceptHistory["items"][number]>[] = [
         original: { itemBarcode },
       },
     }) {
+      if (itemBarcode.barcode.length > 15) {
+        return (
+          <TooltipProvider key={itemBarcode.id}>
+            <Tooltip>
+              <TooltipTrigger className="underline">
+                {itemBarcode.barcode.slice(0, 15)}...
+              </TooltipTrigger>
+              <TooltipContent>{itemBarcode.barcode}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        );
+      }
       return itemBarcode.barcode;
     },
   },

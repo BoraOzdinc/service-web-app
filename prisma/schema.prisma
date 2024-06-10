@@ -27,7 +27,6 @@ model Customer {
   dealer            Dealer?             @relation("Dealer", fields: [dealerId], references: [id])
   org               Org?                @relation(fields: [orgId], references: [id])
   ItemAcceptHistory ItemAcceptHistory[]
-  ItemSellHistory   ItemSellHistory[]
   Transactions      Transaction[]
 
   @@index([connectedDealerId])
@@ -39,6 +38,7 @@ model Transaction {
   id              String                  @id @default(cuid())
   customerId      String
   createDate      DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
   transactionType transactionType
   payAmount       String
   totalAmount     String
@@ -47,26 +47,29 @@ model Transaction {
   exchangeRate    String
   dealerId        String?
   storageId       String
-  ItemSellHistory ItemSellHistory[]
+  employee        Member?                 @relation(fields: [memberId], references: [id])
   customer        Customer                @relation(fields: [customerId], references: [id])
+  org             Org?                    @relation(fields: [orgId], references: [id])
   dealer          Dealer?                 @relation(fields: [dealerId], references: [id])
   storage         Storage                 @relation(fields: [storageId], references: [id])
-  boughtItems     TransactionItemDetail[]
+  items           TransactionItemDetail[]
+  orgId           String?
+  memberId        String?
 
   @@index([customerId])
-  @@index([dealerId])
-  @@index([dealerId, storageId])
+  @@index([dealerId, orgId, storageId])
   @@index([storageId])
 }
 
 model TransactionItemDetail {
-  id                    String       @id @default(cuid())
+  id                    String      @id @default(cuid())
   itemId                String
   price                 String?
   quantity              Int
-  customerTransactionId String?
-  CustomerTransaction   Transaction? @relation(fields: [customerTransactionId], references: [id])
-  item                  Item         @relation(fields: [itemId], references: [id])
+  serialNumbers         String[]
+  customerTransactionId String
+  CustomerTransaction   Transaction @relation(fields: [customerTransactionId], references: [id])
+  item                  Item        @relation(fields: [itemId], references: [id])
 
   @@index([customerTransactionId])
   @@index([itemId])
@@ -117,7 +120,6 @@ model Dealer {
   ItemCategory        ItemCategory[]
   ItemColor           ItemColor[]
   ItemHistory         ItemHistory[]
-  ItemSellHistory     ItemSellHistory[]
   ItemSize            ItemSize[]
   members             Member[]
   roles               MemberRole[]
@@ -128,14 +130,15 @@ model Dealer {
 }
 
 model Member {
-  id        String       @id @default(cuid())
-  orgId     String?
-  dealerId  String?
-  userEmail String       @unique
-  uid       String?      @unique @db.Uuid
-  dealer    Dealer?      @relation(fields: [dealerId], references: [id])
-  org       Org?         @relation(fields: [orgId], references: [id])
-  roles     MemberRole[] @relation("MemberToMemberRole")
+  id          String        @id @default(cuid())
+  orgId       String?
+  dealerId    String?
+  userEmail   String        @unique
+  uid         String?       @unique @db.Uuid
+  dealer      Dealer?       @relation(fields: [dealerId], references: [id])
+  org         Org?          @relation(fields: [orgId], references: [id])
+  roles       MemberRole[]  @relation("MemberToMemberRole")
+  Transaction Transaction[]
 
   @@index([dealerId])
   @@index([orgId])
@@ -195,7 +198,6 @@ model Item {
   Org                           Org?                    @relation(fields: [orgId], references: [id], onDelete: Cascade)
   ItemAcceptDetail              ItemAcceptDetail[]
   ItemHistory                   ItemHistory[]
-  ItemSellDetail                ItemSellDetail[]
   ItemStock                     ItemStock[]
   ShelfItemDetail               ShelfItemDetail[]
   CustomerTransactionItemDetail TransactionItemDetail[]
@@ -401,43 +403,6 @@ model ItemAcceptDetail {
   @@index([orgId])
 }
 
-model ItemSellHistory {
-  id                   String           @id @default(cuid())
-  createDate           DateTime         @default(now())
-  customerId           String
-  transactionType      transactionType
-  storageId            String
-  name                 String
-  orgId                String?
-  dealerId             String?
-  transactionId        String
-  items                ItemSellDetail[]
-  to                   Customer         @relation(fields: [customerId], references: [id])
-  dealer               Dealer?          @relation(fields: [dealerId], references: [id])
-  org                  Org?             @relation(fields: [orgId], references: [id])
-  storage              Storage          @relation(fields: [storageId], references: [id])
-  connectedTransaction Transaction      @relation(fields: [transactionId], references: [id])
-
-  @@index([customerId])
-  @@index([dealerId])
-  @@index([orgId])
-  @@index([storageId])
-  @@index([transactionId])
-}
-
-model ItemSellDetail {
-  id                  String           @id @default(cuid())
-  itemId              String
-  quantity            Int
-  itemAcceptHistoryId String?
-  serialNumbers       String[]
-  ItemAcceptHistory   ItemSellHistory? @relation(fields: [itemAcceptHistoryId], references: [id])
-  item                Item             @relation(fields: [itemId], references: [id])
-
-  @@index([itemAcceptHistoryId])
-  @@index([itemId])
-}
-
 model Org {
   id                String              @id @default(cuid())
   orgName           String
@@ -450,11 +415,11 @@ model Org {
   ItemCategory      ItemCategory[]
   ItemColor         ItemColor[]
   ItemHistory       ItemHistory[]
-  ItemSellHistory   ItemSellHistory[]
   ItemSize          ItemSize[]
   members           Member[]
   roles             MemberRole[]
   storages          Storage[]
+  Transaction       Transaction[]
 }
 
 model Storage {
@@ -465,7 +430,6 @@ model Storage {
   ItemAcceptHistory ItemAcceptHistory[]
   fromItemHistory   ItemHistory[]       @relation("FromStorage")
   toItemHistory     ItemHistory[]       @relation("ToStorage")
-  ItemSellHistory   ItemSellHistory[]
   ItemStock         ItemStock[]
   Shelf             Shelf[]
   ShelfBox          ShelfBox[]
@@ -479,6 +443,7 @@ model Storage {
 
 enum transactionType {
   Sale
+  Accept
   Cancel
   Return
 }
