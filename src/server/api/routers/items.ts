@@ -1209,6 +1209,6 @@ export const itemsRouter = createTRPCRouter({
             return await ctx.supabase.from("ItemStock").insert(
                 items.map(i => ({ id: createId(), itemId: i.itemId, stock: i.totalAdded, storageId: input.storageId })),
             )
-        })
+        }),
 
 });
