@@ -1,7 +1,7 @@
 import { type ColumnDef } from "@tanstack/react-table";
-import { type getColorsType } from "./queryFunctions";
+import { type RouterOutputs } from "~/trpc/shared";
 
-type colorType = NonNullable<getColorsType["data"]>[number];
+type colorType = NonNullable<RouterOutputs["items"]["getColors"]>[number];
 
 export const columns: ColumnDef<colorType>[] = [
   { accessorKey: "colorCode", header: "Renk Kodu" },

@@ -15,64 +15,97 @@ model Customer {
   phoneNumber       String
   email             String
   identificationNo  String?
-  connectedDealerId String?
   priceType         PriceType
   companyName       String?
   taxDep            String?
   taxNumber         String?
   orgId             String?
-  dealerId          String?
-  adresses          Adress[]
-  connectedDealer   Dealer?             @relation("connectedDealer", fields: [connectedDealerId], references: [id])
-  dealer            Dealer?             @relation("Dealer", fields: [dealerId], references: [id])
+  connectedDealerId String?
+  adresses          Address[]
+  connectedDealer   Org?                @relation("connectedDealer", fields: [connectedDealerId], references: [id])
   org               Org?                @relation(fields: [orgId], references: [id])
   ItemAcceptHistory ItemAcceptHistory[]
-  ItemSellHistory   ItemSellHistory[]
   Transactions      Transaction[]
 
   @@index([connectedDealerId])
-  @@index([dealerId])
   @@index([orgId])
 }
 
+model CustomerHistory {
+  id                String        @id @default(cuid())
+  customerId        String?
+  name              String
+  surname           String
+  phoneNumber       String
+  email             String
+  identificationNo  String?
+  priceType         PriceType
+  companyName       String?
+  taxDep            String?
+  taxNumber         String?
+  orgId             String?
+  connectedDealerId String?
+  changeDate        DateTime      @default(now())
+  action            audit_actions
+  updatedBy         String?       @default("System")
+}
+
 model Transaction {
-  id              String                  @id @default(cuid())
-  customerId      String
-  createDate      DateTime                @default(now())
-  transactionType transactionType
-  payAmount       String
-  totalAmount     String
-  discount        String
-  priceType       PriceType
-  exchangeRate    String
-  dealerId        String?
-  storageId       String
-  ItemSellHistory ItemSellHistory[]
-  customer        Customer                @relation(fields: [customerId], references: [id])
-  dealer          Dealer?                 @relation(fields: [dealerId], references: [id])
-  storage         Storage                 @relation(fields: [storageId], references: [id])
-  boughtItems     TransactionItemDetail[]
+  id                  String                  @id @default(cuid())
+  customerId          String
+  createDate          DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  transactionType     transactionType
+  payAmount           String?
+  totalAmount         String?
+  discount            String?
+  priceType           PriceType?
+  exchangeRate        String?
+  transferredDealerId String?
+  storageId           String
+  orgId               String?
+  memberId            String?
+  customer            Customer                @relation(fields: [customerId], references: [id])
+  employee            Member?                 @relation(fields: [memberId], references: [id])
+  org                 Org?                    @relation("connectedOrg", fields: [orgId], references: [id])
+  storage             Storage                 @relation(fields: [storageId], references: [id])
+  transferredDealer   Org?                    @relation("trasferredDealer", fields: [transferredDealerId], references: [id])
+  items               TransactionItemDetail[]
 
   @@index([customerId])
-  @@index([dealerId])
-  @@index([dealerId, storageId])
+  @@index([orgId, storageId])
   @@index([storageId])
 }
 
+model TransactionHistory {
+  id              String          @id @default(cuid())
+  transactionType transactionType
+  payAmount       String?
+  totalAmount     String?
+  discount        String?
+  priceType       PriceType?
+  exchangeRate    String?
+  changeDate      DateTime        @default(now())
+  action          audit_actions
+  updatedBy       String?         @default("System")
+}
+
 model TransactionItemDetail {
-  id                    String       @id @default(cuid())
+  id                    String      @id @default(cuid())
   itemId                String
-  price                 String?
   quantity              Int
-  customerTransactionId String?
-  CustomerTransaction   Transaction? @relation(fields: [customerTransactionId], references: [id])
-  item                  Item         @relation(fields: [itemId], references: [id])
+  serialNumbers         String[]
+  customerTransactionId String
+  customerPrice         String?
+  dealerPrice           String?
+  CustomerTransaction   Transaction @relation(fields: [customerTransactionId], references: [id])
+  item                  Item        @relation(fields: [itemId], references: [id])
 
   @@index([customerTransactionId])
   @@index([itemId])
 }
 
-model Adress {
+model Address {
   id          String     @id @default(cuid())
   Type        AdressType
   PhoneNumber String?
@@ -88,70 +121,76 @@ model Adress {
   @@index([customerId])
 }
 
-model DealerView {
-  id       String @id @default(cuid())
-  itemId   String
-  stock    Int
-  dealerId String
-  dealer   Dealer @relation(fields: [dealerId], references: [id])
-  item     Item   @relation(fields: [itemId], references: [id])
-
-  @@unique([dealerId, itemId])
-  @@index([itemId])
-  @@index([dealerId])
+model AddressHistory {
+  id          String        @id @default(cuid())
+  adressId    String?
+  Type        AdressType
+  PhoneNumber String?
+  Country     String?
+  Province    String?
+  District    String?
+  Neighbour   String?
+  ZipCode     String?
+  Adress      String?
+  customerId  String?
+  changeDate  DateTime      @default(now())
+  action      audit_actions
+  updatedBy   String?       @default("System")
 }
 
-model Dealer {
-  id                  String              @id @default(cuid())
-  name                String
-  orgId               String
-  priceType           PriceType
-  connectedCustomer   Customer[]          @relation("connectedDealer")
-  Customer            Customer[]          @relation("Dealer")
-  org                 Org                 @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  views               DealerView[]
-  items               Item[]
-  ItemAcceptDetail    ItemAcceptDetail[]
-  ItemAcceptHistory   ItemAcceptHistory[]
-  ItemBrand           ItemBrand[]
-  ItemCategory        ItemCategory[]
-  ItemColor           ItemColor[]
-  ItemHistory         ItemHistory[]
-  ItemSellHistory     ItemSellHistory[]
-  ItemSize            ItemSize[]
-  members             Member[]
-  roles               MemberRole[]
-  dealerStorages      Storage[]
-  CustomerTransaction Transaction[]
+model DealerView {
+  id     String @id @default(cuid())
+  itemId String
+  stock  Int
+  orgId  String
+  item   Item   @relation(fields: [itemId], references: [id])
+  org    Org    @relation(fields: [orgId], references: [id])
 
-  @@index([orgId])
+  @@index([itemId])
+}
+
+model DealerViewHistory {
+  id           String        @id @default(cuid())
+  dealerViewId String?
+  itemId       String
+  stock        Int
+  orgId        String
+  changeDate   DateTime      @default(now())
+  action       audit_actions
+  updatedBy    String?       @default("System")
 }
 
 model Member {
-  id        String       @id @default(cuid())
-  orgId     String?
-  dealerId  String?
-  userEmail String       @unique
-  uid       String?      @unique @db.Uuid
-  dealer    Dealer?      @relation(fields: [dealerId], references: [id])
-  org       Org?         @relation(fields: [orgId], references: [id])
-  roles     MemberRole[] @relation("MemberToMemberRole")
+  id          String        @id @default(cuid())
+  orgId       String?
+  userEmail   String        @unique
+  uid         String?       @unique @db.Uuid
+  org         Org?          @relation(fields: [orgId], references: [id])
+  Transaction Transaction[]
+  roles       MemberRole[]  @relation("MemberToMemberRole")
 
-  @@index([dealerId])
   @@index([orgId])
+}
+
+model MemberHistory {
+  id         String        @id @default(cuid())
+  memberId   String?
+  orgId      String?
+  userEmail  String
+  uid        String?
+  changeDate DateTime      @default(now())
+  action     audit_actions
+  updatedBy  String?       @default("System")
 }
 
 model MemberRole {
   id          String             @id @default(cuid())
   name        String
-  dealerId    String?
   orgId       String?
-  Dealer      Dealer?            @relation(fields: [dealerId], references: [id])
   Org         Org?               @relation(fields: [orgId], references: [id])
   permissions MemberPermission[] @relation("MemberPermissionToMemberRole")
   members     Member[]           @relation("MemberToMemberRole")
 
-  @@index([dealerId])
   @@index([orgId])
 }
 
@@ -171,8 +210,6 @@ model Item {
   itemCode                      String
   isSerialNoRequired            Boolean
   image                         String?
-  netWeight                     String?
-  volume                        String?
   mainDealerPrice               Float?
   multiPrice                    Float?
   dealerPrice                   Float?
@@ -182,22 +219,18 @@ model Item {
   itemSizeId                    String
   itemCategoryId                String
   itemBrandId                   String
-  orgId                         String?
-  dealerId                      String?
+  orgId                         String
   shelfBoxId                    String?
   shelfId                       String?
+  netWeight                     Float?
+  volume                        Float?
   DealerView                    DealerView[]
-  Dealer                        Dealer?                 @relation(fields: [dealerId], references: [id])
   brand                         ItemBrand               @relation(fields: [itemBrandId], references: [id])
   category                      ItemCategory            @relation(fields: [itemCategoryId], references: [id])
   color                         ItemColor               @relation(fields: [itemColorId], references: [id])
   size                          ItemSize                @relation(fields: [itemSizeId], references: [id])
-  Org                           Org?                    @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  ShelfBox                      ShelfBox?               @relation(fields: [shelfBoxId], references: [id])
-  Shelf                         Shelf?                  @relation(fields: [shelfId], references: [id])
+  Org                           Org                     @relation(fields: [orgId], references: [id], onDelete: Cascade)
   ItemAcceptDetail              ItemAcceptDetail[]
-  ItemHistory                   ItemHistory[]
-  ItemSellDetail                ItemSellDetail[]
   ItemStock                     ItemStock[]
   ShelfItemDetail               ShelfItemDetail[]
   CustomerTransactionItemDetail TransactionItemDetail[]
@@ -208,9 +241,69 @@ model Item {
   @@index([itemSizeId])
   @@index([itemCategoryId])
   @@index([itemBrandId])
-  @@index([dealerId])
   @@index([shelfBoxId])
   @@index([shelfId])
+}
+
+model ItemAcceptHistory {
+  id         String             @id @default(cuid())
+  createDate DateTime           @default(now())
+  storageId  String
+  name       String
+  orgId      String?
+  customerId String
+  items      ItemAcceptDetail[]
+  from       Customer           @relation(fields: [customerId], references: [id])
+  org        Org?               @relation(fields: [orgId], references: [id])
+  storage    Storage            @relation(fields: [storageId], references: [id])
+
+  @@index([customerId])
+  @@index([orgId])
+  @@index([storageId])
+}
+
+model ItemAcceptDetail {
+  id                  String             @id @default(cuid())
+  itemId              String
+  quantity            Int
+  itemAcceptHistoryId String?
+  orgId               String?
+  itemBarcodeId       String
+  ItemAcceptHistory   ItemAcceptHistory? @relation(fields: [itemAcceptHistoryId], references: [id])
+  itemBarcode         itemBarcode        @relation(fields: [itemBarcodeId], references: [id])
+  item                Item               @relation(fields: [itemId], references: [id])
+  Org                 Org?               @relation(fields: [orgId], references: [id])
+
+  @@index([itemAcceptHistoryId])
+  @@index([itemBarcodeId])
+  @@index([itemId])
+  @@index([orgId])
+}
+
+model ItemHistory {
+  id                 String        @id @default(cuid())
+  itemId             String?
+  name               String
+  itemCode           String
+  isSerialNoRequired Boolean
+  image              String?
+  mainDealerPrice    Float?
+  multiPrice         Float?
+  dealerPrice        Float?
+  singlePrice        Float?
+  isServiceItem      Boolean
+  itemColorId        String
+  itemSizeId         String
+  itemCategoryId     String
+  itemBrandId        String
+  orgId              String
+  shelfBoxId         String?
+  shelfId            String?
+  netWeight          Float?
+  volume             Float?
+  changeDate         DateTime      @default(now())
+  action             audit_actions
+  updatedBy          String?       @default("System")
 }
 
 model Shelf {
@@ -219,12 +312,21 @@ model Shelf {
   updateDate DateTime          @updatedAt
   storageId  String
   name       String?
-  Item       Item[]
   storage    Storage           @relation(fields: [storageId], references: [id])
   boxes      ShelfBox[]
   items      ShelfItemDetail[]
 
   @@index([storageId])
+}
+
+model ShelfHistory {
+  id         String        @id @default(cuid())
+  shelfId    String?
+  storageId  String
+  name       String?
+  changeDate DateTime      @default(now())
+  action     audit_actions
+  updatedBy  String?       @default("System")
 }
 
 model ShelfBox {
@@ -234,13 +336,23 @@ model ShelfBox {
   shelfId    String?
   storageId  String
   name       String?
-  Item       Item[]
   Shelf      Shelf?            @relation(fields: [shelfId], references: [id])
   storage    Storage           @relation(fields: [storageId], references: [id])
   items      ShelfItemDetail[]
 
   @@index([shelfId])
   @@index([storageId])
+}
+
+model ShelfBoxHistory {
+  id         String        @id @default(cuid())
+  shelfBoxId String?
+  shelfId    String?
+  storageId  String
+  name       String?
+  changeDate DateTime      @default(now())
+  action     audit_actions
+  updatedBy  String?       @default("System")
 }
 
 model ShelfItemDetail {
@@ -260,6 +372,18 @@ model ShelfItemDetail {
   @@index([shelfId])
 }
 
+model ShelfItemDetailHistory {
+  id                String        @id @default(cuid())
+  shelfItemDetailId String?
+  shelfId           String?
+  shelfBoxId        String?
+  itemId            String
+  quantity          Int
+  changeDate        DateTime      @default(now())
+  action            audit_actions
+  updatedBy         String?       @default("System")
+}
+
 model itemBarcode {
   id               String             @id @default(cuid())
   barcode          String
@@ -268,9 +392,21 @@ model itemBarcode {
   quantity         Int
   itemId           String
   ItemAcceptDetail ItemAcceptDetail[]
-  item             Item               @relation(fields: [itemId], references: [id])
+  item             Item               @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@index([itemId])
+}
+
+model itemBarcodeHistory {
+  id            String        @id @default(cuid())
+  changeDate    DateTime      @default(now())
+  action        audit_actions
+  updatedBy     String?       @default("System")
+  barcode       String
+  unit          String
+  isMaster      Boolean
+  quantity      Int
+  itemBarcodeId String?
 }
 
 model ItemColor {
@@ -278,13 +414,21 @@ model ItemColor {
   colorCode String
   colorText String
   orgId     String?
-  dealerId  String?
   Item      Item[]
-  Dealer    Dealer? @relation(fields: [dealerId], references: [id])
   Org       Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@index([orgId])
-  @@index([dealerId])
+}
+
+model ItemColorHistory {
+  id          String        @id @default(cuid())
+  itemColorId String?
+  colorCode   String
+  colorText   String
+  orgId       String?
+  changeDate  DateTime      @default(now())
+  action      audit_actions
+  updatedBy   String?       @default("System")
 }
 
 model ItemSize {
@@ -292,39 +436,61 @@ model ItemSize {
   sizeCode String
   sizeText String
   orgId    String?
-  dealerId String?
   Item     Item[]
-  Dealer   Dealer? @relation(fields: [dealerId], references: [id])
   Org      Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@index([orgId])
-  @@index([dealerId])
+}
+
+model ItemSizeHistory {
+  id         String        @id @default(cuid())
+  itemSizeId String?
+  sizeCode   String
+  sizeText   String
+  orgId      String?
+  changeDate DateTime      @default(now())
+  action     audit_actions
+  updatedBy  String?       @default("System")
 }
 
 model ItemCategory {
-  id       String  @id @default(cuid())
-  name     String
-  orgId    String?
-  dealerId String?
-  Item     Item[]
-  Dealer   Dealer? @relation(fields: [dealerId], references: [id])
-  Org      Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  id    String  @id @default(cuid())
+  name  String
+  orgId String?
+  Item  Item[]
+  Org   Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@index([orgId])
-  @@index([dealerId])
+}
+
+model ItemCategoryHistory {
+  id             String        @id @default(cuid())
+  itemCategoryId String?
+  name           String
+  orgId          String?
+  changeDate     DateTime      @default(now())
+  action         audit_actions
+  updatedBy      String?       @default("System")
 }
 
 model ItemBrand {
-  id       String  @id @default(cuid())
-  name     String
-  orgId    String?
-  dealerId String?
-  Item     Item[]
-  Dealer   Dealer? @relation(fields: [dealerId], references: [id])
-  Org      Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  id    String  @id @default(cuid())
+  name  String
+  orgId String?
+  Item  Item[]
+  Org   Org?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@index([orgId])
-  @@index([dealerId])
+}
+
+model ItemBrandHistory {
+  id          String        @id @default(cuid())
+  itemBrandId String?
+  name        String
+  orgId       String?
+  changeDate  DateTime      @default(now())
+  action      audit_actions
+  updatedBy   String?       @default("System")
 }
 
 model ItemStock {
@@ -339,152 +505,114 @@ model ItemStock {
   @@index([itemId])
 }
 
-model ItemHistory {
-  id            String             @id @default(cuid())
-  createDate    DateTime           @default(now())
-  action        ItemHistoryActions
-  description   String
-  itemId        String
-  quantity      Int
-  orgId         String?
-  createdBy     String
-  fromStorageId String?
-  toStorageId   String?
-  dealerId      String?
-  Dealer        Dealer?            @relation(fields: [dealerId], references: [id])
-  fromStorage   Storage?           @relation("FromStorage", fields: [fromStorageId], references: [id])
-  item          Item               @relation(fields: [itemId], references: [id])
-  org           Org?               @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  toStorage     Storage?           @relation("ToStorage", fields: [toStorageId], references: [id])
-
-  @@index([itemId])
-  @@index([fromStorageId])
-  @@index([toStorageId])
-  @@index([orgId])
-  @@index([dealerId])
-}
-
-model ItemAcceptHistory {
-  id         String             @id @default(cuid())
-  createDate DateTime           @default(now())
-  storageId  String
-  name       String
-  orgId      String?
-  dealerId   String?
-  customerId String
-  items      ItemAcceptDetail[]
-  from       Customer           @relation(fields: [customerId], references: [id])
-  dealer     Dealer?            @relation(fields: [dealerId], references: [id])
-  org        Org?               @relation(fields: [orgId], references: [id])
-  storage    Storage            @relation(fields: [storageId], references: [id])
-
-  @@index([customerId])
-  @@index([dealerId])
-  @@index([orgId])
-  @@index([storageId])
-}
-
-model ItemAcceptDetail {
-  id                  String             @id @default(cuid())
-  itemId              String
-  quantity            Int
-  itemAcceptHistoryId String?
-  dealerId            String?
-  orgId               String?
-  itemBarcodeId       String
-  Dealer              Dealer?            @relation(fields: [dealerId], references: [id])
-  ItemAcceptHistory   ItemAcceptHistory? @relation(fields: [itemAcceptHistoryId], references: [id])
-  itemBarcode         itemBarcode        @relation(fields: [itemBarcodeId], references: [id])
-  item                Item               @relation(fields: [itemId], references: [id])
-  Org                 Org?               @relation(fields: [orgId], references: [id])
-
-  @@index([dealerId])
-  @@index([itemAcceptHistoryId])
-  @@index([itemBarcodeId])
-  @@index([itemId])
-  @@index([orgId])
-}
-
-model ItemSellHistory {
-  id                   String           @id @default(cuid())
-  createDate           DateTime         @default(now())
-  customerId           String
-  transactionType      transactionType
-  storageId            String
-  name                 String
-  orgId                String?
-  dealerId             String?
-  transactionId        String
-  items                ItemSellDetail[]
-  to                   Customer         @relation(fields: [customerId], references: [id])
-  dealer               Dealer?          @relation(fields: [dealerId], references: [id])
-  org                  Org?             @relation(fields: [orgId], references: [id])
-  storage              Storage          @relation(fields: [storageId], references: [id])
-  connectedTransaction Transaction      @relation(fields: [transactionId], references: [id])
-
-  @@index([customerId])
-  @@index([dealerId])
-  @@index([orgId])
-  @@index([storageId])
-  @@index([transactionId])
-}
-
-model ItemSellDetail {
-  id                  String           @id @default(cuid())
-  itemId              String
-  quantity            Int
-  itemAcceptHistoryId String?
-  serialNumbers       String[]
-  ItemAcceptHistory   ItemSellHistory? @relation(fields: [itemAcceptHistoryId], references: [id])
-  item                Item             @relation(fields: [itemId], references: [id])
-
-  @@index([itemAcceptHistoryId])
-  @@index([itemId])
+model ItemStockHistory {
+  id          BigInt        @id @default(autoincrement())
+  itemStockId String?
+  itemId      String
+  storageId   String
+  stock       Int
+  changeDate  DateTime      @default(now()) @db.Timestamp(6)
+  action      audit_actions
+  updatedBy   String?       @default("System")
 }
 
 model Org {
-  id                String              @id @default(cuid())
-  orgName           String
-  Customer          Customer[]
-  dealers           Dealer[]
-  items             Item[]
-  ItemAcceptDetail  ItemAcceptDetail[]
-  ItemAcceptHistory ItemAcceptHistory[]
-  ItemBrand         ItemBrand[]
-  ItemCategory      ItemCategory[]
-  ItemColor         ItemColor[]
-  ItemHistory       ItemHistory[]
-  ItemSellHistory   ItemSellHistory[]
-  ItemSize          ItemSize[]
-  members           Member[]
-  roles             MemberRole[]
-  storages          Storage[]
+  id                     String              @id @default(cuid())
+  name                   String
+  type                   OrgType             @default(Org)
+  priceType              PriceType           @default(org)
+  Customer               Customer[]          @relation("connectedDealer")
+  customers              Customer[]
+  dealerRelations        DealerRelation[]    @relation("OrgDealers_dealers")
+  parentRelations        DealerRelation[]    @relation("OrgDealers_parents")
+  DealerView             DealerView[]
+  items                  Item[]
+  ItemAcceptDetail       ItemAcceptDetail[]
+  ItemAcceptHistory      ItemAcceptHistory[]
+  ItemBrand              ItemBrand[]
+  ItemCategory           ItemCategory[]
+  ItemColor              ItemColor[]
+  ItemSize               ItemSize[]
+  members                Member[]
+  roles                  MemberRole[]
+  storages               Storage[]
+  Transaction            Transaction[]       @relation("connectedOrg")
+  transferredTransaction Transaction[]       @relation("trasferredDealer")
+}
+
+model OrgHistory {
+  id         String        @id @default(cuid())
+  orgId      String?
+  name       String
+  type       OrgType
+  changeDate DateTime      @default(now())
+  action     audit_actions
+  updatedBy  String?       @default("System")
+}
+
+model DealerRelation {
+  id          String @id @default(cuid())
+  dealerId    String
+  parentOrgId String
+  dealer      Org    @relation("OrgDealers_dealers", fields: [dealerId], references: [id])
+  parentOrg   Org    @relation("OrgDealers_parents", fields: [parentOrgId], references: [id])
+}
+
+model DealerRelationHistory {
+  id               String        @id @default(cuid())
+  dealerRelationId String?
+  dealerId         String
+  parentOrgId      String
+  changeDate       DateTime      @default(now())
+  action           audit_actions
+  updatedBy        String?       @default("System")
 }
 
 model Storage {
   id                String              @id @default(cuid())
   name              String
   orgId             String?
-  dealerId          String?
   ItemAcceptHistory ItemAcceptHistory[]
-  fromItemHistory   ItemHistory[]       @relation("FromStorage")
-  toItemHistory     ItemHistory[]       @relation("ToStorage")
-  ItemSellHistory   ItemSellHistory[]
   ItemStock         ItemStock[]
   Shelf             Shelf[]
   ShelfBox          ShelfBox[]
-  Dealer            Dealer?             @relation(fields: [dealerId], references: [id], onDelete: Cascade)
   Org               Org?                @relation(fields: [orgId], references: [id], onDelete: Cascade)
   Transaction       Transaction[]
 
   @@index([orgId])
-  @@index([dealerId])
+}
+
+model StorageHistory {
+  id         String        @id @default(cuid())
+  storageId  String?
+  name       String
+  orgId      String?
+  changeDate DateTime      @default(now())
+  action     audit_actions
+  updatedBy  String?       @default("System")
+}
+
+model MemberRoleHistory {
+  id                BigInt        @id @default(autoincrement())
+  memberPermissions String[]
+  name              String
+  orgId             String?
+  changedate        DateTime      @default(now()) @db.Timestamp(6)
+  action            audit_actions
+  updatedBy         String?       @default("System")
+}
+
+enum OrgType {
+  Org
+  Dealer
 }
 
 enum transactionType {
   Sale
+  Accept
   Cancel
   Return
+  Count
 }
 
 enum AdressType {
@@ -498,6 +626,7 @@ enum PriceType {
   dealerPrice
   multiPrice
   singlePrice
+  org
 }
 
 enum MemberType {
@@ -505,8 +634,8 @@ enum MemberType {
   Organization
 }
 
-enum ItemHistoryActions {
-  AddItem
-  UpdateItem
-  DeleteItem
+enum audit_actions {
+  INSERT
+  UPDATE
+  DELETE
 }

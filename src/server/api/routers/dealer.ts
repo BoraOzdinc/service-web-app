@@ -28,7 +28,7 @@ export const dealerRouter = createTRPCRouter({
                 });
             }
             return await ctx.db.memberRole.create({
-                data: { dealerId: input.dealerId, name: input.roleName, permissions: { connect: input.permIds.map(p => ({ id: p })) } }
+                data: { orgId: input.dealerId, name: input.roleName, permissions: { connect: input.permIds.map(p => ({ id: p })) } }
             })
         }),
     deleteDealerRole: protectedProcedure.input(z.object(
@@ -67,16 +67,24 @@ export const dealerRouter = createTRPCRouter({
                 message: "You don't have permission to do this!",
             });
         }
-        const dealers = await ctx.db.dealer.findMany({
-            where: { orgId: ctx.session.orgId },
-            include: { members: true, items: true, views: true }
-        })
-        return dealers
+        const dealerIds = (await ctx.supabase.from("DealerRelation").select("*").eq("parentOrgId", ctx.session.orgId)).data?.map(data => data.dealerId)
+
+        if (!dealerIds) {
+            return []
+        }
+        const dealers = await ctx.supabase.from("Org").select("*,Member(id),Item(id)").in("id", dealerIds)
+        return dealers.data ?? []
 
     }),
     getDealerById: protectedProcedure.input(nonEmptyString).query(async ({ ctx, input }) => {
         if (!input) {
             throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid Payload!" })
+        }
+        if (!ctx.session.orgId) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
         }
         const userPerms = ctx.session.permissions
 
@@ -87,25 +95,16 @@ export const dealerRouter = createTRPCRouter({
             });
         }
 
-        const dealer = await ctx.db.dealer.findMany({
-            where: {
-                id: ctx.session.dealerId ?? undefined,
-                orgId: ctx.session.orgId ?? undefined,
-            },
-            include: { members: true, items: true, views: true }
+        const dealers = (await ctx.supabase.from("DealerRelation").select("*").eq("parentOrgId", ctx.session.orgId)).data?.map(data => data.dealerId) ?? []
 
-        })
 
-        if (!dealer.find((d) => d.id === input)) {
+        if (!dealers.find((d) => d === input)) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "You don't have permission to do this!",
             });
         }
-        return await ctx.db.dealer.findUnique({
-            where: { id: input },
-            include: { members: true, items: true, views: true }
-        })
+        return await ctx.supabase.from("Org").select("*,Member(id),Item(id)").eq("id", input)
 
     }),
     getDealerMembers: protectedProcedure.input(nonEmptyString).query(async ({ ctx, input }) => {
@@ -119,24 +118,24 @@ export const dealerRouter = createTRPCRouter({
                 message: "You don't have permission to do this!",
             });
         }
-        const dealer = await ctx.db.dealer.findMany({
-            where: {
-                id: ctx.session.dealerId ?? undefined,
-                orgId: ctx.session.orgId ?? undefined
-            },
-            include: { members: true, items: true, views: true }
+        if (!ctx.session.orgId) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
+        }
+        const dealers = (await ctx.supabase.from("DealerRelation").select("*").eq("parentOrgId", ctx.session.orgId)).data?.map(data => data.dealerId) ?? []
 
-        })
 
-        if (!dealer.find((d) => d.id === input)) {
+        if (!dealers.find((d) => d === input)) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "You don't have permission to do this!",
             });
         }
         return await ctx.db.member.findMany({
-            where: { dealerId: input },
-            include: { roles: true, dealer: true }
+            where: { orgId: input },
+            include: { roles: true, org: true }
         })
     }),
     getDealerMemberById: protectedProcedure.input(nonEmptyString).query(async ({ ctx, input }) => {
@@ -151,7 +150,7 @@ export const dealerRouter = createTRPCRouter({
             });
         }
         const members = await ctx.db.member.findMany({
-            where: { dealerId: input },
+            where: { orgId: input },
             include: { roles: true }
         })
         const { data: userList } = await ctx.supabase.auth.admin.listUsers()
@@ -170,23 +169,23 @@ export const dealerRouter = createTRPCRouter({
                 message: "You don't have permission to do this!",
             });
         }
-        const dealer = await ctx.db.dealer.findMany({
-            where: {
-                id: ctx.session.dealerId ?? undefined,
-                orgId: ctx.session.orgId ?? undefined,
-            },
-            include: { members: true, items: true, views: true }
+        if (!ctx.session.orgId) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
+        }
+        const dealers = (await ctx.supabase.from("DealerRelation").select("*").eq("parentOrgId", ctx.session.orgId)).data?.map(data => data.dealerId) ?? []
 
-        })
 
-        if (!dealer.find((d) => d.id === input)) {
+        if (!dealers.find((d) => d === input)) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "You don't have permission to do this!",
             });
         }
         const memberRoles = await ctx.db.memberRole.findMany({
-            where: { dealerId: input },
+            where: { orgId: input },
             include: { permissions: true, members: true }
         })
         const { data: userList } = await ctx.supabase.auth.admin.listUsers()
@@ -216,21 +215,19 @@ export const dealerRouter = createTRPCRouter({
             }
             const Org = await ctx.db.org.findFirst({
                 where: {
-
                     id: ctx.session.orgId ?? undefined,
-                    dealers: {
-                        some: { id: ctx.session.dealerId ?? undefined }
-                    },
                 },
-                include: { dealers: { include: { members: true } } }
+                include: { parentRelations: { include: { dealer: { include: { members: true } } } } }
             })
+            console.log(Org);
+
             if (!Org) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
                     message: "You don't have permission to do this!",
                 });
             }
-            if (!Org.dealers.find((d) => d.members.find((m) => m.id === input.dealerMemberId))) {
+            if (!Org.parentRelations.find((d) => d.dealer.members.find((m) => m.id === input.dealerMemberId))) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
                     message: "You don't have permission to do this!",
@@ -258,7 +255,7 @@ export const dealerRouter = createTRPCRouter({
                 });
             }
             const member = await ctx.db.member.findUnique({ where: { id: input.memberId } })
-            if (member?.id === ctx.session.id) {
+            if (member?.userEmail === ctx.session.email) {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
                     message: "Kendi Hesabını Silemezsin!",
@@ -275,17 +272,15 @@ export const dealerRouter = createTRPCRouter({
                 message: "You don't have permission to do this!",
             });
         }
-        return await ctx.db.transaction.findMany({
-            where: {
-                dealerId: input
-            },
-            include: {
-                boughtItems: { include: { item: { include: { itemBarcode: true } } } },
-                customer: true,
-                dealer: true
-            },
-            orderBy: { createDate: "desc" }
-        })
+        const { data: dealerTransactions, error } = await ctx.supabase.from("Transaction").select("*,dealer:Org!Transaction_transferredDealerId_fkey(*),customer:Customer(*),items:TransactionItemDetail(*,item:Item(*,itemBarcode(*)))").eq("transferredDealerId", input).order("createDate", { ascending: false })
+        if (error) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Failed to get dealer transactions:" + error.message,
+            })
+        }
+        return dealerTransactions
+
 
     })
 

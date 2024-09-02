@@ -12,11 +12,8 @@ import {
 } from "~/app/_components/ui/card";
 import { Label } from "~/app/_components/ui/label";
 import { Input } from "~/app/_components/ui/input";
-
 import { Button } from "~/app/_components/ui/button";
-
 import { DataTable } from "~/app/_components/tables/generic-table";
-import { columns as historyColumns } from "./components/columns";
 import {
   type ItemWithId,
   useUpdateItem,
@@ -43,12 +40,6 @@ import {
   DialogTrigger,
 } from "~/app/_components/ui/dialog";
 import { useState } from "react";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "~/app/_components/ui/tabs";
 
 const ItemDetail = () => {
   const params = useParams<{ itemId: string }>();
@@ -74,138 +65,127 @@ const ItemDetail = () => {
   return (
     <div className="flex w-full flex-col gap-3">
       <CardTitle>Ürün Detayları</CardTitle>
-      <Tabs defaultValue="item_details">
-        <TabsList className="w-full">
-          <TabsTrigger value="item_details">Ürün Detayları</TabsTrigger>
-          <TabsTrigger value="item_history">Ürün Geçmişi</TabsTrigger>
-        </TabsList>
-        <TabsContent value="item_details" className="flex flex-col gap-3">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Stoklar</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-3">
-                {itemData?.ItemStock.map((i) => {
-                  return (
-                    <div
-                      key={i.id}
-                      className="flex flex-row justify-between border border-black p-2"
+
+      <div className="flex w-full flex-col gap-3">
+        <Card>
+          <CardHeader>
+            <CardTitle>Stoklar</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {itemData?.itemDetails?.ItemStock.length ? (
+              itemData?.itemDetails?.ItemStock.map((i) => {
+                return (
+                  <div
+                    key={i.id}
+                    className="flex flex-row justify-between border border-black p-2"
+                  >
+                    <p>{i.Storage?.name}</p>
+                    <p>{i.stock}</p>
+                  </div>
+                );
+              })
+            ) : (
+              <p className=" text-xl font-semibold">Stok Bulunamadı!</p>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Barkodlar</CardTitle>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button>Barkod Ekle</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Yeni Barkod</DialogTitle>
+                </DialogHeader>
+                <div>
+                  <Label>Barkod</Label>
+                  <Input
+                    value={barcode}
+                    onChange={(a) => {
+                      setBarcode(a.target.value);
+                    }}
+                  />
+                </div>
+                <div>
+                  <Label>Birim</Label>
+                  <Input
+                    value={unit}
+                    onChange={(a) => {
+                      setUnit(a.target.value);
+                    }}
+                  />
+                </div>
+                <div>
+                  <Label>Bir Birimdeki Adet</Label>
+                  <Input
+                    value={quantity}
+                    type="number"
+                    onChange={(a) => {
+                      setQuantity(a.target.value);
+                    }}
+                  />
+                </div>
+                <div className="items-top flex space-x-2">
+                  <Checkbox
+                    id="isMaster"
+                    onClick={() => {
+                      setIsMaster(!isMaster);
+                    }}
+                    checked={isMaster}
+                  />
+                  <div className="grid gap-1.5 leading-none">
+                    <label
+                      htmlFor="isMaster"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                     >
-                      <p>{i.storage.name}</p>
-                      <p>{i.stock}</p>
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Barkodlar</CardTitle>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button>Barkod Ekle</Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Yeni Barkod</DialogTitle>
-                    </DialogHeader>
-                    <div>
-                      <Label>Barkod</Label>
-                      <Input
-                        value={barcode}
-                        onChange={(a) => {
-                          setBarcode(a.target.value);
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <Label>Birim</Label>
-                      <Input
-                        value={unit}
-                        onChange={(a) => {
-                          setUnit(a.target.value);
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <Label>Bir Birimdeki Adet</Label>
-                      <Input
-                        value={quantity}
-                        type="number"
-                        onChange={(a) => {
-                          setQuantity(a.target.value);
-                        }}
-                      />
-                    </div>
-                    <div className="items-top flex space-x-2">
-                      <Checkbox
-                        id="isMaster"
-                        onClick={() => {
-                          setIsMaster(!isMaster);
-                        }}
-                        checked={isMaster}
-                      />
-                      <div className="grid gap-1.5 leading-none">
-                        <label
-                          htmlFor="isMaster"
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                          Ana Barkod
-                        </label>
-                        <p className="text-sm text-muted-foreground">
-                          Ana Barkod olarak seçtiğinizde ürün listesinde bu
-                          barkod görünür.
-                        </p>
-                      </div>
-                    </div>
-                    <DialogClose asChild>
-                      <Button
-                        isLoading={addBarcode.isLoading}
-                        disabled={
-                          barcode.length < 1 ||
-                          quantity.length < 1 ||
-                          unit.length < 1
-                        }
-                        onClick={() => {
-                          addBarcode.mutate({
-                            barcode: barcode,
-                            quantity: quantity,
-                            unit: unit,
-                            isMaster: isMaster,
-                            itemId: itemId,
-                          });
-                        }}
-                      >
-                        Onayla
-                      </Button>
-                    </DialogClose>
-                  </DialogContent>
-                </Dialog>
-              </CardHeader>
-              <CardContent className="overflow-scroll sm:overflow-hidden">
-                <DataTable
-                  data={itemData?.itemBarcode}
-                  columns={itemBarcodeColumns}
-                  isLoading={!itemData?.itemBarcode}
-                />
-              </CardContent>
-            </Card>
-          </div>
-          {itemData && !update.isLoading && (
-            <ItemDetailForm itemData={itemData} onSubmitForm={onSubmitForm} />
-          )}
-        </TabsContent>
-        <TabsContent value="item_history">
-          <DataTable
-            pagination
-            datePicker={{ columnToFilter: "createDate", title: "Tarih" }}
-            data={itemData?.ItemHistory}
-            columns={historyColumns}
-            isLoading={!itemData}
-          />
-        </TabsContent>
-      </Tabs>
+                      Ana Barkod
+                    </label>
+                    <p className="text-sm text-muted-foreground">
+                      Ana Barkod olarak seçtiğinizde ürün listesinde bu barkod
+                      görünür.
+                    </p>
+                  </div>
+                </div>
+                <DialogClose asChild>
+                  <Button
+                    isLoading={addBarcode.isLoading}
+                    disabled={
+                      barcode.length < 1 ||
+                      quantity.length < 1 ||
+                      unit.length < 1
+                    }
+                    onClick={() => {
+                      addBarcode.mutate({
+                        orgId: itemData?.itemDetails?.orgId ?? "",
+                        barcode: barcode,
+                        quantity: quantity,
+                        unit: unit,
+                        isMaster: isMaster,
+                        itemId: itemId,
+                      });
+                    }}
+                  >
+                    Onayla
+                  </Button>
+                </DialogClose>
+              </DialogContent>
+            </Dialog>
+          </CardHeader>
+          <CardContent className="overflow-scroll sm:overflow-hidden">
+            <DataTable
+              data={itemData?.itemDetails?.itemBarcode}
+              columns={itemBarcodeColumns}
+              isLoading={!itemData?.itemDetails?.itemBarcode}
+            />
+          </CardContent>
+        </Card>
+      </div>
+      {itemData && !update.isLoading && (
+        <ItemDetailForm itemData={itemData} onSubmitForm={onSubmitForm} />
+      )}
     </div>
   );
 };
@@ -217,26 +197,23 @@ const ItemDetailForm = ({
   itemData: ItemWithId;
   onSubmitForm: (data: FormInput) => void;
 }) => {
-  const colors = api.items.getColors.useQuery();
-  const sizes = api.items.getSizes.useQuery();
-  const categories = api.items.getCategory.useQuery();
-  const brands = api.items.getBrands.useQuery();
   const form = useForm<FormInput>({
     defaultValues: {
-      itemBrandId: itemData?.brand.id,
-      productName: itemData?.name,
-      dealerPrice: itemData?.dealerPrice ?? undefined,
-      mainDealerPrice: itemData?.mainDealerPrice ?? undefined,
-      multiPrice: itemData?.multiPrice ?? undefined,
-      itemCode: itemData?.itemCode,
-      singlePrice: itemData?.singlePrice ?? undefined,
-      itemColorId: itemData?.itemColorId,
-      itemCategoryId: itemData?.itemCategoryId,
-      itemSizeId: itemData?.itemSizeId,
-      netWeight: itemData?.netWeight ?? undefined,
-      volume: itemData?.volume ?? undefined,
-      isSerialNoRequired: itemData?.isSerialNoRequired,
-      isServiceItem: itemData?.isServiceItem,
+      itemBrandId: itemData.itemDetails?.ItemBrand?.id,
+      productName: itemData.itemDetails?.name,
+      dealerPrice: Number(itemData.itemDetails?.dealerPrice) ?? undefined,
+      mainDealerPrice:
+        Number(itemData.itemDetails?.mainDealerPrice) ?? undefined,
+      multiPrice: Number(itemData.itemDetails?.multiPrice) ?? undefined,
+      itemCode: itemData.itemDetails?.itemCode,
+      singlePrice: Number(itemData.itemDetails?.singlePrice) ?? undefined,
+      itemColorId: itemData.itemDetails?.itemColorId,
+      itemCategoryId: itemData.itemDetails?.itemCategoryId,
+      itemSizeId: itemData.itemDetails?.itemSizeId,
+      netWeight: itemData.itemDetails?.netWeight ?? undefined,
+      volume: itemData.itemDetails?.volume ?? undefined,
+      isSerialNoRequired: itemData.itemDetails?.isSerialNoRequired,
+      isServiceItem: itemData.itemDetails?.isServiceItem,
     },
   });
   itemData;
@@ -283,7 +260,7 @@ const ItemDetailForm = ({
                   <FormLabel>Ürün Rengi*</FormLabel>
                   <FormControl>
                     <ComboBox
-                      data={colors.data?.map((d) => ({
+                      data={itemData.colors?.map((d) => ({
                         label: `${d.colorCode} ${d.colorText}`,
                         value: d.id,
                       }))}
@@ -306,7 +283,7 @@ const ItemDetailForm = ({
                   <FormLabel>Ürün Bedeni*</FormLabel>
                   <FormControl>
                     <ComboBox
-                      data={sizes.data?.map((d) => ({
+                      data={itemData.sizes?.map((d) => ({
                         label: `${d.sizeCode} ${d.sizeText}`,
                         value: d.id,
                       }))}
@@ -329,7 +306,7 @@ const ItemDetailForm = ({
                   <FormLabel>Ürün Kategorisi*</FormLabel>
                   <FormControl>
                     <ComboBox
-                      data={categories.data?.map((d) => ({
+                      data={itemData.categories?.map((d) => ({
                         label: d.name,
                         value: d.id,
                       }))}
@@ -352,7 +329,7 @@ const ItemDetailForm = ({
                   <FormLabel>Ürün Markası*</FormLabel>
                   <FormControl>
                     <ComboBox
-                      data={brands.data?.map((d) => ({
+                      data={itemData.brands?.map((d) => ({
                         label: d.name,
                         value: d.id,
                       }))}
@@ -379,6 +356,7 @@ const ItemDetailForm = ({
                       min={0}
                       placeholder=""
                       {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -398,6 +376,7 @@ const ItemDetailForm = ({
                       min={0}
                       placeholder=""
                       {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -417,6 +396,7 @@ const ItemDetailForm = ({
                       min={0}
                       placeholder=""
                       {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -436,6 +416,7 @@ const ItemDetailForm = ({
                       min={0}
                       placeholder=""
                       {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -456,7 +437,7 @@ const ItemDetailForm = ({
                       placeholder=""
                       {...field}
                       onChange={(e) => {
-                        field.onChange(String(e.target.value));
+                        field.onChange(Number(e.target.value));
                       }}
                     />
                   </FormControl>
@@ -477,6 +458,9 @@ const ItemDetailForm = ({
                       min={0}
                       placeholder=""
                       {...field}
+                      onChange={(e) => {
+                        field.onChange(Number(e.target.value));
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
@@ -517,24 +501,6 @@ const ItemDetailForm = ({
                       Ürün Sevk işlemi sırasında Seri Numarası istenir.
                     </FormDescription>
                   </div>
-                </FormItem>
-              )}
-            />
-            <FormField
-              name="description"
-              control={form.control}
-              rules={{ required: true }}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Açıklama</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="text"
-                      placeholder="Ürün güncellemesini neden yapıyorsunuz?"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
                 </FormItem>
               )}
             />

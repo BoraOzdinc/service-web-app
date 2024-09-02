@@ -20,9 +20,10 @@ import { Label } from "~/app/_components/ui/label";
 import { Input } from "~/app/_components/ui/input";
 import { useState } from "react";
 import { useAddSize } from "~/utils/useItems";
-import { type getSizesType } from "./queryFunctions";
+import { api } from "~/trpc/server";
 
-const SizeComp = ({ sizes }: { sizes: getSizesType }) => {
+const SizeComp = () => {
+  const sizes = api.items.getSizes.useQuery({});
   const [sizeCode, setSizeCode] = useState<string>("");
   const [size, setSize] = useState<string>("");
   const addSize = useAddSize();

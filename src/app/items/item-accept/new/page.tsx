@@ -50,15 +50,14 @@ const NewItemAccept = () => {
   const [updateQuantity, setUpdateQuantity] = useState(1);
   const itemAccept = useItemAccept();
   const [data, setData] = useState("");
-  const storages = api.items.getStorages.useQuery();
-  const customers = api.customer.getCustomers.useQuery();
+  const storages = api.items.getStorages.useQuery({});
+  const customers = api.customer.getCustomers.useQuery({});
   const [addedItems, setAddedItem] = useState<
     { item: ItemWithBarcode; barcode: string; quantity: number }[]
   >([]);
   const ItemsData = api.items.getItemWithBarcode.useQuery(
     {
       orgId: session?.orgId ?? undefined,
-      dealerId: session?.dealerId ?? undefined,
       barcode: data,
     },
     {

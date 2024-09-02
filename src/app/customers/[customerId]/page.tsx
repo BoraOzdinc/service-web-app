@@ -137,7 +137,7 @@ const CustomerDetail = () => {
               </CardHeader>
               <CardContent className="p-2">
                 <ScrollArea className="h-[250px] w-full rounded-md border p-2">
-                  {customer?.adresses.map((a) => {
+                  {customer?.Address.map((a) => {
                     return (
                       <Dialog key={a.id}>
                         <DialogTrigger asChild>
@@ -404,8 +404,8 @@ const CustomerDetailForm = ({
     | {
         permissions: string[];
         orgId: string | null | undefined;
-        dealerId: string | null | undefined;
         email: string | undefined;
+        redirect: boolean;
       }
     | undefined;
   customer: customerById;
@@ -417,7 +417,6 @@ const CustomerDetailForm = ({
   const form = useForm<FormInput>({
     defaultValues: {
       companyName: customer?.companyName ?? undefined,
-      connectedDealerId: customer?.connectedDealerId ?? undefined,
       email: customer?.email,
       identificationNo: customer?.identificationNo ?? undefined,
       name: customer?.name,
@@ -426,6 +425,7 @@ const CustomerDetailForm = ({
       surname: customer?.surname,
       taxDep: customer?.taxDep ?? undefined,
       taxNumber: customer?.taxNumber ?? undefined,
+      connectedDealerId: customer?.connectedDealerId ?? undefined,
     },
   });
 

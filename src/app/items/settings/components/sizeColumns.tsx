@@ -1,7 +1,7 @@
 import { type ColumnDef } from "@tanstack/react-table";
-import { type getSizesType } from "./queryFunctions";
+import { type RouterOutputs } from "~/trpc/shared";
 
-type sizeType = NonNullable<getSizesType["data"]>[number];
+type sizeType = NonNullable<RouterOutputs["items"]["getSizes"]>[number];
 export const columns: ColumnDef<sizeType>[] = [
   { accessorKey: "sizeCode", header: "Beden Kodu" },
   { accessorKey: "sizeText", header: "Beden" },

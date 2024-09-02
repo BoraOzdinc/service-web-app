@@ -1,8 +1,6 @@
 "use client";
 import { TrashIcon } from "lucide-react";
 import { useState } from "react";
-import { PERMS } from "~/_constants/perms";
-import Loader from "~/app/_components/loader";
 import { Button } from "~/app/_components/ui/button";
 import {
   Card,
@@ -22,21 +20,20 @@ import {
 import { Input } from "~/app/_components/ui/input";
 import { Label } from "~/app/_components/ui/label";
 import { useAddStorage, useDeleteStorage } from "~/utils/useItems";
-import { type getStorages } from "./queryFunctions";
+import { api } from "~/trpc/server";
 
-export type StorageDataType = Awaited<ReturnType<typeof getStorages>>;
-
-const StorageDialog = ({ storages }: { storages: StorageDataType }) => {
+const StorageDialog = () => {
   const addStorage = useAddStorage();
   const deleteStorage = useDeleteStorage();
+  const { data: storages, isLoading } = api.items.getStorages.useQuery({});
   const [storageInput, setStorageInput] = useState<string>();
-  if (!storages?.storageData) {
-    return <Loader />;
-  }
+
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button>Depolar</Button>
+        <Button isLoading={isLoading} disabled={isLoading}>
+          Depolar
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -47,10 +44,10 @@ const StorageDialog = ({ storages }: { storages: StorageDataType }) => {
             <CardHeader>
               <CardTitle>Depolar</CardTitle>
             </CardHeader>
-            {storages.storageData?.length > 0 ? (
+            {storages.length > 0 ? (
               <CardContent>
                 <ul className="flex list-disc flex-col gap-3 pl-3">
-                  {storages.storageData?.map((s) => {
+                  {storages.map((s) => {
                     return (
                       <li key={s.id}>
                         <div className="flex items-center gap-3">
@@ -93,29 +90,26 @@ const StorageDialog = ({ storages }: { storages: StorageDataType }) => {
             )}
           </Card>
         )}
-        {storages?.session.permissions.includes(PERMS.manage_storage) && (
-          <>
-            <div>
-              <Label>Depo Adı</Label>
-              <Input
-                value={storageInput}
-                onChange={(v) => setStorageInput(v.target.value)}
-                placeholder="Depo Adı..."
-              />
-            </div>
-            <Button
-              onClick={() => {
-                if (storageInput)
-                  addStorage.mutate({
-                    name: storageInput,
-                  });
-              }}
-              disabled={!storageInput}
-            >
-              Ekle
-            </Button>
-          </>
-        )}
+
+        <div>
+          <Label>Depo Adı</Label>
+          <Input
+            value={storageInput}
+            onChange={(v) => setStorageInput(v.target.value)}
+            placeholder="Depo Adı..."
+          />
+        </div>
+        <Button
+          onClick={() => {
+            if (storageInput)
+              addStorage.mutate({
+                name: storageInput,
+              });
+          }}
+          disabled={!storageInput}
+        >
+          Ekle
+        </Button>
       </DialogContent>
     </Dialog>
   );

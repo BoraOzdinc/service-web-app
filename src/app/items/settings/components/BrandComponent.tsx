@@ -20,10 +20,11 @@ import { Label } from "~/app/_components/ui/label";
 import { Input } from "~/app/_components/ui/input";
 import { useState } from "react";
 import { useAddBrand } from "~/utils/useItems";
-import { type getBrandsType } from "./queryFunctions";
+import { api } from "~/trpc/server";
 
-const BrandComp = ({ brands }: { brands: getBrandsType }) => {
+const BrandComp = () => {
   const [brand, setBrand] = useState<string>("");
+  const brands = api.items.getBrands.useQuery({});
   const addBrand = useAddBrand();
 
   return (

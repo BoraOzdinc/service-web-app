@@ -20,8 +20,8 @@ const DealerCard = ({
         <CardTitle>{dealerData.name}</CardTitle>
       </CardHeader>
       <CardContent>
-        <p>{`Bayii'nin toplam üye sayısı: ${dealerData.members.length}`}</p>
-        <p>{`Bayii'nin deposundaki toplam ürün sayısı: ${dealerData.items.length}`}</p>
+        <p>{`Bayii'nin toplam üye sayısı: ${dealerData.Member.length}`}</p>
+        <p>{`Bayii'nin deposundaki toplam ürün sayısı: ${dealerData.Item.length}`}</p>
         <p>Toplam Satış (WIP)</p>
       </CardContent>
       <CardFooter className="">

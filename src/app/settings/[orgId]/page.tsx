@@ -59,7 +59,7 @@ const OrganizationSettings = () => {
   return (
     <div className="w-full">
       <CardHeader>
-        <CardTitle>{org?.orgName}</CardTitle>
+        <CardTitle>{org?.name}</CardTitle>
       </CardHeader>
       <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
         <Card>

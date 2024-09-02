@@ -29,6 +29,8 @@ import {
   FormMessage,
 } from "~/app/_components/ui/form";
 import { Checkbox } from "~/app/_components/ui/checkbox";
+import BarcodeScanner from "~/app/_components/BarcodeScanner";
+import { useState } from "react";
 
 export interface FormInput {
   productName: string;
@@ -44,20 +46,20 @@ export interface FormInput {
   dealerPrice: number;
   singlePrice: number;
   stock: number;
-  netWeight: string;
-  volume: string;
+  netWeight: number;
+  volume: number;
   isSerialNoRequired: boolean;
   isServiceItem: boolean;
-  description: string;
 }
 
 const NewItem = () => {
+  const [Open, setOpen] = useState(false);
   const addItem = useAddItem();
-  const storages = api.items.getStorages.useQuery();
-  const colors = api.items.getColors.useQuery();
-  const sizes = api.items.getSizes.useQuery();
-  const categories = api.items.getCategory.useQuery();
-  const brands = api.items.getBrands.useQuery();
+  const storages = api.items.getStorages.useQuery({});
+  const colors = api.items.getColors.useQuery({});
+  const sizes = api.items.getSizes.useQuery({});
+  const categories = api.items.getCategory.useQuery({});
+  const brands = api.items.getBrands.useQuery({});
   const form = useForm<FormInput>({
     defaultValues: {
       isSerialNoRequired: false,
@@ -68,6 +70,12 @@ const NewItem = () => {
   function onSubmitForm(data: FormInput) {
     addItem.mutate({
       ...data,
+      singlePrice: data.singlePrice ? Number(data.singlePrice) : undefined,
+      dealerPrice: data.dealerPrice ? Number(data.dealerPrice) : undefined,
+      mainDealerPrice: data.mainDealerPrice
+        ? Number(data.mainDealerPrice)
+        : undefined,
+      multiPrice: data.multiPrice ? Number(data.multiPrice) : undefined,
       storageId: data.storageId === "empty" ? undefined : data.storageId,
     });
   }
@@ -107,7 +115,14 @@ const NewItem = () => {
                     <FormItem>
                       <FormLabel>Ürün Barkodu*</FormLabel>
                       <FormControl>
-                        <Input placeholder="Barkod" {...field} />
+                        <div className="flex flex-row gap-1">
+                          <Input placeholder="Barkod" {...field} />
+                          <BarcodeScanner
+                            setData={(e) => field.onChange(e)}
+                            open={Open}
+                            setOpen={setOpen}
+                          />
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>

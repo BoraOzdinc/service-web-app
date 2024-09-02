@@ -28,6 +28,26 @@ export const useCreateCustomer = () => {
         },
     });
 };
+export const usePayDebt = () => {
+    const utils = api.useUtils()
+
+    return api.customer.payUpDebt.useMutation({
+        onSuccess: async (_d,) => {
+            toast.success("Borç Ödendi", { id: "customer.payDebt" });
+            await utils.customer.getCustomerTransactions.invalidate()
+        },
+        onMutate: () => {
+            toast.loading("Borç Ödeniyor...", {
+                id: "customer.payDebt",
+            });
+        },
+        onError(error) {
+            toast.error(String(error.data?.zodError ?? error.message), {
+                id: "customer.payDebt",
+            });
+        },
+    });
+};
 export const useUpdateCustomer = () => {
     const utils = api.useUtils()
 

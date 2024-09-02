@@ -69,7 +69,7 @@ export type Database = {
           },
         ]
       }
-      Adress: {
+      Address: {
         Row: {
           Adress: string | null
           Country: string | null
@@ -108,7 +108,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "Adress_customerId_fkey"
+            foreignKeyName: "Address_customerId_fkey"
             columns: ["customerId"]
             isOneToOne: false
             referencedRelation: "Customer"
@@ -116,11 +116,61 @@ export type Database = {
           },
         ]
       }
+      AddressHistory: {
+        Row: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          Adress: string | null
+          adressId: string | null
+          changeDate: string
+          Country: string | null
+          customerId: string | null
+          District: string | null
+          id: string
+          Neighbour: string | null
+          PhoneNumber: string | null
+          Province: string | null
+          Type: Database["public"]["Enums"]["AdressType"]
+          updatedBy: string | null
+          ZipCode: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          Adress?: string | null
+          adressId?: string | null
+          changeDate?: string
+          Country?: string | null
+          customerId?: string | null
+          District?: string | null
+          id: string
+          Neighbour?: string | null
+          PhoneNumber?: string | null
+          Province?: string | null
+          Type: Database["public"]["Enums"]["AdressType"]
+          updatedBy?: string | null
+          ZipCode?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["audit_actions"]
+          Adress?: string | null
+          adressId?: string | null
+          changeDate?: string
+          Country?: string | null
+          customerId?: string | null
+          District?: string | null
+          id?: string
+          Neighbour?: string | null
+          PhoneNumber?: string | null
+          Province?: string | null
+          Type?: Database["public"]["Enums"]["AdressType"]
+          updatedBy?: string | null
+          ZipCode?: string | null
+        }
+        Relationships: []
+      }
       Customer: {
         Row: {
           companyName: string | null
           connectedDealerId: string | null
-          dealerId: string | null
           email: string
           id: string
           identificationNo: string | null
@@ -135,7 +185,6 @@ export type Database = {
         Insert: {
           companyName?: string | null
           connectedDealerId?: string | null
-          dealerId?: string | null
           email: string
           id: string
           identificationNo?: string | null
@@ -150,7 +199,6 @@ export type Database = {
         Update: {
           companyName?: string | null
           connectedDealerId?: string | null
-          dealerId?: string | null
           email?: string
           id?: string
           identificationNo?: string | null
@@ -167,14 +215,7 @@ export type Database = {
             foreignKeyName: "Customer_connectedDealerId_fkey"
             columns: ["connectedDealerId"]
             isOneToOne: false
-            referencedRelation: "Dealer"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "Customer_dealerId_fkey"
-            columns: ["dealerId"]
-            isOneToOne: false
-            referencedRelation: "Dealer"
+            referencedRelation: "Org"
             referencedColumns: ["id"]
           },
           {
@@ -186,62 +227,146 @@ export type Database = {
           },
         ]
       }
-      Dealer: {
+      CustomerHistory: {
         Row: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate: string
+          companyName: string | null
+          connectedDealerId: string | null
+          customerId: string | null
+          email: string
           id: string
+          identificationNo: string | null
           name: string
-          orgId: string
+          orgId: string | null
+          phoneNumber: string
           priceType: Database["public"]["Enums"]["PriceType"]
+          surname: string
+          taxDep: string | null
+          taxNumber: string | null
+          updatedBy: string | null
         }
         Insert: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          companyName?: string | null
+          connectedDealerId?: string | null
+          customerId?: string | null
+          email: string
           id: string
+          identificationNo?: string | null
           name: string
-          orgId: string
+          orgId?: string | null
+          phoneNumber: string
           priceType: Database["public"]["Enums"]["PriceType"]
+          surname: string
+          taxDep?: string | null
+          taxNumber?: string | null
+          updatedBy?: string | null
         }
         Update: {
+          action?: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          companyName?: string | null
+          connectedDealerId?: string | null
+          customerId?: string | null
+          email?: string
           id?: string
+          identificationNo?: string | null
           name?: string
-          orgId?: string
+          orgId?: string | null
+          phoneNumber?: string
           priceType?: Database["public"]["Enums"]["PriceType"]
+          surname?: string
+          taxDep?: string | null
+          taxNumber?: string | null
+          updatedBy?: string | null
+        }
+        Relationships: []
+      }
+      DealerRelation: {
+        Row: {
+          dealerId: string
+          id: string
+          parentOrgId: string
+        }
+        Insert: {
+          dealerId: string
+          id: string
+          parentOrgId: string
+        }
+        Update: {
+          dealerId?: string
+          id?: string
+          parentOrgId?: string
         }
         Relationships: [
           {
-            foreignKeyName: "Dealer_orgId_fkey"
-            columns: ["orgId"]
+            foreignKeyName: "DealerRelation_dealerId_fkey"
+            columns: ["dealerId"]
+            isOneToOne: false
+            referencedRelation: "Org"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "DealerRelation_parentOrgId_fkey"
+            columns: ["parentOrgId"]
             isOneToOne: false
             referencedRelation: "Org"
             referencedColumns: ["id"]
           },
         ]
       }
+      DealerRelationHistory: {
+        Row: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate: string
+          dealerId: string
+          dealerRelationId: string | null
+          id: string
+          parentOrgId: string
+          updatedBy: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          dealerId: string
+          dealerRelationId?: string | null
+          id: string
+          parentOrgId: string
+          updatedBy?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          dealerId?: string
+          dealerRelationId?: string | null
+          id?: string
+          parentOrgId?: string
+          updatedBy?: string | null
+        }
+        Relationships: []
+      }
       DealerView: {
         Row: {
-          dealerId: string
           id: string
           itemId: string
+          orgId: string
           stock: number
         }
         Insert: {
-          dealerId: string
           id: string
           itemId: string
+          orgId: string
           stock: number
         }
         Update: {
-          dealerId?: string
           id?: string
           itemId?: string
+          orgId?: string
           stock?: number
         }
         Relationships: [
-          {
-            foreignKeyName: "DealerView_dealerId_fkey"
-            columns: ["dealerId"]
-            isOneToOne: false
-            referencedRelation: "Dealer"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "DealerView_itemId_fkey"
             columns: ["itemId"]
@@ -249,12 +374,51 @@ export type Database = {
             referencedRelation: "Item"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "DealerView_orgId_fkey"
+            columns: ["orgId"]
+            isOneToOne: false
+            referencedRelation: "Org"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      DealerViewHistory: {
+        Row: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate: string
+          dealerViewId: string | null
+          id: string
+          itemId: string
+          orgId: string
+          stock: number
+          updatedBy: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          dealerViewId?: string | null
+          id: string
+          itemId: string
+          orgId: string
+          stock: number
+          updatedBy?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          dealerViewId?: string | null
+          id?: string
+          itemId?: string
+          orgId?: string
+          stock?: number
+          updatedBy?: string | null
+        }
+        Relationships: []
       }
       Item: {
         Row: {
           createDate: string
-          dealerId: string | null
           dealerPrice: number | null
           id: string
           image: string | null
@@ -268,17 +432,16 @@ export type Database = {
           mainDealerPrice: number | null
           multiPrice: number | null
           name: string
-          netWeight: string | null
-          orgId: string | null
+          netWeight: number | null
+          orgId: string
           shelfBoxId: string | null
           shelfId: string | null
           singlePrice: number | null
           updateDate: string
-          volume: string | null
+          volume: number | null
         }
         Insert: {
           createDate?: string
-          dealerId?: string | null
           dealerPrice?: number | null
           id: string
           image?: string | null
@@ -292,17 +455,16 @@ export type Database = {
           mainDealerPrice?: number | null
           multiPrice?: number | null
           name: string
-          netWeight?: string | null
-          orgId?: string | null
+          netWeight?: number | null
+          orgId: string
           shelfBoxId?: string | null
           shelfId?: string | null
           singlePrice?: number | null
           updateDate: string
-          volume?: string | null
+          volume?: number | null
         }
         Update: {
           createDate?: string
-          dealerId?: string | null
           dealerPrice?: number | null
           id?: string
           image?: string | null
@@ -316,22 +478,15 @@ export type Database = {
           mainDealerPrice?: number | null
           multiPrice?: number | null
           name?: string
-          netWeight?: string | null
-          orgId?: string | null
+          netWeight?: number | null
+          orgId?: string
           shelfBoxId?: string | null
           shelfId?: string | null
           singlePrice?: number | null
           updateDate?: string
-          volume?: string | null
+          volume?: number | null
         }
         Relationships: [
-          {
-            foreignKeyName: "Item_dealerId_fkey"
-            columns: ["dealerId"]
-            isOneToOne: false
-            referencedRelation: "Dealer"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "Item_itemBrandId_fkey"
             columns: ["itemBrandId"]
@@ -367,25 +522,10 @@ export type Database = {
             referencedRelation: "Org"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "Item_shelfBoxId_fkey"
-            columns: ["shelfBoxId"]
-            isOneToOne: false
-            referencedRelation: "ShelfBox"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "Item_shelfId_fkey"
-            columns: ["shelfId"]
-            isOneToOne: false
-            referencedRelation: "Shelf"
-            referencedColumns: ["id"]
-          },
         ]
       }
       ItemAcceptDetail: {
         Row: {
-          dealerId: string | null
           id: string
           itemAcceptHistoryId: string | null
           itemBarcodeId: string
@@ -394,7 +534,6 @@ export type Database = {
           quantity: number
         }
         Insert: {
-          dealerId?: string | null
           id: string
           itemAcceptHistoryId?: string | null
           itemBarcodeId: string
@@ -403,7 +542,6 @@ export type Database = {
           quantity: number
         }
         Update: {
-          dealerId?: string | null
           id?: string
           itemAcceptHistoryId?: string | null
           itemBarcodeId?: string
@@ -412,13 +550,6 @@ export type Database = {
           quantity?: number
         }
         Relationships: [
-          {
-            foreignKeyName: "ItemAcceptDetail_dealerId_fkey"
-            columns: ["dealerId"]
-            isOneToOne: false
-            referencedRelation: "Dealer"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "ItemAcceptDetail_itemAcceptHistoryId_fkey"
             columns: ["itemAcceptHistoryId"]
@@ -453,7 +584,6 @@ export type Database = {
         Row: {
           createDate: string
           customerId: string
-          dealerId: string | null
           id: string
           name: string
           orgId: string | null
@@ -462,7 +592,6 @@ export type Database = {
         Insert: {
           createDate?: string
           customerId: string
-          dealerId?: string | null
           id: string
           name: string
           orgId?: string | null
@@ -471,7 +600,6 @@ export type Database = {
         Update: {
           createDate?: string
           customerId?: string
-          dealerId?: string | null
           id?: string
           name?: string
           orgId?: string | null
@@ -483,13 +611,6 @@ export type Database = {
             columns: ["customerId"]
             isOneToOne: false
             referencedRelation: "Customer"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ItemAcceptHistory_dealerId_fkey"
-            columns: ["dealerId"]
-            isOneToOne: false
-            referencedRelation: "Dealer"
             referencedColumns: ["id"]
           },
           {
@@ -543,33 +664,59 @@ export type Database = {
           },
         ]
       }
+      itemBarcodeHistory: {
+        Row: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          barcode: string
+          changeDate: string
+          id: string
+          isMaster: boolean
+          itemBarcodeId: string | null
+          quantity: number
+          unit: string
+          updatedBy: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          barcode: string
+          changeDate?: string
+          id: string
+          isMaster: boolean
+          itemBarcodeId?: string | null
+          quantity: number
+          unit: string
+          updatedBy?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["audit_actions"]
+          barcode?: string
+          changeDate?: string
+          id?: string
+          isMaster?: boolean
+          itemBarcodeId?: string | null
+          quantity?: number
+          unit?: string
+          updatedBy?: string | null
+        }
+        Relationships: []
+      }
       ItemBrand: {
         Row: {
-          dealerId: string | null
           id: string
           name: string
           orgId: string | null
         }
         Insert: {
-          dealerId?: string | null
           id: string
           name: string
           orgId?: string | null
         }
         Update: {
-          dealerId?: string | null
           id?: string
           name?: string
           orgId?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "ItemBrand_dealerId_fkey"
-            columns: ["dealerId"]
-            isOneToOne: false
-            referencedRelation: "Dealer"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "ItemBrand_orgId_fkey"
             columns: ["orgId"]
@@ -579,33 +726,53 @@ export type Database = {
           },
         ]
       }
+      ItemBrandHistory: {
+        Row: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate: string
+          id: string
+          itemBrandId: string | null
+          name: string
+          orgId: string | null
+          updatedBy: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          id: string
+          itemBrandId?: string | null
+          name: string
+          orgId?: string | null
+          updatedBy?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          id?: string
+          itemBrandId?: string | null
+          name?: string
+          orgId?: string | null
+          updatedBy?: string | null
+        }
+        Relationships: []
+      }
       ItemCategory: {
         Row: {
-          dealerId: string | null
           id: string
           name: string
           orgId: string | null
         }
         Insert: {
-          dealerId?: string | null
           id: string
           name: string
           orgId?: string | null
         }
         Update: {
-          dealerId?: string | null
           id?: string
           name?: string
           orgId?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "ItemCategory_dealerId_fkey"
-            columns: ["dealerId"]
-            isOneToOne: false
-            referencedRelation: "Dealer"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "ItemCategory_orgId_fkey"
             columns: ["orgId"]
@@ -615,36 +782,56 @@ export type Database = {
           },
         ]
       }
+      ItemCategoryHistory: {
+        Row: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate: string
+          id: string
+          itemCategoryId: string | null
+          name: string
+          orgId: string | null
+          updatedBy: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          id: string
+          itemCategoryId?: string | null
+          name: string
+          orgId?: string | null
+          updatedBy?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          id?: string
+          itemCategoryId?: string | null
+          name?: string
+          orgId?: string | null
+          updatedBy?: string | null
+        }
+        Relationships: []
+      }
       ItemColor: {
         Row: {
           colorCode: string
           colorText: string
-          dealerId: string | null
           id: string
           orgId: string | null
         }
         Insert: {
           colorCode: string
           colorText: string
-          dealerId?: string | null
           id: string
           orgId?: string | null
         }
         Update: {
           colorCode?: string
           colorText?: string
-          dealerId?: string | null
           id?: string
           orgId?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "ItemColor_dealerId_fkey"
-            columns: ["dealerId"]
-            isOneToOne: false
-            referencedRelation: "Dealer"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "ItemColor_orgId_fkey"
             columns: ["orgId"]
@@ -654,225 +841,137 @@ export type Database = {
           },
         ]
       }
+      ItemColorHistory: {
+        Row: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate: string
+          colorCode: string
+          colorText: string
+          id: string
+          itemColorId: string | null
+          orgId: string | null
+          updatedBy: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          colorCode: string
+          colorText: string
+          id: string
+          itemColorId?: string | null
+          orgId?: string | null
+          updatedBy?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          colorCode?: string
+          colorText?: string
+          id?: string
+          itemColorId?: string | null
+          orgId?: string | null
+          updatedBy?: string | null
+        }
+        Relationships: []
+      }
       ItemHistory: {
         Row: {
-          action: Database["public"]["Enums"]["ItemHistoryActions"]
-          createDate: string
-          createdBy: string
-          dealerId: string | null
-          description: string
-          fromStorageId: string | null
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate: string
+          dealerPrice: number | null
           id: string
-          itemId: string
-          orgId: string | null
-          quantity: number
-          toStorageId: string | null
-        }
-        Insert: {
-          action: Database["public"]["Enums"]["ItemHistoryActions"]
-          createDate?: string
-          createdBy: string
-          dealerId?: string | null
-          description: string
-          fromStorageId?: string | null
-          id: string
-          itemId: string
-          orgId?: string | null
-          quantity: number
-          toStorageId?: string | null
-        }
-        Update: {
-          action?: Database["public"]["Enums"]["ItemHistoryActions"]
-          createDate?: string
-          createdBy?: string
-          dealerId?: string | null
-          description?: string
-          fromStorageId?: string | null
-          id?: string
-          itemId?: string
-          orgId?: string | null
-          quantity?: number
-          toStorageId?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ItemHistory_dealerId_fkey"
-            columns: ["dealerId"]
-            isOneToOne: false
-            referencedRelation: "Dealer"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ItemHistory_fromStorageId_fkey"
-            columns: ["fromStorageId"]
-            isOneToOne: false
-            referencedRelation: "Storage"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ItemHistory_itemId_fkey"
-            columns: ["itemId"]
-            isOneToOne: false
-            referencedRelation: "Item"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ItemHistory_orgId_fkey"
-            columns: ["orgId"]
-            isOneToOne: false
-            referencedRelation: "Org"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ItemHistory_toStorageId_fkey"
-            columns: ["toStorageId"]
-            isOneToOne: false
-            referencedRelation: "Storage"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ItemSellDetail: {
-        Row: {
-          id: string
-          itemAcceptHistoryId: string | null
-          itemId: string
-          quantity: number
-          serialNumbers: string[] | null
-        }
-        Insert: {
-          id: string
-          itemAcceptHistoryId?: string | null
-          itemId: string
-          quantity: number
-          serialNumbers?: string[] | null
-        }
-        Update: {
-          id?: string
-          itemAcceptHistoryId?: string | null
-          itemId?: string
-          quantity?: number
-          serialNumbers?: string[] | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ItemSellDetail_itemAcceptHistoryId_fkey"
-            columns: ["itemAcceptHistoryId"]
-            isOneToOne: false
-            referencedRelation: "ItemSellHistory"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ItemSellDetail_itemId_fkey"
-            columns: ["itemId"]
-            isOneToOne: false
-            referencedRelation: "Item"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ItemSellHistory: {
-        Row: {
-          createDate: string
-          customerId: string
-          dealerId: string | null
-          id: string
+          image: string | null
+          isSerialNoRequired: boolean
+          isServiceItem: boolean
+          itemBrandId: string
+          itemCategoryId: string
+          itemCode: string
+          itemColorId: string
+          itemId: string | null
+          itemSizeId: string
+          mainDealerPrice: number | null
+          multiPrice: number | null
           name: string
-          orgId: string | null
-          storageId: string
-          transactionId: string
-          transactionType: Database["public"]["Enums"]["transactionType"]
+          netWeight: number | null
+          orgId: string
+          shelfBoxId: string | null
+          shelfId: string | null
+          singlePrice: number | null
+          updatedBy: string | null
+          volume: number | null
         }
         Insert: {
-          createDate?: string
-          customerId: string
-          dealerId?: string | null
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          dealerPrice?: number | null
           id: string
+          image?: string | null
+          isSerialNoRequired: boolean
+          isServiceItem: boolean
+          itemBrandId: string
+          itemCategoryId: string
+          itemCode: string
+          itemColorId: string
+          itemId?: string | null
+          itemSizeId: string
+          mainDealerPrice?: number | null
+          multiPrice?: number | null
           name: string
-          orgId?: string | null
-          storageId: string
-          transactionId: string
-          transactionType: Database["public"]["Enums"]["transactionType"]
+          netWeight?: number | null
+          orgId: string
+          shelfBoxId?: string | null
+          shelfId?: string | null
+          singlePrice?: number | null
+          updatedBy?: string | null
+          volume?: number | null
         }
         Update: {
-          createDate?: string
-          customerId?: string
-          dealerId?: string | null
+          action?: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          dealerPrice?: number | null
           id?: string
+          image?: string | null
+          isSerialNoRequired?: boolean
+          isServiceItem?: boolean
+          itemBrandId?: string
+          itemCategoryId?: string
+          itemCode?: string
+          itemColorId?: string
+          itemId?: string | null
+          itemSizeId?: string
+          mainDealerPrice?: number | null
+          multiPrice?: number | null
           name?: string
-          orgId?: string | null
-          storageId?: string
-          transactionId?: string
-          transactionType?: Database["public"]["Enums"]["transactionType"]
+          netWeight?: number | null
+          orgId?: string
+          shelfBoxId?: string | null
+          shelfId?: string | null
+          singlePrice?: number | null
+          updatedBy?: string | null
+          volume?: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "ItemSellHistory_customerId_fkey"
-            columns: ["customerId"]
-            isOneToOne: false
-            referencedRelation: "Customer"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ItemSellHistory_dealerId_fkey"
-            columns: ["dealerId"]
-            isOneToOne: false
-            referencedRelation: "Dealer"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ItemSellHistory_orgId_fkey"
-            columns: ["orgId"]
-            isOneToOne: false
-            referencedRelation: "Org"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ItemSellHistory_storageId_fkey"
-            columns: ["storageId"]
-            isOneToOne: false
-            referencedRelation: "Storage"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ItemSellHistory_transactionId_fkey"
-            columns: ["transactionId"]
-            isOneToOne: false
-            referencedRelation: "Transaction"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       ItemSize: {
         Row: {
-          dealerId: string | null
           id: string
           orgId: string | null
           sizeCode: string
           sizeText: string
         }
         Insert: {
-          dealerId?: string | null
           id: string
           orgId?: string | null
           sizeCode: string
           sizeText: string
         }
         Update: {
-          dealerId?: string | null
           id?: string
           orgId?: string | null
           sizeCode?: string
           sizeText?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "ItemSize_dealerId_fkey"
-            columns: ["dealerId"]
-            isOneToOne: false
-            referencedRelation: "Dealer"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "ItemSize_orgId_fkey"
             columns: ["orgId"]
@@ -881,6 +980,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ItemSizeHistory: {
+        Row: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate: string
+          id: string
+          itemSizeId: string | null
+          orgId: string | null
+          sizeCode: string
+          sizeText: string
+          updatedBy: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          id: string
+          itemSizeId?: string | null
+          orgId?: string | null
+          sizeCode: string
+          sizeText: string
+          updatedBy?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          id?: string
+          itemSizeId?: string | null
+          orgId?: string | null
+          sizeCode?: string
+          sizeText?: string
+          updatedBy?: string | null
+        }
+        Relationships: []
       }
       ItemStock: {
         Row: {
@@ -918,36 +1050,59 @@ export type Database = {
           },
         ]
       }
+      ItemStockHistory: {
+        Row: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate: string
+          id: number
+          itemId: string
+          itemStockId: string | null
+          stock: number
+          storageId: string
+          updatedBy: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          id?: never
+          itemId: string
+          itemStockId?: string | null
+          stock: number
+          storageId: string
+          updatedBy?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          id?: never
+          itemId?: string
+          itemStockId?: string | null
+          stock?: number
+          storageId?: string
+          updatedBy?: string | null
+        }
+        Relationships: []
+      }
       Member: {
         Row: {
-          dealerId: string | null
           id: string
           orgId: string | null
           uid: string | null
           userEmail: string
         }
         Insert: {
-          dealerId?: string | null
           id: string
           orgId?: string | null
           uid?: string | null
           userEmail: string
         }
         Update: {
-          dealerId?: string | null
           id?: string
           orgId?: string | null
           uid?: string | null
           userEmail?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "Member_dealerId_fkey"
-            columns: ["dealerId"]
-            isOneToOne: false
-            referencedRelation: "Dealer"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "Member_orgId_fkey"
             columns: ["orgId"]
@@ -956,6 +1111,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      MemberHistory: {
+        Row: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate: string
+          id: string
+          memberId: string | null
+          orgId: string | null
+          uid: string | null
+          updatedBy: string | null
+          userEmail: string
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          id: string
+          memberId?: string | null
+          orgId?: string | null
+          uid?: string | null
+          updatedBy?: string | null
+          userEmail: string
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          id?: string
+          memberId?: string | null
+          orgId?: string | null
+          uid?: string | null
+          updatedBy?: string | null
+          userEmail?: string
+        }
+        Relationships: []
       }
       MemberPermission: {
         Row: {
@@ -980,31 +1168,21 @@ export type Database = {
       }
       MemberRole: {
         Row: {
-          dealerId: string | null
           id: string
           name: string
           orgId: string | null
         }
         Insert: {
-          dealerId?: string | null
           id: string
           name: string
           orgId?: string | null
         }
         Update: {
-          dealerId?: string | null
           id?: string
           name?: string
           orgId?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "MemberRole_dealerId_fkey"
-            columns: ["dealerId"]
-            isOneToOne: false
-            referencedRelation: "Dealer"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "MemberRole_orgId_fkey"
             columns: ["orgId"]
@@ -1017,15 +1195,51 @@ export type Database = {
       Org: {
         Row: {
           id: string
-          orgName: string
+          name: string
+          priceType: Database["public"]["Enums"]["PriceType"]
+          type: Database["public"]["Enums"]["OrgType"]
         }
         Insert: {
           id: string
-          orgName: string
+          name: string
+          priceType?: Database["public"]["Enums"]["PriceType"]
+          type?: Database["public"]["Enums"]["OrgType"]
         }
         Update: {
           id?: string
-          orgName?: string
+          name?: string
+          priceType?: Database["public"]["Enums"]["PriceType"]
+          type?: Database["public"]["Enums"]["OrgType"]
+        }
+        Relationships: []
+      }
+      OrgHistory: {
+        Row: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate: string
+          id: string
+          name: string
+          orgId: string | null
+          type: Database["public"]["Enums"]["OrgType"]
+          updatedBy: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          id: string
+          name: string
+          orgId?: string | null
+          type: Database["public"]["Enums"]["OrgType"]
+          updatedBy?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          id?: string
+          name?: string
+          orgId?: string | null
+          type?: Database["public"]["Enums"]["OrgType"]
+          updatedBy?: string | null
         }
         Relationships: []
       }
@@ -1103,6 +1317,69 @@ export type Database = {
           },
         ]
       }
+      ShelfBoxHistory: {
+        Row: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate: string
+          id: string
+          name: string | null
+          shelfBoxId: string | null
+          shelfId: string | null
+          storageId: string
+          updatedBy: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          id: string
+          name?: string | null
+          shelfBoxId?: string | null
+          shelfId?: string | null
+          storageId: string
+          updatedBy?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          id?: string
+          name?: string | null
+          shelfBoxId?: string | null
+          shelfId?: string | null
+          storageId?: string
+          updatedBy?: string | null
+        }
+        Relationships: []
+      }
+      ShelfHistory: {
+        Row: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate: string
+          id: string
+          name: string | null
+          shelfId: string | null
+          storageId: string
+          updatedBy: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          id: string
+          name?: string | null
+          shelfId?: string | null
+          storageId: string
+          updatedBy?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          id?: string
+          name?: string | null
+          shelfId?: string | null
+          storageId?: string
+          updatedBy?: string | null
+        }
+        Relationships: []
+      }
       ShelfItemDetail: {
         Row: {
           createDate: string
@@ -1155,33 +1432,59 @@ export type Database = {
           },
         ]
       }
+      ShelfItemDetailHistory: {
+        Row: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate: string
+          id: string
+          itemId: string
+          quantity: number
+          shelfBoxId: string | null
+          shelfId: string | null
+          shelfItemDetailId: string | null
+          updatedBy: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          id: string
+          itemId: string
+          quantity: number
+          shelfBoxId?: string | null
+          shelfId?: string | null
+          shelfItemDetailId?: string | null
+          updatedBy?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          id?: string
+          itemId?: string
+          quantity?: number
+          shelfBoxId?: string | null
+          shelfId?: string | null
+          shelfItemDetailId?: string | null
+          updatedBy?: string | null
+        }
+        Relationships: []
+      }
       Storage: {
         Row: {
-          dealerId: string | null
           id: string
           name: string
           orgId: string | null
         }
         Insert: {
-          dealerId?: string | null
           id: string
           name: string
           orgId?: string | null
         }
         Update: {
-          dealerId?: string | null
           id?: string
           name?: string
           orgId?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "Storage_dealerId_fkey"
-            columns: ["dealerId"]
-            isOneToOne: false
-            referencedRelation: "Dealer"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "Storage_orgId_fkey"
             columns: ["orgId"]
@@ -1191,45 +1494,84 @@ export type Database = {
           },
         ]
       }
+      StorageHistory: {
+        Row: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate: string
+          id: string
+          name: string
+          orgId: string | null
+          storageId: string | null
+          updatedBy: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          id: string
+          name: string
+          orgId?: string | null
+          storageId?: string | null
+          updatedBy?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          id?: string
+          name?: string
+          orgId?: string | null
+          storageId?: string | null
+          updatedBy?: string | null
+        }
+        Relationships: []
+      }
       Transaction: {
         Row: {
           createDate: string
           customerId: string
-          dealerId: string | null
-          discount: string
-          exchangeRate: string
+          discount: string | null
+          exchangeRate: string | null
           id: string
-          payAmount: string
-          priceType: Database["public"]["Enums"]["PriceType"]
+          memberId: string | null
+          orgId: string | null
+          payAmount: string | null
+          priceType: Database["public"]["Enums"]["PriceType"] | null
           storageId: string
-          totalAmount: string
+          totalAmount: string | null
           transactionType: Database["public"]["Enums"]["transactionType"]
+          transferredDealerId: string | null
+          updatedAt: string
         }
         Insert: {
           createDate?: string
           customerId: string
-          dealerId?: string | null
-          discount: string
-          exchangeRate: string
+          discount?: string | null
+          exchangeRate?: string | null
           id: string
-          payAmount: string
-          priceType: Database["public"]["Enums"]["PriceType"]
+          memberId?: string | null
+          orgId?: string | null
+          payAmount?: string | null
+          priceType?: Database["public"]["Enums"]["PriceType"] | null
           storageId: string
-          totalAmount: string
+          totalAmount?: string | null
           transactionType: Database["public"]["Enums"]["transactionType"]
+          transferredDealerId?: string | null
+          updatedAt: string
         }
         Update: {
           createDate?: string
           customerId?: string
-          dealerId?: string | null
-          discount?: string
-          exchangeRate?: string
+          discount?: string | null
+          exchangeRate?: string | null
           id?: string
-          payAmount?: string
-          priceType?: Database["public"]["Enums"]["PriceType"]
+          memberId?: string | null
+          orgId?: string | null
+          payAmount?: string | null
+          priceType?: Database["public"]["Enums"]["PriceType"] | null
           storageId?: string
-          totalAmount?: string
+          totalAmount?: string | null
           transactionType?: Database["public"]["Enums"]["transactionType"]
+          transferredDealerId?: string | null
+          updatedAt?: string
         }
         Relationships: [
           {
@@ -1240,10 +1582,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "Transaction_dealerId_fkey"
-            columns: ["dealerId"]
+            foreignKeyName: "Transaction_memberId_fkey"
+            columns: ["memberId"]
             isOneToOne: false
-            referencedRelation: "Dealer"
+            referencedRelation: "Member"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Transaction_orgId_fkey"
+            columns: ["orgId"]
+            isOneToOne: false
+            referencedRelation: "Org"
             referencedColumns: ["id"]
           },
           {
@@ -1253,29 +1602,81 @@ export type Database = {
             referencedRelation: "Storage"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "Transaction_transferredDealerId_fkey"
+            columns: ["transferredDealerId"]
+            isOneToOne: false
+            referencedRelation: "Org"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      TransactionHistory: {
+        Row: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate: string
+          discount: string | null
+          exchangeRate: string | null
+          id: string
+          payAmount: string | null
+          priceType: Database["public"]["Enums"]["PriceType"] | null
+          totalAmount: string | null
+          transactionType: Database["public"]["Enums"]["transactionType"]
+          updatedBy: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          discount?: string | null
+          exchangeRate?: string | null
+          id: string
+          payAmount?: string | null
+          priceType?: Database["public"]["Enums"]["PriceType"] | null
+          totalAmount?: string | null
+          transactionType: Database["public"]["Enums"]["transactionType"]
+          updatedBy?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["audit_actions"]
+          changeDate?: string
+          discount?: string | null
+          exchangeRate?: string | null
+          id?: string
+          payAmount?: string | null
+          priceType?: Database["public"]["Enums"]["PriceType"] | null
+          totalAmount?: string | null
+          transactionType?: Database["public"]["Enums"]["transactionType"]
+          updatedBy?: string | null
+        }
+        Relationships: []
       }
       TransactionItemDetail: {
         Row: {
-          customerTransactionId: string | null
+          customerPrice: string | null
+          customerTransactionId: string
+          dealerPrice: string | null
           id: string
           itemId: string
-          price: string | null
           quantity: number
+          serialNumbers: string[] | null
         }
         Insert: {
-          customerTransactionId?: string | null
+          customerPrice?: string | null
+          customerTransactionId: string
+          dealerPrice?: string | null
           id: string
           itemId: string
-          price?: string | null
           quantity: number
+          serialNumbers?: string[] | null
         }
         Update: {
-          customerTransactionId?: string | null
+          customerPrice?: string | null
+          customerTransactionId?: string
+          dealerPrice?: string | null
           id?: string
           itemId?: string
-          price?: string | null
           quantity?: number
+          serialNumbers?: string[] | null
         }
         Relationships: [
           {
@@ -1301,26 +1702,27 @@ export type Database = {
     Functions: {
       get_user_permissions: {
         Args: {
-          inputemail: string
+          user_email: string
         }
         Returns: {
-          orgid: string
-          dealerid: string
-          useremail: string
+          permission_id: string
           permission_name: string
+          permission_description: string
         }[]
       }
     }
     Enums: {
       AdressType: "Normal" | "Billing" | "Shipping"
-      ItemHistoryActions: "AddItem" | "UpdateItem" | "DeleteItem"
+      audit_actions: "INSERT" | "UPDATE" | "DELETE"
       MemberType: "Dealer" | "Organization"
+      OrgType: "Org" | "Dealer"
       PriceType:
         | "mainDealerPrice"
         | "dealerPrice"
         | "multiPrice"
         | "singlePrice"
-      transactionType: "Sale" | "Cancel" | "Return"
+        | "org"
+      transactionType: "Sale" | "Accept" | "Cancel" | "Return" | "Count"
     }
     CompositeTypes: {
       [_ in never]: never

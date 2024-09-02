@@ -1,6 +1,6 @@
 "use client";
 import { useDebounce } from "@uidotdev/usehooks";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { DataTable } from "~/app/_components/tables/generic-table";
 import { columns } from "./columns";
 import {
@@ -11,51 +11,34 @@ import {
   WarehouseIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { type getItems } from "./queryFunctions";
+import { api } from "~/trpc/server";
+import { type RouterOutputs } from "~/trpc/shared";
+import { type SessionType } from "~/utils/getSession";
 
-export type ItemDataType = Awaited<ReturnType<typeof getItems>>;
+export type ItemDataType = RouterOutputs["items"]["getItems"];
 
 export type SingleItemType = NonNullable<ItemDataType>[number];
 
-const MainItemsList = ({ data }: { data: ItemDataType }) => {
+const MainItemsList = ({ session }: { session: SessionType }) => {
   const [searchInput, setSearchInput] = useState<string>("");
   const debouncedSearchInput = useDebounce(searchInput, 750);
-
-  const modifiedItemsData = useMemo(() => {
-    if (data) {
-      return data
-        .filter(
-          (o) =>
-            (o.itemBarcode.find((b) =>
-              b.barcode
-                .toLowerCase()
-                .includes(debouncedSearchInput.toLowerCase()),
-            ) ??
-              o.itemCode
-                .toLowerCase()
-                .includes(debouncedSearchInput.toLowerCase())) ||
-            o.name.toLowerCase().includes(debouncedSearchInput.toLowerCase()),
-        )
-        .map((o) => {
-          const totalStock = o.ItemStock.reduce((sum, s) => sum + s.stock, 0);
-          return { ...o, totalStock };
-        })
-        .sort((a, b) => b.totalStock - a.totalStock);
-    }
-    return [];
-  }, [data, debouncedSearchInput]);
+  const { data: itemsData, isLoading } = api.items.getItems.useQuery({
+    orgId: session?.orgId ?? undefined,
+    searchInput: debouncedSearchInput,
+  });
 
   const router = useRouter();
   return (
     <DataTable
-      data={modifiedItemsData}
+      data={itemsData ?? []}
       columns={columns}
+      isLoading={isLoading}
       columnFilter={[
         {
           columnToFilter: "itemBrandId",
           title: "Marka",
           options: [
-            ...new Set(modifiedItemsData?.flatMap((i) => i.ItemBrand?.name)),
+            ...new Set(itemsData?.flatMap((i) => i.ItemBrand?.name)),
           ].map((b) => ({
             label: b ?? "",
             value: b ?? "",
@@ -66,9 +49,7 @@ const MainItemsList = ({ data }: { data: ItemDataType }) => {
           columnToFilter: "itemColorId",
           title: "Renk",
           options: [
-            ...new Set(
-              modifiedItemsData?.flatMap((i) => i.ItemColor?.colorCode),
-            ),
+            ...new Set(itemsData?.flatMap((i) => i.ItemColor?.colorCode)),
           ].map((b) => ({
             label: b ?? "",
             value: b ?? "",
@@ -79,7 +60,7 @@ const MainItemsList = ({ data }: { data: ItemDataType }) => {
           columnToFilter: "itemSizeId",
           title: "Beden",
           options: [
-            ...new Set(modifiedItemsData?.flatMap((i) => i.ItemSize?.sizeCode)),
+            ...new Set(itemsData?.flatMap((i) => i.ItemSize?.sizeCode)),
           ].map((b) => ({
             label: b ?? "",
             value: b ?? "",
@@ -90,7 +71,7 @@ const MainItemsList = ({ data }: { data: ItemDataType }) => {
           columnToFilter: "itemCategoryId",
           title: "Kategori",
           options: [
-            ...new Set(modifiedItemsData?.flatMap((i) => i.ItemCategory?.name)),
+            ...new Set(itemsData?.flatMap((i) => i.ItemCategory?.name)),
           ].map((b) => ({
             label: b ?? "",
             value: b ?? "",
@@ -101,15 +82,15 @@ const MainItemsList = ({ data }: { data: ItemDataType }) => {
           columnToFilter: "totalStock",
           title: "Depo",
           options: [
-            ...new Set(
-              modifiedItemsData?.flatMap((i) =>
-                i.ItemStock.flatMap((s) => {
-                  if ("Storage" in s) {
-                    return s.Storage;
-                  }
-                }),
-              ),
-            ),
+            ...new Map(
+              itemsData
+                ?.flatMap((item) =>
+                  item.ItemStock.flatMap((stock) => stock.Storage).filter(
+                    Boolean,
+                  ),
+                )
+                .map((storage) => [storage?.id, storage]),
+            ).values(),
           ].map((c) => ({
             label: c?.name ?? "",
             value: c?.id ?? "",

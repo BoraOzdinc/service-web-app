@@ -1,5 +1,11 @@
 import { type ColumnDef } from "@tanstack/react-table";
 import { type SingleItemType } from "./ItemsListComponent";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "~/app/_components/ui/tooltip";
 
 export const columns: ColumnDef<SingleItemType>[] = [
   { accessorKey: "itemCode", header: "Ürün Kodu" },
@@ -14,6 +20,18 @@ export const columns: ColumnDef<SingleItemType>[] = [
       return itemBarcode.map((b) => {
         if (!b.isMaster) {
           return "-";
+        }
+        if (b.barcode.length > 15) {
+          return (
+            <TooltipProvider key={b.id}>
+              <Tooltip>
+                <TooltipTrigger className="underline">
+                  {b.barcode.slice(0, 15)}...
+                </TooltipTrigger>
+                <TooltipContent>{b.barcode}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          );
         }
         return b.barcode;
       })[0];

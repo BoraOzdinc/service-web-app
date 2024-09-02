@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 const CustomerList = () => {
   const router = useRouter();
 
-  const customers = api.customer.getCustomers.useQuery();
+  const customers = api.customer.getCustomers.useQuery({});
 
   return (
     <DataTable

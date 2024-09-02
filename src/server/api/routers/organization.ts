@@ -5,6 +5,8 @@ import { TRPCError } from "@trpc/server";
 import { nonEmptyString } from "./items";
 import { $Enums } from "@prisma/client";
 import { createAdminClient } from "~/utils/supabase/server";
+import { isAuthorised as isMemberAuthorised } from "~/utils";
+import { createId } from "@paralleldrive/cuid2";
 
 export const organizationRouter = createTRPCRouter({
 
@@ -29,7 +31,14 @@ export const organizationRouter = createTRPCRouter({
                     message: "You don't have permission to do this!",
                 });
             }
-            return await ctx.db.org.findUnique({ where: { id: input.orgId } })
+            const { data: org, error } = await ctx.supabase.from("Org").select("*").eq("id", input.orgId).single()
+            if (error) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Failed to get org:" + error.message,
+                })
+            }
+            return org
         }),
     getOrgRoles: protectedProcedure.input(z.object({ orgId: nonEmptyString })).query(async ({ ctx, input }) => {
         if (!input) {
@@ -55,6 +64,12 @@ export const organizationRouter = createTRPCRouter({
     updateOrgMember: protectedProcedure
         .input(z.object({ roleIds: z.string().array(), orgMemberId: nonEmptyString }))
         .mutation(async ({ ctx, input }) => {
+            if (!ctx.session.orgId) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this!",
+                });
+            }
             if (!input) {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
@@ -68,24 +83,76 @@ export const organizationRouter = createTRPCRouter({
                     message: "You don't have permission to do this!",
                 });
             }
-            const Org = await ctx.db.org.findFirst({
-                where: {
-                    id: ctx.session.orgId ?? undefined,
-                    dealers: { some: { id: ctx.session.dealerId ?? undefined } }
-                },
-                include: { dealers: { include: { members: true } } }
-            })
-            if (!Org) {
+            const { data: member, error } = await ctx.supabase.from("Member").select("*").eq("id", input.orgMemberId).single()
+            if (error) {
                 throw new TRPCError({
-                    code: "UNAUTHORIZED",
-                    message: "You don't have permission to do this!",
-                });
+                    code: "BAD_REQUEST",
+                    message: "Failed to get member:" + error.message,
+                })
             }
-            return await ctx.db.member.update({
-                where: { id: input.orgMemberId },
-                data: { roles: { set: input.roleIds.map(r => ({ id: r })) } },
+            if (member.orgId !== ctx.session.orgId) {
+                const isAuthorised = await isMemberAuthorised(ctx.supabase, ctx.session.orgId ?? "", member.orgId ?? "")
+                if (!isAuthorised) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
+            }
 
-            })
+            // Step 1: Fetch current roles for the member
+            const { data: currentRoles, error: fetchError } = await ctx.supabase
+                .from('_MemberToMemberRole')
+                .select('B') // Assuming B is the role ID
+                .eq('A', input.orgMemberId); // Assuming A is the member ID
+
+            if (fetchError) {
+                console.error('Error fetching current roles:', fetchError);
+                return;
+            }
+
+            // Step 2: Determine roles to add or remove
+            const currentRoleIds = currentRoles.map(role => role.B);
+            const rolesToAdd = input.roleIds.filter(roleId => !currentRoleIds.includes(roleId));
+            const rolesToRemove = currentRoleIds.filter(roleId => !input.roleIds.includes(roleId));
+
+            // Step 3: Update roles in the database
+            // Add new roles
+            const addPromises = rolesToAdd.map(roleId => {
+                return ctx.supabase
+                    .from('_MemberToMemberRole')
+                    .insert([{ A: input.orgMemberId, B: roleId }]);
+            });
+
+            // Remove old roles
+            const removePromises = rolesToRemove.map(roleId => {
+                return ctx.supabase
+                    .from('_MemberToMemberRole')
+                    .delete()
+                    .eq('A', input.orgMemberId)
+                    .eq('B', roleId);
+            });
+
+            // Execute all add and remove operations
+            const addResults = await Promise.all(addPromises);
+            const removeResults = await Promise.all(removePromises);
+
+            // Check for errors
+            const addError = addResults.find(result => result.error);
+            const removeError = removeResults.find(result => result.error);
+
+            if (addError) {
+                console.error('Error adding roles:', addError);
+            } else {
+                console.log('Roles added successfully:', addResults);
+            }
+
+            if (removeError) {
+                console.error('Error removing roles:', removeError);
+            } else {
+                console.log('Roles removed successfully:', removeResults);
+            }
+            return "success"
         }),
     deleteOrgMember: protectedProcedure.input(z.object({ memberId: nonEmptyString }))
         .mutation(async ({ ctx, input }) => {
@@ -135,9 +202,9 @@ export const organizationRouter = createTRPCRouter({
             include: { roles: true }
         })
     }),
-    addMember: protectedProcedure.input(z.object({ orgId: z.string().optional(), dealerId: z.string().optional(), email: nonEmptyString }))
+    addMember: protectedProcedure.input(z.object({ orgId: z.string().optional(), email: nonEmptyString }))
         .mutation(async ({ ctx, input }) => {
-            if (!input.dealerId && !input.orgId) {
+            if (!input.orgId) {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
                     message: "Invalid Payload",
@@ -149,6 +216,7 @@ export const organizationRouter = createTRPCRouter({
                 page: 1,
                 perPage: 9999999
             })
+            console.log(authUsers);
 
             const invitedUser = authUsers.find(u => u.email === input.email)
             if (!invitedUser) {
@@ -165,30 +233,19 @@ export const organizationRouter = createTRPCRouter({
                         message: "You don't have permission to do this!",
                     });
                 }
-                try {
-                    return await ctx.db.member.create({ data: { orgId: input.orgId, userEmail: invitedUser.email ?? "", uid: invitedUser.id } })
-                } catch {
+                const { data: addedMember, error } = await ctx.supabase.from("Member").insert({
+                    id: createId(),
+                    orgId: input.orgId,
+                    userEmail: invitedUser.email ?? "",
+                    uid: invitedUser.id
+                })
+                if (error) {
                     throw new TRPCError({
                         code: "BAD_REQUEST",
-                        message: "Bu Kullanıcı zaten bir Organizasyon Üyesi!",
-                    });
+                        message: "Failed to create member:" + error.message,
+                    })
                 }
-            }
-            if (input.dealerId) {
-                if (!userPermission.includes(PERMS.manage_dealer_members)) {
-                    throw new TRPCError({
-                        code: "UNAUTHORIZED",
-                        message: "You don't have permission to do this!",
-                    });
-                }
-                try {
-                    return await ctx.db.member.create({ data: { dealerId: input.dealerId, userEmail: invitedUser.email ?? "", uid: invitedUser.id } })
-                } catch {
-                    throw new TRPCError({
-                        code: "BAD_REQUEST",
-                        message: "Bu Kullanıcı zaten bir Bayii Üyesi!",
-                    });
-                }
+                return addedMember
             }
 
             throw new TRPCError({
@@ -216,10 +273,30 @@ export const organizationRouter = createTRPCRouter({
                     message: "You don't have permission to do this!",
                 });
             }
-            const dealer = await ctx.db.dealer.create({ data: { name: input.name, orgId: ctx.session.orgId, priceType: priceType } })
-            const permissions = await ctx.db.memberPermission.findMany({ where: { assignableTo: { has: "Dealer" } } })
-            await ctx.db.memberRole.create({ data: { name: "Bayii Yöneticisi", dealerId: dealer.id, permissions: { connect: permissions.map(p => ({ id: p.id })) } } })
-            return dealer
+            const { data: dealer, error: dealerError } = await ctx.supabase.from("Org").insert({
+                id: createId(),
+                name: input.name,
+                type: "Dealer",
+                priceType: priceType,
+                orgId: ctx.session.orgId,
+                updateDate: new Date().toUTCString(),
+            }).select().single()
+            if (dealerError) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Failed to create dealer:" + dealerError.message,
+                })
+            }
+            const { data: permissions, error: permError } = await ctx.supabase.from("MemberPermission").select("*").eq("assignableTo", "Dealer")
+            if (permError) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Failed to create dealer:" + permError.message,
+                })
+            }
+            return await ctx.db.memberRole.create({
+                data: { name: "Bayii Yöneticisi", orgId: dealer.id, permissions: { connect: permissions.map(p => ({ id: p.id })) } }
+            })
         }
         throw new TRPCError({
             code: "UNAUTHORIZED",
@@ -271,9 +348,24 @@ export const organizationRouter = createTRPCRouter({
                     message: "You don't have permission to do this!",
                 });
             }
-            return await ctx.db.memberRole.create({
-                data: { orgId: input.orgId, name: input.roleName, permissions: { connect: input.permIds.map(p => ({ id: p })) } }
+            const { data: role, error } = await ctx.supabase.from("MemberRole").insert({
+                id: createId(),
+                orgId: input.orgId,
+                name: input.roleName,
+            }).select().single()
+            if (error) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Failed to create role:" + error.message,
+                })
+            }
+            input.permIds.map(async p => {
+                await ctx.supabase.from("_MemberPermissionToMemberRole").insert({
+                    A: p,
+                    B: role.id
+                })
             })
+            return role
         }),
     deleteOrgRole: protectedProcedure.input(z.object(
         {

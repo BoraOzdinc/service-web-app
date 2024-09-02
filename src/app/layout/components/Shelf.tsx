@@ -24,8 +24,8 @@ const Shelf = ({ data }: { data: ShelfData }) => {
         <CardTitle>{data.name}</CardTitle>
       </CardHeader>
       <CardContent>
-        <p>Raftaki Kutu Sayısı: {data.boxes.length}</p>
-        <p>Raftaki Ürün Sayısı: {data.items.length}</p>
+        <p>Raftaki Kutu Sayısı: {data.ShelfBox.length}</p>
+        <p>Raftaki Ürün Sayısı: {data.ShelfItemDetail.length}</p>
       </CardContent>
     </Card>
   );

@@ -1,5 +1,4 @@
 "use client";
-import { Loader2Icon } from "lucide-react";
 import { DataTable } from "~/app/_components/tables/generic-table";
 import { Button } from "~/app/_components/ui/button";
 import {
@@ -21,9 +20,10 @@ import { Label } from "~/app/_components/ui/label";
 import { Input } from "~/app/_components/ui/input";
 import { useState } from "react";
 import { useAddColor } from "~/utils/useItems";
-import { type getColorsType } from "./queryFunctions";
+import { api } from "~/trpc/server";
 
-const ColorComp = ({ colors }: { colors: getColorsType }) => {
+const ColorComp = () => {
+  const colors = api.items.getColors.useQuery({});
   const [colorCode, setColorCode] = useState<string>("");
   const [color, setColor] = useState<string>("");
   const addColor = useAddColor();
@@ -33,7 +33,6 @@ const ColorComp = ({ colors }: { colors: getColorsType }) => {
       <CardHeader className="flex flex-row items-center justify-between">
         <div className="flex items-center gap-3">
           <CardTitle>Ürün Renkleri</CardTitle>
-          {colors.isLoading && <Loader2Icon className="h-5 w-5 animate-spin" />}
         </div>
         <Dialog>
           <DialogTrigger asChild>

@@ -4,9 +4,11 @@ import { createClient } from "./supabase/server";
 export async function getSession() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser()
-    const userMember = (await supabase.from("Member").select("orgId,dealerId,userEmail").eq("userEmail", user?.email ?? "").maybeSingle()).data
+
+    const { data: userMember } = await supabase.from("Member").select("*").eq("uid", user?.id ?? "").maybeSingle()
+
     const { data } = await supabase.rpc('get_user_permissions', {
-        inputemail: userMember?.userEmail ?? "",
+        user_email: userMember?.userEmail ?? ""
     });
 
     const userPermission = [
@@ -14,7 +16,14 @@ export async function getSession() {
             data?.map(p => p.permission_name)
         ),
     ];
-    return { permissions: userPermission, orgId: userMember?.orgId, dealerId: userMember?.dealerId, email: userMember?.userEmail }
+
+    // Check for orgId and redirect if not found
+    if (!userMember?.orgId) {
+        return { permissions: userPermission, orgId: userMember?.orgId, email: userMember?.userEmail, redirect: true };
+    }
+
+
+    return { permissions: userPermission, orgId: userMember?.orgId, email: userMember?.userEmail, redirect: false }
 }
 
 export type SessionType = Awaited<ReturnType<typeof getSession>>

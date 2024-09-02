@@ -48,7 +48,7 @@ const UpdateItemDialog = ({
   }, [addedItems, item?.id]);
 
   const totalStock = useMemo(() => {
-    return item?.ItemStock.find((s) => s.storage.id === selectedStorageId)
+    return item?.ItemStock.find((s) => s.Storage?.id === selectedStorageId)
       ?.stock;
   }, [item?.ItemStock, selectedStorageId]);
 

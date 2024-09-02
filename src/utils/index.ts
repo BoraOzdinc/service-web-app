@@ -1,5 +1,5 @@
 import { z } from "zod";
-
+import { type SupabaseClient } from "./supabase/client";
 
 
 export function extractData(str: string) {
@@ -32,4 +32,8 @@ export const memberFinder: (session: {
         return "dealer"
     }
     return "none"
+}
+
+export const isAuthorised = async (supabase: SupabaseClient, sessionOrgId: string, dealerId: string) => {
+    return Boolean((await supabase.from("Org").select("dealerRelations:DealerRelation!DealerRelation_parentOrgId_fkey(*)").eq("id", sessionOrgId)).data?.find(a => a.dealerRelations.find(b => b.dealerId === dealerId)))
 }

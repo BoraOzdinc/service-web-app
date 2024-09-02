@@ -9,44 +9,49 @@ import {
   CardHeader,
   CardTitle,
 } from "~/app/_components/ui/card";
+
+import Link from "next/link";
+import { CircleArrowLeftIcon } from "lucide-react";
 import { api } from "~/trpc/server";
 import { type RouterOutputs } from "~/trpc/shared";
 
-type itemsDataType =
-  RouterOutputs["storage"]["getBoxDetailsWithId"]["items"][number];
+type BoxDetailsType = RouterOutputs["storage"]["getBoxDetailsWithId"];
 
 const BoxDetail = () => {
-  const { boxId } = useParams<{ shelfId: string; boxId: string }>();
+  const { shelfId, boxId } = useParams<{ shelfId: string; boxId: string }>();
   const { data: boxDetails, isLoading } =
-    api.storage.getBoxDetailsWithId.useQuery({ boxId });
+    api.storage.getBoxDetailsWithId.useQuery({ boxId: boxId });
 
   if (isLoading) {
     return <Loader />;
   }
   return (
     <Card className="w-full">
-      <CardHeader>
-        <CardTitle>{boxDetails?.name}</CardTitle>
+      <CardHeader className="flex flex-row items-center gap-1 space-y-0">
+        <Link href={`/layout/${shelfId}`}>
+          <CircleArrowLeftIcon />
+        </Link>
+        <CardTitle className="mt-0">{boxDetails?.name}</CardTitle>
       </CardHeader>
       <CardContent>
-        <DataTable data={boxDetails?.items} columns={columns} />
+        <DataTable data={boxDetails?.ShelfItemDetail} columns={columns} />
       </CardContent>
     </Card>
   );
 };
 
-const columns: ColumnDef<itemsDataType>[] = [
+const columns: ColumnDef<
+  NonNullable<BoxDetailsType>["ShelfItemDetail"][number]
+>[] = [
   {
     accessorKey: "item",
     header: "Ürün",
     cell({
       row: {
-        original: {
-          item: { name },
-        },
+        original: { Item },
       },
     }) {
-      return name;
+      return Item?.name;
     },
   },
   { accessorKey: "quantity", header: "Adet" },
