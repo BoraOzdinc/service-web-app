@@ -3,7 +3,8 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { PERMS } from "../../../_constants/perms"
 import { $Enums } from "@prisma/client";
-
+import { isAuthorised } from "~/utils";
+import { createId } from '@paralleldrive/cuid2';
 
 export const nonEmptyString = z.string().trim().min(1).max(150);
 
@@ -23,8 +24,8 @@ const addItemSchema = z.object({
     stock: z.number().optional(),
     isSerialNoRequired: z.boolean(),
     isServiceItem: z.boolean(),
-    netWeight: z.string().optional(),
-    volume: z.string().optional(),
+    netWeight: z.number().optional(),
+    volume: z.number().optional(),
 });
 
 const itemSellSchema = z.object({
@@ -49,7 +50,11 @@ const itemSellSchema = z.object({
 
 export const itemsRouter = createTRPCRouter({
     getItems: protectedProcedure
-        .input(z.object({ dealerId: z.string().optional(), orgId: z.string().optional(), searchInput: z.string() }))
+        .input(z.object({
+            dealerId: z.string().optional(),
+            orgId: z.string().optional(),
+            searchInput: z.string(),
+        }))
         .query(async ({ ctx, input }) => {
             if (!input) {
                 throw new TRPCError({
@@ -59,48 +64,75 @@ export const itemsRouter = createTRPCRouter({
             }
             const userPerms = ctx.session.permissions
 
+            if (input.dealerId && userPerms.includes(PERMS.dealer_item_view)) {
+                const isUserAuthorised = await isAuthorised(ctx.supabase, ctx.session.orgId ?? "", input.dealerId ?? "")
+                if (!isUserAuthorised) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
 
-            if (!userPerms.includes(PERMS.item_view)) {
-                throw new TRPCError({
-                    code: "UNAUTHORIZED",
-                    message: "You don't have permission to do this!",
-                });
-            }
-
-            if (!userPerms.includes(PERMS.dealer_item_view) && !userPerms.includes(PERMS.item_view)) {
-                throw new TRPCError({
-                    code: "UNAUTHORIZED",
-                    message: "You don't have permission to do this!",
-                });
-            }
-
-            if (ctx.session.orgId) {
-                const { data, error } = await ctx.supabase
+                const { data } = await ctx.supabase
                     .from("Item")
                     .select("*,ItemColor(*),ItemSize(*),ItemCategory(*),ItemBrand(*),ItemStock(*,Storage(*)),itemBarcode(*)")
-                    .eq("orgId", ctx.session.orgId)
-
+                    .eq("orgId", input.dealerId)
 
                 if (data) {
                     return data
+                        .filter(
+                            (o) =>
+                                (o.itemBarcode.find((b) =>
+                                    b.barcode
+                                        .toLowerCase()
+                                        .includes(input.searchInput.toLowerCase()),
+                                ) ??
+                                    o.itemCode
+                                        .toLowerCase()
+                                        .includes(input.searchInput.toLowerCase())) ||
+                                o.name.toLowerCase().includes(input.searchInput.toLowerCase()),
+                        )
+                        .map((o) => {
+                            const totalStock = o.ItemStock.reduce((sum, s) => sum + s.stock, 0);
+                            return { ...o, totalStock };
+                        })
+                        .sort((a, b) => b.totalStock - a.totalStock);
                 }
 
-
-                throw new TRPCError({ code: "NOT_FOUND", message: JSON.stringify(error) })
             }
+            if (input.orgId && userPerms.includes(PERMS.item_view)) {
+                if (ctx.session.orgId === input.orgId) {
+                    const { data } = await ctx.supabase
+                        .from("Item")
+                        .select("*,ItemColor(*),ItemSize(*),ItemCategory(*),ItemBrand(*),ItemStock(*,Storage(*)),itemBarcode(*)")
+                        .eq("orgId", input.orgId)
 
-            if (ctx.session.dealerId) {
-                const a = await ctx.supabase
-                    .from("Item")
-                    .select("*,ItemColor(*),ItemSize(*),ItemCategory(*),ItemBrand(*),ItemStock(*,storage(*)),itemBarcode(*)")
-                    .eq("dealerId", ctx.session.dealerId)
-
-                if (a.data) {
-                    return a.data
+                    if (data) {
+                        return data
+                            .filter(
+                                (o) =>
+                                    (o.itemBarcode.find((b) =>
+                                        b.barcode
+                                            .toLowerCase()
+                                            .includes(input.searchInput.toLowerCase()),
+                                    ) ??
+                                        o.itemCode
+                                            .toLowerCase()
+                                            .includes(input.searchInput.toLowerCase())) ||
+                                    o.name.toLowerCase().includes(input.searchInput.toLowerCase()),
+                            )
+                            .map((o) => {
+                                const totalStock = o.ItemStock.reduce((sum, s) => sum + s.stock, 0);
+                                return { ...o, totalStock };
+                            })
+                            .sort((a, b) => b.totalStock - a.totalStock);
+                    }
                 }
-                throw new TRPCError({ code: "NOT_FOUND", message: "Ürün Bulunamadı!" })
             }
-            throw new TRPCError({ code: "UNAUTHORIZED", message: "You don't have permission to do this!" })
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
         }),
     getItemWithBarcode: protectedProcedure
         .input(z.object({ dealerId: z.string().optional(), orgId: z.string().optional(), barcode: nonEmptyString }))
@@ -113,33 +145,39 @@ export const itemsRouter = createTRPCRouter({
             }
             const userPerms = ctx.session.permissions
 
-            if (input.dealerId) {
-                if (!userPerms.includes(PERMS.item_accept)) {
-                    throw new TRPCError({
-                        code: "UNAUTHORIZED",
-                        message: "You don't have permission to do this!",
-                    });
-                }
-            }
-            if (input.orgId) {
-                if (!userPerms.includes(PERMS.item_accept)) {
+            if (input.dealerId && userPerms.includes(PERMS.dealer_item_view)) {
+                const isUserAuthorised = await isAuthorised(ctx.supabase, ctx.session.orgId ?? "", input.dealerId ?? "")
+                if (!isUserAuthorised) {
                     throw new TRPCError({
                         code: "UNAUTHORIZED",
                         message: "You don't have permission to do this!",
                     });
                 }
 
-            }
-            return await ctx.db.item.findFirst({
-                where: { dealerId: input.dealerId, orgId: input.orgId, itemBarcode: { some: { barcode: input.barcode } } },
-                include: {
-                    ItemStock: { select: { stock: true, storage: true } },
-                    itemBarcode: true,
-                    color: true,
-                    size: true
-                },
+                const { data } = await ctx.supabase
+                    .from("Item")
+                    .select("*,ItemColor(*),ItemSize(*),ItemCategory(*),ItemBrand(*),ItemStock(*,Storage(*)),itemBarcode(*)")
+                    .eq("orgId", input.dealerId)
 
-            })
+
+                return data?.find(i => i.itemBarcode.find(b => b.barcode === input.barcode))
+
+            }
+            if (input.orgId && userPerms.includes(PERMS.item_view)) {
+                if (ctx.session.orgId === input.orgId) {
+                    const { data } = await ctx.supabase
+                        .from("Item")
+                        .select("*,ItemColor(*),ItemSize(*),ItemCategory(*),ItemBrand(*),ItemStock(*,Storage(*)),itemBarcode(*)")
+                        .eq("orgId", input.orgId)
+
+                    return data?.find(i => i.itemBarcode.find(b => b.barcode === input.barcode))
+
+                }
+            }
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
         }),
     getItemWithId: protectedProcedure
         .input(nonEmptyString)
@@ -153,78 +191,121 @@ export const itemsRouter = createTRPCRouter({
             const userPerms = ctx.session.permissions
 
 
-            if (Boolean(ctx.session.dealerId)) {
-                if (!userPerms.includes(PERMS.item_view)) {
+            if (userPerms.includes(PERMS.item_view)) {
+                const { data: itemDetails } = await ctx.supabase
+                    .from("Item")
+                    .select("*,ItemColor(*),ItemSize(*),ItemCategory(*),ItemBrand(*),ItemStock(*,Storage(*)),itemBarcode(*)")
+                    .eq("id", input)
+                    .maybeSingle()
+
+                if (!itemDetails?.orgId) {
                     throw new TRPCError({
-                        code: "UNAUTHORIZED",
-                        message: "You don't have permission to do this!",
+                        code: "NOT_FOUND",
+                        message: "Item could not found!",
                     });
                 }
+                if (itemDetails.orgId === ctx.session.orgId ?? "") {
+                    const colors = (await ctx.supabase.from("ItemColor").select("*").eq("orgId", itemDetails.orgId)).data
+                    const sizes = (await ctx.supabase.from("ItemSize").select("*").eq("orgId", itemDetails.orgId)).data
+                    const categories = (await ctx.supabase.from("ItemCategory").select("*").eq("orgId", itemDetails.orgId)).data
+                    const brands = (await ctx.supabase.from("ItemBrand").select("*").eq("orgId", itemDetails.orgId)).data
+                    return { itemDetails, colors, sizes, categories, brands }
+                }
+
             }
-            if (Boolean(ctx.session.orgId)) {
-                if (!userPerms.includes(PERMS.dealer_item_view) && !userPerms.includes(PERMS.item_view)) {
+            if (userPerms.includes(PERMS.dealer_item_view)) {
+                const { data } = await ctx.supabase
+                    .from("Item")
+                    .select("*,ItemColor(*),ItemSize(*),ItemCategory(*),ItemBrand(*),ItemStock(*,Storage(*)),itemBarcode(*)")
+                    .eq("id", input)
+                    .maybeSingle()
+                if (!data?.orgId) {
                     throw new TRPCError({
-                        code: "UNAUTHORIZED",
-                        message: "You don't have permission to do this!",
+                        code: "NOT_FOUND",
+                        message: "Item could not found!",
                     });
                 }
-            }
-
-            const item = await ctx.db.item.findFirst({
-                where: { id: input, orgId: ctx.session.orgId, dealerId: ctx.session.dealerId },
-                include: {
-                    brand: true,
-                    category: true,
-                    color: true,
-                    itemBarcode: true,
-                    ItemHistory: { include: { fromStorage: true, toStorage: true, item: true, org: true, } },
-                    ItemStock: { include: { storage: true } },
-                    size: true,
+                const isUserAuthorised = await isAuthorised(ctx.supabase, ctx.session.orgId ?? "", data.orgId)
+                if (!isUserAuthorised) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this! authorisation",
+                    });
                 }
-            })
-            if (!item) {
-                throw new TRPCError({
-                    code: "UNAUTHORIZED",
-                    message: "You don't have permission to do this!",
-                });
+                const colors = (await ctx.supabase.from("ItemColor").select("*").eq("orgId", data.orgId)).data
+                const sizes = (await ctx.supabase.from("ItemSize").select("*").eq("orgId", data.orgId)).data
+                const categories = (await ctx.supabase.from("ItemCategory").select("*").eq("orgId", data.orgId)).data
+                const brands = (await ctx.supabase.from("ItemBrand").select("*").eq("orgId", data.orgId)).data
+                return { itemDetails: data, colors, sizes, categories, brands }
             }
-
-            return item
-
-
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
         }),
-    getStorages: protectedProcedure.query(async ({ ctx }) => {
 
+    getStorages: protectedProcedure.input(z.object({ itemId: z.string().optional() })).query(async ({ ctx, input: { itemId } }) => {
         const userPerms = ctx.session.permissions
 
-        if (!userPerms.includes(PERMS.item_view)) {
+        if (!userPerms.includes(PERMS.manage_storage)) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "You don't have permission to do this!",
             });
         }
 
-        if (ctx.session.orgId) {
-
-            const Storages = await ctx.db.storage.findMany({
-                where: { orgId: ctx.session.orgId },
+        if (!ctx.session.orgId) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
             });
-
-            return Storages
         }
-        if (ctx.session.dealerId) {
+        if (itemId) {
+            const item = (await ctx.supabase.from("Item").select("orgId").eq("id", itemId).maybeSingle()).data;
+            if (!item) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "Item could not found!",
+                });
+            }
+            if (item.orgId === ctx.session.orgId) {
+                const { data, error } = await ctx.supabase.from("Storage").select("*").eq("orgId", item.orgId)
+                if (error) {
+                    throw new TRPCError({
+                        code: "BAD_REQUEST",
+                        message: "Failed to get storage",
+                    });
+                }
+                return data
+            }
+            const isUserAuthorised = await isAuthorised(ctx.supabase, ctx.session.orgId ?? "", item.orgId ?? "")
+            if (!isUserAuthorised) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this!",
+                });
+            }
 
-            const Storages = await ctx.db.storage.findMany({
-                where: { dealerId: ctx.session.dealerId },
+            const { data: dealerStorages, error: dealerStoragesError } = await ctx.supabase.from("Storage").select("*").eq("orgId", item.orgId ?? "")
+            if (dealerStoragesError) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Failed to get dealer storage",
+                });
+            }
+            return dealerStorages
+        }
+        const { data: orgStorages, error: orgStoragesError } = await ctx.supabase.from("Storage").select("*").eq("orgId", ctx.session.orgId)
+        if (orgStoragesError) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Failed to get org storage",
             });
-
-            return Storages
         }
-        throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "Neither org member or dealer member",
-        });
+        return orgStorages
+
     }),
+
     addStorage: protectedProcedure
         .input(
             z.object({
@@ -234,33 +315,25 @@ export const itemsRouter = createTRPCRouter({
         .mutation(async ({ ctx, input }) => {
             const userPerms = ctx.session.permissions
 
-            if (ctx.session.orgId) {
-                if (!userPerms.includes(PERMS.manage_storage)) {
-                    throw new TRPCError({
-                        code: "UNAUTHORIZED",
-                        message: "You don't have permission to do this!",
-                    });
-                }
-                return await ctx.db.storage.create({
-                    data: { name: input.name, orgId: ctx.session.orgId },
+            if (!ctx.session.orgId) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this!",
                 });
             }
-            if (ctx.session.dealerId) {
-                if (!userPerms.includes(PERMS.manage_storage)) {
-                    throw new TRPCError({
-                        code: "UNAUTHORIZED",
-                        message: "You don't have permission to do this!",
-                    });
-                }
-                return await ctx.db.storage.create({
-                    data: { name: input.name, dealerId: ctx.session.dealerId },
+            if (!userPerms.includes(PERMS.manage_storage)) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this!",
                 });
             }
+            const { error } = await ctx.supabase.from("Storage").insert({ id: createId(), name: input.name, orgId: ctx.session.orgId })
+            if (error) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: "Error creating storage: " + error.message });
+            }
+            return "success"
 
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "Neither org member or dealer member",
-            });
+
         }),
     deleteStorage: protectedProcedure
         .input(nonEmptyString)
@@ -268,32 +341,22 @@ export const itemsRouter = createTRPCRouter({
             const userPerms = ctx.session.permissions
 
             if (ctx.session.orgId) {
-                if (!userPerms.includes(PERMS.manage_storage)) {
-                    throw new TRPCError({
-                        code: "UNAUTHORIZED",
-                        message: "You don't have permission to do this!",
-                    });
-                }
-                return await ctx.db.storage.delete({
-                    where: { id: input }
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this!",
                 });
             }
-            if (ctx.session.dealerId) {
-                if (!userPerms.includes(PERMS.manage_storage)) {
-                    throw new TRPCError({
-                        code: "UNAUTHORIZED",
-                        message: "You don't have permission to do this!",
-                    });
-                }
-                return await ctx.db.storage.delete({
-                    where: { id: input }
+            if (!userPerms.includes(PERMS.manage_storage)) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this!",
                 });
             }
-
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "Neither org member or dealer member",
-            });
+            const { error } = await ctx.supabase.from("Storage").delete().eq("id", input)
+            if (error) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: "Error deleting storage: " + error.message });
+            }
+            return "success"
         }),
     addItem: protectedProcedure
         .input(addItemSchema)
@@ -307,149 +370,70 @@ export const itemsRouter = createTRPCRouter({
                 });
             }
             if (ctx.session.orgId) {
-                const sameBarcodedItem = await ctx.db.itemBarcode.findFirst({
-                    where: {
-                        barcode: input.barcode,
-                        item: {
-                            orgId: ctx.session.orgId
-                        }
-                    },
-                    include: { item: true }
-                });
+                const sameBarcodedItem = (await ctx.supabase.from("itemBarcode").select("id,Item(orgId)").eq("barcode", input.barcode).maybeSingle()).data
                 if (sameBarcodedItem) {
                     throw new TRPCError({
                         code: "BAD_REQUEST",
                         message: "Aynı barkoda sahip bir ürün var!",
                     });
                 }
-                const item = await ctx.db.item.create({
-                    data: {
-                        orgId: ctx.session.orgId,
-                        itemBrandId: input.itemBrandId,
-                        name: input.productName,
-                        itemCode: input.itemCode,
-                        dealerPrice: input.dealerPrice,
-                        mainDealerPrice: input.mainDealerPrice,
-                        multiPrice: input.multiPrice,
-                        singlePrice: input.singlePrice,
-                        isSerialNoRequired: input.isSerialNoRequired,
-                        isServiceItem: input.isServiceItem,
-                        itemColorId: input.itemColorId,
-                        itemSizeId: input.itemSizeId,
-                        netWeight: input.netWeight,
-                        volume: input.volume,
-                        itemCategoryId: input.itemCategoryId,
-                    },
-                });
-                const itemBarcode = await ctx.db.itemBarcode.create({
-                    data: {
-                        isMaster: true,
-                        barcode: input.barcode,
-                        quantity: 1,
-                        unit: "Adet",
-                        itemId: item.id,
-                    },
-                });
-                if (input.storageId && input.stock) {
-                    const storage = await ctx.db.storage.findFirst({
-                        where: { id: input.storageId },
-                    });
-                    if (!storage) {
-                        throw new TRPCError({
-                            code: "BAD_REQUEST",
-                            message: "Depo Bulunamadı!",
-                        });
-                    }
-                    await ctx.db.itemStock.create({
-                        data: { stock: input.stock, itemId: item.id, storageId: storage.id },
-                    });
-                }
-                await ctx.db.itemHistory.create({
-                    data: {
-                        action: "AddItem",
-                        createdBy: ctx.session.email ?? "Bilinmeyen Kullanıcı",
-                        description: "",
-                        quantity: input.stock ?? 0,
-                        toStorageId: input.storageId,
-                        itemId: item.id,
-                        orgId: ctx.session.orgId,
-                        dealerId: ctx.session.dealerId
-                    }
-                })
-                return [item, itemBarcode];
-            }
-            if (ctx.session.dealerId) {
-                const sameBarcodedItem = await ctx.db.itemBarcode.findFirst({
-                    where: {
-                        barcode: input.barcode,
-                        item: {
-                            dealerId: ctx.session.dealerId
-                        }
-                    },
-                    include: { item: true }
-                });
-                if (sameBarcodedItem) {
+                const itemData = {
+                    id: createId(),
+                    orgId: ctx.session.orgId,
+                    itemBrandId: input.itemBrandId,
+                    name: input.productName,
+                    itemCode: input.itemCode,
+                    dealerPrice: input.dealerPrice ?? null,
+                    mainDealerPrice: input.mainDealerPrice ?? null,
+                    multiPrice: input.multiPrice ?? null,
+                    singlePrice: input.singlePrice ?? null,
+                    isSerialNoRequired: input.isSerialNoRequired,
+                    isServiceItem: input.isServiceItem,
+                    itemColorId: input.itemColorId,
+                    itemSizeId: input.itemSizeId,
+                    netWeight: input.netWeight,
+                    volume: input.volume,
+                    itemCategoryId: input.itemCategoryId,
+                    updateDate: new Date().toUTCString(),
+                    createDate: new Date().toUTCString()
+                };
+                const { data: item, error } = await ctx.supabase.from("Item").insert(itemData).select("*").single()
+                if (error) {
                     throw new TRPCError({
                         code: "BAD_REQUEST",
-                        message: "Aynı barkoda sahip bir ürün var!",
-                    });
+                        message: "Error creating item: " + error.message
+                    })
                 }
-                const item = await ctx.db.item.create({
-                    data: {
-                        dealerId: ctx.session.dealerId,
-                        itemBrandId: input.itemBrandId,
-                        name: input.productName,
-                        itemCode: input.itemCode,
-                        dealerPrice: input.dealerPrice,
-                        mainDealerPrice: input.mainDealerPrice,
-                        multiPrice: input.multiPrice,
-                        singlePrice: input.singlePrice,
-                        isSerialNoRequired: input.isSerialNoRequired,
-                        isServiceItem: input.isServiceItem,
-                        itemColorId: input.itemColorId,
-                        itemSizeId: input.itemSizeId,
-                        netWeight: input.netWeight,
-                        volume: input.volume,
-                        itemCategoryId: input.itemCategoryId,
-                    },
-                });
-                const itemBarcode = await ctx.db.itemBarcode.create({
-                    data: {
-                        isMaster: true,
-                        barcode: input.barcode,
-                        quantity: 1,
-                        unit: "Adet",
-                        itemId: item.id,
-                    },
-                });
+                const { data: itemBarcode, error: itemBarcodeError } = await ctx.supabase.from("itemBarcode").insert({
+                    id: createId(),
+                    itemId: item.id,
+                    barcode: input.barcode,
+                    unit: "Adet",
+                    quantity: 1,
+                    isMaster: true,
+                })
+                if (itemBarcodeError) {
+                    throw new TRPCError({
+                        code: "BAD_REQUEST",
+                        message: "Error creating item barcode: " + itemBarcodeError.message
+                    })
+                }
                 if (input.storageId && input.stock) {
-                    const storage = await ctx.db.storage.findFirst({
-                        where: { id: input.storageId },
-                    });
+                    const storage = (await ctx.supabase.from("Storage").select("*").eq("id", input.storageId).maybeSingle()).data
+
                     if (!storage) {
                         throw new TRPCError({
                             code: "BAD_REQUEST",
                             message: "Depo Bulunamadı!",
                         });
                     }
-                    await ctx.db.itemStock.create({
-                        data: { stock: input.stock, itemId: item.id, storageId: storage.id },
-                    });
+                    await ctx.supabase.from("ItemStock").insert({ id: createId(), itemId: item.id, storageId: storage.id, stock: input.stock })
+
                 }
-                await ctx.db.itemHistory.create({
-                    data: {
-                        action: "AddItem",
-                        createdBy: ctx.session.email ?? "Bilinmeyen Kullanıcı",
-                        description: "",
-                        quantity: input.stock ?? 0,
-                        toStorageId: input.storageId,
-                        itemId: item.id,
-                        orgId: ctx.session.orgId,
-                        dealerId: ctx.session.dealerId
-                    }
-                })
+
                 return [item, itemBarcode];
             }
+
 
             throw new TRPCError({
                 code: "UNAUTHORIZED",
@@ -475,9 +459,8 @@ export const itemsRouter = createTRPCRouter({
                 stock: z.number().optional(),
                 isSerialNoRequired: z.boolean(),
                 isServiceItem: z.boolean(),
-                netWeight: z.string().optional(),
-                volume: z.string().optional(),
-                description: nonEmptyString
+                netWeight: z.number().optional(),
+                volume: z.number().optional(),
             }),
         )
         .mutation(async ({ ctx, input }) => {
@@ -490,106 +473,79 @@ export const itemsRouter = createTRPCRouter({
                 });
             }
             if (ctx.session.orgId) {
-                const item = await ctx.db.item.update({
-                    where: { id: input.itemId },
-                    data: {
-                        orgId: ctx.session.orgId,
-                        itemBrandId: input.itemBrandId,
-                        name: input.productName,
-                        itemCode: input.itemCode,
-                        dealerPrice: input.dealerPrice,
-                        mainDealerPrice: input.mainDealerPrice,
-                        multiPrice: input.multiPrice,
-                        singlePrice: input.singlePrice,
-                        isSerialNoRequired: input.isSerialNoRequired,
-                        isServiceItem: input.isServiceItem,
-                        itemColorId: input.itemColorId,
-                        itemSizeId: input.itemSizeId,
-                        netWeight: input.netWeight,
-                        volume: input.volume,
-                        itemCategoryId: input.itemCategoryId,
-                    },
-                });
-                await ctx.db.itemHistory.create({
-                    data: {
-                        action: "UpdateItem",
-                        createdBy: ctx.session.email ?? "Bilinmeyen Kullanıcı",
-                        description: input.description,
-                        quantity: input.stock ?? 0,
-                        toStorageId: input.storageId,
-                        itemId: item.id,
-                        orgId: ctx.session.orgId,
-                        dealerId: ctx.session.dealerId
+                const item = (await ctx.supabase.from("Item").select("orgId").eq("id", input.itemId).single()).data
+                if (item?.orgId !== ctx.session.orgId) {
+                    const isUserAuthorised = await isAuthorised(ctx.supabase, ctx.session.orgId ?? "", item?.orgId ?? "")
+                    if (!isUserAuthorised) {
+                        throw new TRPCError({
+                            code: "UNAUTHORIZED",
+                            message: "You don't have permission to do this!",
+                        });
                     }
-                })
-                return item
+                }
+                return await ctx.supabase.from("Item").update({
+                    itemBrandId: input.itemBrandId,
+                    name: input.productName,
+                    itemCode: input.itemCode,
+                    dealerPrice: input.dealerPrice,
+                    mainDealerPrice: input.mainDealerPrice,
+                    multiPrice: input.multiPrice,
+                    singlePrice: input.singlePrice,
+                    isSerialNoRequired: input.isSerialNoRequired,
+                    isServiceItem: input.isServiceItem,
+                    itemColorId: input.itemColorId,
+                    itemSizeId: input.itemSizeId,
+                    netWeight: input.netWeight,
+                    volume: input.volume,
+                    itemCategoryId: input.itemCategoryId,
+                }).eq("id", input.itemId)
             }
-            if (ctx.session.dealerId) {
-                const item = await ctx.db.item.update({
-                    where: { id: input.itemId },
-                    data: {
-                        dealerId: ctx.session.dealerId,
-                        itemBrandId: input.itemBrandId,
-                        name: input.productName,
-                        itemCode: input.itemCode,
-                        dealerPrice: input.dealerPrice,
-                        mainDealerPrice: input.mainDealerPrice,
-                        multiPrice: input.multiPrice,
-                        singlePrice: input.singlePrice,
-                        isSerialNoRequired: input.isSerialNoRequired,
-                        isServiceItem: input.isServiceItem,
-                        itemColorId: input.itemColorId,
-                        itemSizeId: input.itemSizeId,
-                        netWeight: input.netWeight,
-                        volume: input.volume,
-                        itemCategoryId: input.itemCategoryId,
-                    },
-                });
-                await ctx.db.itemHistory.create({
-                    data: {
-                        action: "UpdateItem",
-                        createdBy: ctx.session.email ?? "Bilinmeyen Kullanıcı",
-                        description: input.description,
-                        quantity: input.stock ?? 0,
-                        toStorageId: input.storageId,
-                        itemId: item.id,
-                        orgId: ctx.session.orgId,
-                        dealerId: ctx.session.dealerId
-                    }
-                })
-                return item
-            }
+
 
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "You don't have permission to do this!",
             });
         }),
-    getColors: protectedProcedure.query(async ({ ctx }) => {
+    getColors: protectedProcedure.input(z.object({ itemId: z.string().optional() })).query(async ({ ctx, input: { itemId } }) => {
         const userPerms = ctx.session.permissions
-        if (ctx.session.orgId) {
-            if (!userPerms.includes(PERMS.item_setting_view)) {
-                throw new TRPCError({
-                    code: "UNAUTHORIZED",
-                    message: "You don't have permission to do this!",
-                });
-            }
-            return (await ctx.supabase.from("ItemColor").select("*").eq("orgId", ctx.session.orgId)).data
+
+        if (!userPerms.includes(PERMS.item_setting_view)) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
         }
 
-        if (ctx.session.dealerId) {
-            if (!userPerms.includes(PERMS.item_setting_view)) {
+        if (!ctx.session.orgId) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
+        }
+        if (itemId) {
+            const item = (await ctx.supabase.from("Item").select("orgId").eq("id", itemId).maybeSingle()).data;
+            if (!item) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "Item could not found!",
+                });
+            }
+            if (item.orgId === ctx.session.orgId) {
+                return (await ctx.supabase.from("ItemColor").select("*").eq("orgId", item.orgId)).data
+            }
+            const isUserAuthorised = await isAuthorised(ctx.supabase, ctx.session.orgId ?? "", item.orgId ?? "")
+            if (!isUserAuthorised) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
                     message: "You don't have permission to do this!",
                 });
             }
-            return (await ctx.supabase.from("ItemColor").select("*").eq("dealerId", ctx.session.dealerId)).data
+            return (await ctx.supabase.from("ItemColor").select("*").eq("orgId", item.orgId ?? "")).data
+
         }
-        throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "You don't have permission to do this!",
-        });
+        return (await ctx.supabase.from("ItemColor").select("*").eq("orgId", ctx.session.orgId)).data
+
     }),
     addColor: protectedProcedure
         .input(
@@ -604,44 +560,52 @@ export const itemsRouter = createTRPCRouter({
                         message: "You don't have permission to do this!",
                     });
                 }
-                return await ctx.db.itemColor.create({ data: { orgId: ctx.session.orgId, colorCode: input.colorCode, colorText: input.colorText } })
+                await ctx.supabase.from("ItemColor").insert({
+                    id: createId(), orgId: ctx.session.orgId, colorCode: input.colorCode, colorText: input.colorText
+                })
+                return "success"
             }
 
-            if (ctx.session.dealerId) {
-                if (!userPerms.includes(PERMS.manage_item_setting)) {
-                    throw new TRPCError({
-                        code: "UNAUTHORIZED",
-                        message: "You don't have permission to do this!",
-                    });
-                }
-                return await ctx.db.itemColor.create({ data: { dealerId: ctx.session.dealerId, colorCode: input.colorCode, colorText: input.colorText } })
-            }
         }),
-    getSizes: protectedProcedure.query(async ({ ctx }) => {
+    getSizes: protectedProcedure.input(z.object({ itemId: z.string().optional() })).query(async ({ ctx, input: { itemId } }) => {
         const userPerms = ctx.session.permissions
-        if (ctx.session.orgId) {
-            if (!userPerms.includes(PERMS.item_setting_view)) {
-                throw new TRPCError({
-                    code: "UNAUTHORIZED",
-                    message: "You don't have permission to do this!",
-                });
-            }
-            return (await ctx.supabase.from("ItemSize").select("*").eq("orgId", ctx.session.orgId)).data
+
+        if (!userPerms.includes(PERMS.item_setting_view)) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
         }
 
-        if (ctx.session.dealerId) {
-            if (!userPerms.includes(PERMS.item_setting_view)) {
+        if (!ctx.session.orgId) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
+        }
+        if (itemId) {
+            const item = (await ctx.supabase.from("Item").select("orgId").eq("id", itemId).maybeSingle()).data;
+            if (!item) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "Item could not found!",
+                });
+            }
+            if (item.orgId === ctx.session.orgId) {
+                return (await ctx.supabase.from("ItemSize").select("*").eq("orgId", item.orgId)).data
+            }
+            const isUserAuthorised = await isAuthorised(ctx.supabase, ctx.session.orgId ?? "", item.orgId ?? "")
+            if (!isUserAuthorised) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
                     message: "You don't have permission to do this!",
                 });
             }
-            return (await ctx.supabase.from("ItemSize").select("*").eq("dealerId", ctx.session.dealerId)).data
+            return (await ctx.supabase.from("ItemSize").select("*").eq("orgId", item.orgId ?? "")).data
+
         }
-        throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "You don't have permission to do this!",
-        });
+        return (await ctx.supabase.from("ItemSize").select("*").eq("orgId", ctx.session.orgId)).data
+
     }),
     addSize: protectedProcedure
         .input(
@@ -656,45 +620,53 @@ export const itemsRouter = createTRPCRouter({
                         message: "You don't have permission to do this!",
                     });
                 }
-                return await ctx.db.itemSize.create({ data: { orgId: ctx.session.orgId, sizeCode: input.sizeCode, sizeText: input.sizeText } })
+                await ctx.supabase.from("ItemSize").insert({ id: createId(), orgId: ctx.session.orgId, sizeCode: input.sizeCode, sizeText: input.sizeText })
+
+                return "success"
             }
 
-            if (ctx.session.dealerId) {
-                if (!userPerms.includes(PERMS.manage_item_setting)) {
-                    throw new TRPCError({
-                        code: "UNAUTHORIZED",
-                        message: "You don't have permission to do this!",
-                    });
-                }
-                return await ctx.db.itemSize.create({ data: { dealerId: ctx.session.dealerId, sizeCode: input.sizeCode, sizeText: input.sizeText } })
-            }
         }),
-    getCategory: protectedProcedure.query(async ({ ctx }) => {
+    getCategory: protectedProcedure.input(z.object({ itemId: z.string().optional() })).query(async ({ ctx, input: { itemId } }) => {
         const userPerms = ctx.session.permissions
-        if (ctx.session.orgId) {
-            if (!userPerms.includes(PERMS.item_setting_view)) {
-                throw new TRPCError({
-                    code: "UNAUTHORIZED",
-                    message: "You don't have permission to do this!",
-                });
-            }
-            return (await ctx.supabase.from("ItemCategory").select("*").eq("orgId", ctx.session.orgId)).data
+
+        if (!userPerms.includes(PERMS.item_setting_view)) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
         }
 
-        if (ctx.session.dealerId) {
-            if (!userPerms.includes(PERMS.item_setting_view)) {
+        if (!ctx.session.orgId) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
+        }
+        if (itemId) {
+            const item = (await ctx.supabase.from("Item").select("orgId").eq("id", itemId).maybeSingle()).data;
+            if (!item) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "Item could not found!",
+                });
+            }
+            if (item.orgId === ctx.session.orgId) {
+                return (await ctx.supabase.from("ItemCategory").select("*").eq("orgId", item.orgId)).data
+            }
+            const isUserAuthorised = await isAuthorised(ctx.supabase, ctx.session.orgId ?? "", item.orgId ?? "")
+            if (!isUserAuthorised) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
                     message: "You don't have permission to do this!",
                 });
             }
-            return (await ctx.supabase.from("ItemCategory").select("*").eq("dealerId", ctx.session.dealerId)).data
+            return (await ctx.supabase.from("ItemCategory").select("*").eq("orgId", item.orgId ?? "")).data
+
         }
-        throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "You don't have permission to do this!",
-        });
+        return (await ctx.supabase.from("ItemCategory").select("*").eq("orgId", ctx.session.orgId)).data
+
     }),
+
     addCategory: protectedProcedure
         .input(z.string().min(1))
         .mutation(async ({ ctx, input }) => {
@@ -706,44 +678,53 @@ export const itemsRouter = createTRPCRouter({
                         message: "You don't have permission to do this!",
                     });
                 }
-                return await ctx.db.itemCategory.create({ data: { orgId: ctx.session.orgId, name: input } })
+                await ctx.supabase.from("ItemCategory").insert({ id: createId(), orgId: ctx.session.orgId, name: input })
+
+
+                return "success"
             }
 
-            if (ctx.session.dealerId) {
-                if (!userPerms.includes(PERMS.manage_item_setting)) {
-                    throw new TRPCError({
-                        code: "UNAUTHORIZED",
-                        message: "You don't have permission to do this!",
-                    });
-                }
-                return await ctx.db.itemCategory.create({ data: { dealerId: ctx.session.dealerId, name: input } })
-            }
         }),
-    getBrands: protectedProcedure.query(async ({ ctx }) => {
+    getBrands: protectedProcedure.input(z.object({ itemId: z.string().optional() })).query(async ({ ctx, input: { itemId } }) => {
         const userPerms = ctx.session.permissions
-        if (ctx.session.orgId) {
-            if (!userPerms.includes(PERMS.item_setting_view)) {
-                throw new TRPCError({
-                    code: "UNAUTHORIZED",
-                    message: "You don't have permission to do this!",
-                });
-            }
-            return (await ctx.supabase.from("ItemBrand").select("*").eq("orgId", ctx.session.orgId)).data
+
+        if (!userPerms.includes(PERMS.item_setting_view)) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
         }
 
-        if (ctx.session.dealerId) {
-            if (!userPerms.includes(PERMS.item_setting_view)) {
+        if (!ctx.session.orgId) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
+        }
+        if (itemId) {
+            const item = (await ctx.supabase.from("Item").select("orgId").eq("id", itemId).maybeSingle()).data;
+
+            if (!item) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "Item could not found!",
+                });
+            }
+            if (item.orgId === ctx.session.orgId) {
+                return (await ctx.supabase.from("ItemBrand").select("*").eq("orgId", item.orgId)).data
+            }
+            const isUserAuthorised = await isAuthorised(ctx.supabase, ctx.session.orgId ?? "", item.orgId ?? "")
+            if (!isUserAuthorised) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
                     message: "You don't have permission to do this!",
                 });
             }
-            return (await ctx.supabase.from("ItemBrand").select("*").eq("dealerId", ctx.session.dealerId)).data
+            return (await ctx.supabase.from("ItemBrand").select("*").eq("orgId", item.orgId ?? "")).data
+
         }
-        throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "You don't have permission to do this!",
-        });
+        return (await ctx.supabase.from("ItemBrand").select("*").eq("orgId", ctx.session.orgId)).data
+
     }),
     addBrands: protectedProcedure
         .input(z.string().min(1))
@@ -756,26 +737,20 @@ export const itemsRouter = createTRPCRouter({
                         message: "You don't have permission to do this!",
                     });
                 }
-                return await ctx.db.itemBrand.create({ data: { orgId: ctx.session.orgId, name: input } })
+                await ctx.supabase.from("ItemBrand").insert({ id: createId(), orgId: ctx.session.orgId, name: input })
+
+                return "success"
             }
 
-            if (ctx.session.dealerId) {
-                if (!userPerms.includes(PERMS.manage_item_setting)) {
-                    throw new TRPCError({
-                        code: "UNAUTHORIZED",
-                        message: "You don't have permission to do this!",
-                    });
-                }
-                return await ctx.db.itemBrand.create({ data: { dealerId: ctx.session.dealerId, name: input } })
-            }
         }),
     addBarcode: protectedProcedure
         .input(
             z.object({
-                itemId: z.string().min(1),
-                barcode: z.string().min(1),
-                unit: z.string().min(1),
-                quantity: z.string().min(1),
+                orgId: nonEmptyString,
+                itemId: nonEmptyString,
+                barcode: nonEmptyString,
+                unit: nonEmptyString,
+                quantity: nonEmptyString,
                 isMaster: z.boolean(),
             }),
         )
@@ -788,34 +763,51 @@ export const itemsRouter = createTRPCRouter({
                     message: "You don't have permission to do this!",
                 });
             }
-            const getBarcode = await ctx.db.itemBarcode.findFirst({
-                where: { barcode: input.barcode },
-            });
-            if (getBarcode) {
+
+            if (input.orgId !== ctx.session.orgId) {
+                const isUserAuthorised = await isAuthorised(ctx.supabase, ctx.session.orgId ?? "", input.orgId ?? "")
+                if (!isUserAuthorised) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
+            }
+            const barcode = await ctx.supabase.from("itemBarcode").select("*,Item(orgId)").eq("barcode", input.barcode)
+
+            if (barcode.data?.filter(b => b.Item?.orgId === input.orgId).length) {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
                     message: "Bu barkod kullanılıyor!",
                 });
             }
 
-            const masterBarcode = await ctx.db.itemBarcode.findFirst({
-                where: { isMaster: true, itemId: input.itemId },
-            });
+            const { data: masterBarcode } = await ctx.supabase
+                .from('itemBarcode')
+                .select('*')
+                .eq('isMaster', true)
+                .eq('itemId', input.itemId)
+                .single();
+
             if (input.isMaster && masterBarcode) {
-                await ctx.db.itemBarcode.update({
-                    where: { id: masterBarcode.id },
-                    data: { isMaster: false },
-                });
+                await ctx.supabase
+                    .from('itemBarcode')
+                    .update({ isMaster: false })
+                    .eq('id', masterBarcode.id);
             }
-            return await ctx.db.itemBarcode.create({
-                data: {
-                    barcode: input.barcode,
-                    isMaster: input.isMaster,
-                    unit: input.unit,
-                    quantity: +input.quantity,
-                    itemId: input.itemId,
-                },
-            });
+            const { error } = await ctx.supabase.from("itemBarcode").insert({
+                id: createId(),
+                itemId: input.itemId,
+                barcode: input.barcode,
+                unit: input.unit,
+                quantity: +input.quantity,
+                isMaster: input.isMaster,
+            })
+            if (error) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: "Error creating item barcode: " + error.message });
+            }
+
+            return "success"
         }),
     updateBarcode: protectedProcedure.input(z.object({
         barcodeId: z.string().min(1),
@@ -832,45 +824,113 @@ export const itemsRouter = createTRPCRouter({
                 message: "You don't have permission to do this!",
             });
         }
-        const barcode = await ctx.db.itemBarcode.findUnique({ where: { id: input.barcodeId } })
+
+        const barcode = (await ctx.supabase.from("itemBarcode").select("*,Item(orgId)").eq("id", input.barcodeId).single()).data
+        if (barcode?.Item?.orgId !== ctx.session.orgId) {
+            const isUserAuthorised = await isAuthorised(ctx.supabase, ctx.session.orgId ?? "", barcode?.Item?.orgId ?? "")
+            if (!isUserAuthorised) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this!",
+                });
+            }
+        }
         if (!barcode) {
             throw new TRPCError({
                 code: "BAD_REQUEST",
                 message: "Barkod Bulunamadı!",
             });
         }
-        const masterBarcode = await ctx.db.itemBarcode.findFirst({
-            where: { isMaster: true, itemId: barcode.itemId },
-        });
-        if (input.isMaster && masterBarcode) {
-            await ctx.db.itemBarcode.update({
-                where: { id: masterBarcode.id },
-                data: { isMaster: false },
+        const masterBarcode = (await ctx.supabase.from("itemBarcode").select("*,Item(orgId)").eq("isMaster", true).eq("itemId", barcode.itemId).single()).data
+
+        if (barcode.id === masterBarcode?.id && !input.isMaster) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "En az bir adet ana barkod olmalıdır!",
             });
         }
-        return await ctx.db.itemBarcode.update({
-            where: { id: input.barcodeId },
-            data: {
+        if (input.isMaster && masterBarcode && barcode.id !== masterBarcode.id) {
+            console.log("amk hadi ya");
+
+            const { error } = await ctx.supabase
+                .from('itemBarcode')
+                .update({ isMaster: false })
+                .eq('id', masterBarcode.id);
+
+            if (error) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: "Error updating master barcode: " + error.message });
+            }
+
+        }
+        const { data: updatedBarcode, error } = await ctx.supabase
+            .from('itemBarcode')
+            .update({
                 barcode: input.barcode,
                 isMaster: input.isMaster,
                 quantity: Number(input.quantity),
                 unit: input.unit
+            })
+            .eq('id', input.barcodeId)
+            .select()
+            .single();
+
+        if (error) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Failed to update the barcode",
+            });
+        }
+
+        return updatedBarcode;
+
+    }),
+    deleteBarcode: protectedProcedure.input(z.object({
+        barcodeId: z.string().min(1),
+    })).mutation(async ({ input: { barcodeId }, ctx }) => {
+        const userPerms = ctx.session.permissions
+
+        if (!userPerms.includes(PERMS.manage_items)) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
+        }
+
+        const barcode = (await ctx.supabase.from("itemBarcode").select("*,Item(id,orgId)").eq("id", barcodeId).single()).data
+        if (barcode?.Item?.orgId !== ctx.session.orgId) {
+            const isUserAuthorised = await isAuthorised(ctx.supabase, ctx.session.orgId ?? "", barcode?.Item?.orgId ?? "")
+            if (!isUserAuthorised) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this!",
+                });
             }
-        })
+        }
+        if (!barcode) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Barkod Bulunamadı!",
+            });
+        }
+
+        const masterBarcode = (await ctx.supabase.from("itemBarcode").select("*,Item(id,orgId)").eq("isMaster", true).eq("itemId", barcode.itemId).single()).data
+
+        if (barcode.id === masterBarcode?.id) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Ana barkod silinemez! Ana barkod silmek için önce başka bir ana barkod atayın!",
+            });
+        }
+        const { error } = await ctx.supabase.from("itemBarcode").delete().eq("id", barcodeId)
+        if (error) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Error deleting item barcode: " + error.message });
+        }
+
+
+        return "success"
     }),
     itemAccept: protectedProcedure
         .input(
-            /* {
-                storageId:string
-                fromCustomerId:string
-                items:[
-                    {
-                        itemId:string,
-                        barcode:string
-                        quantity:number
-                    }
-                ]
-            }*/
             z.object({
                 storageId: nonEmptyString,
                 fromCustomerId: nonEmptyString,
@@ -895,175 +955,215 @@ export const itemsRouter = createTRPCRouter({
                     message: "You don't have permission to do this!",
                 });
             }
-
-            const storage = await ctx.db.storage.findFirst({
-                where: {
-                    orgId: ctx.session.orgId,
-                    dealerId: ctx.session.dealerId,
-                    id: input.storageId
-                },
-                include: { ItemStock: { include: { item: true } } }
-            })
+            const { data: storage, error: storageError } = await ctx.supabase.from("Storage").select("*,ItemStock(Item(*))").eq("id", input.storageId).single()
+            if (storageError) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this!",
+                });
+            }
             if (!storage) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
                     message: "You don't have permission to do this!",
                 });
             }
-            const history = await ctx.db.itemAcceptHistory.create({
-                data: {
-                    orgId: ctx.session.orgId,
-                    dealerId: ctx.session.dealerId,
-                    name: ctx.session.email ?? "Bilinmeyen Kullanıcı",
-                    storageId: storage.id,
-                    customerId: input.fromCustomerId
-                }
-            });
             input.items.map(async (i) => {
-                const existingItemStock = await ctx.db.itemStock.findFirst({
-                    where: {
-                        item: { orgId: ctx.session.orgId, dealerId: ctx.session.dealerId },
-                        itemId: i.itemId
-                    }
-                })
-                const barcodeDetails = await ctx.db.itemBarcode.findFirst({
-                    where: {
-                        barcode: i.barcode,
-                        item: { orgId: ctx.session.orgId, dealerId: ctx.session.dealerId },
-                    }
-                })
-
-                if (!barcodeDetails) {
+                const { data: existingItemStock, error: itemStockError } = await ctx.supabase.from("ItemStock").select("*,Item(*)").eq("itemId", i.itemId).eq("storageId", input.storageId).single()
+                if (itemStockError) {
                     throw new TRPCError({
-                        code: "UNAUTHORIZED",
-                        message: "You don't have permission to do this!",
+                        code: "BAD_REQUEST",
+                        message: "Depo bulunamadı!",
+                    });
+                }
+                const { data: barcodeDetails, error: barcodeError } = await ctx.supabase.from("itemBarcode").select("*,Item(*)").eq("barcode", i.barcode).eq("itemId", i.itemId).single()
+                if (barcodeError) {
+                    throw new TRPCError({
+                        code: "BAD_REQUEST",
+                        message: "Barkod Bulunamadı!",
                     });
                 }
                 if (existingItemStock) {
-                    await ctx.db.itemStock.update({ where: { id: existingItemStock.id }, data: { stock: (i.quantity * barcodeDetails.quantity) + existingItemStock.stock } })
+                    const { error } = await ctx.supabase.from("ItemStock").update({ stock: (i.quantity * barcodeDetails.quantity) + existingItemStock.stock }).eq("id", existingItemStock.id)
+                    if (error) {
+                        throw new TRPCError({
+                            code: "BAD_REQUEST",
+                            message: error.message,
+                        });
+                    }
                 } else {
-                    await ctx.db.itemStock.create({ data: { itemId: i.itemId, stock: i.quantity * barcodeDetails.quantity, storageId: storage.id } })
+                    const { error } = await ctx.supabase.from("ItemStock").insert({ id: createId(), itemId: i.itemId, stock: i.quantity * barcodeDetails.quantity, storageId: input.storageId })
+                    if (error) {
+                        throw new TRPCError({
+                            code: "BAD_REQUEST",
+                            message: error.message,
+                        });
+                    }
                 }
-                await ctx.db.itemAcceptDetail.create({
-                    data: {
+                const { data: history, error } = await ctx.supabase.from("ItemAcceptHistory")
+                    .insert({
+                        id: createId(),
+                        customerId: input.fromCustomerId,
+                        storageId: input.storageId,
+                        name: ctx.session.email ?? "Bilinmeyen Kullanıcı",
+                        orgId: ctx.session.orgId,
+                        createDate: new Date().toUTCString()
+                    }).select().single()
+                if (error) {
+                    throw new TRPCError({
+                        code: "INTERNAL_SERVER_ERROR",
+                        message: "Internal Server Error",
+                    });
+                }
+                await ctx.supabase.from("ItemAcceptDetail")
+                    .insert({
+                        id: createId(),
                         itemId: i.itemId,
                         itemAcceptHistoryId: history.id,
                         itemBarcodeId: barcodeDetails.id,
                         quantity: i.quantity,
-                    }
-                })
-
+                    })
             })
-            return history
+            return "success"
         }),
-    getItemAcceptHistory: protectedProcedure.query(async ({ ctx }) => {
-        const userPerms = ctx.session.permissions
-
-        if (!userPerms.includes(PERMS.item_accept_history_view)) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You don't have permission to do this!",
-            });
-        }
-        return await ctx.db.itemAcceptHistory.findMany({
-            where: {
-                orgId: ctx.session.orgId,
-                dealerId: ctx.session.dealerId
-            },
-            orderBy: { createDate: "desc" },
-            include: {
-                items: {
-                    include: { item: true, itemBarcode: true }
-                },
-                from: true,
-                storage: true,
-            }
-        })
-    }),
-    getItemSellHistory: protectedProcedure.query(async ({ ctx }) => {
-        const userPerms = ctx.session.permissions
-
-        if (!userPerms.includes(PERMS.item_sell_history_view)) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You don't have permission to do this!",
-            });
-        }
-        return await ctx.db.transaction.findMany({
-            where: {
-                transactionType: "Sale",
-                orgId: ctx.session.orgId,
-                dealerId: ctx.session.dealerId
-            },
-            orderBy: { createDate: "desc" },
-            include: {
-                items: { include: { item: { include: { itemBarcode: true } } } },
-                storage: true,
-                customer: true,
-                employee: true
-            }
-        })
-    }),
     itemSell: protectedProcedure.input(itemSellSchema).mutation(async ({ input, ctx }) => {
         const userPerms = ctx.session.permissions
 
         if (!userPerms.includes(PERMS.item_sell)) {
 
         }
-        const customer = await ctx.db.customer.findUnique({ where: { id: input.customerId } })
-        if (!customer) {
+        const { data: customer, error } = await ctx.supabase.from("Customer").select("*").eq("id", input.customerId).single()
+        if (error) {
             throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You don't have permission to do this!",
+                code: "BAD_REQUEST",
+                message: "Failed to get customer",
             });
         }
-        const storage = await ctx.db.storage.findUnique({ where: { id: input.storageId } })
-        if (!storage) {
+        const { data: storage, error: storageError } = await ctx.supabase.from("Storage").select("*").eq("id", input.storageId).single()
+        if (storageError) {
             throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You don't have permission to do this!",
+                code: "BAD_REQUEST",
+                message: "Failed to get storage",
             });
         }
+
         const priceEnum = z.nativeEnum($Enums.PriceType);
         const priceType = priceEnum.parse(input.selectedPriceType);
 
         if (!input.saleCancel) {
             input.items.map(async (i) => {
-                const itemStock = await ctx.db.itemStock.findFirst({ where: { itemId: i.itemId, storageId: storage.id } })
-                if (!itemStock) {
+                const itemStock = await ctx.supabase.from("ItemStock").select("*").eq("itemId", i.itemId).eq("storageId", storage.id).single()
+                if (itemStock.error) {
                     throw new TRPCError({
                         code: "UNAUTHORIZED",
                         message: "You don't have permission to do this!",
                     });
                 }
-                const remainingStock = itemStock.stock - i.totalAdded
+                console.log(itemStock.data);
+
+                const remainingStock = itemStock.data.stock - i.totalAdded
                 if (remainingStock < 0) {
                     throw new TRPCError({
                         code: "BAD_REQUEST",
                         message: "Deponuzdaki Ürünler Yeterli Değil",
                     });
                 }
-                await ctx.db.itemStock.update({ where: { id: itemStock?.id }, data: { stock: remainingStock } })
+                const { error } = await ctx.supabase.from("ItemStock").update({ stock: remainingStock }).eq("id", itemStock.data?.id)
+                console.log(error);
+
+                if (error) {
+                    throw new TRPCError({
+                        code: "BAD_REQUEST",
+                        message: "Failed to update stock " + error.message,
+                    });
+                }
             })
         }
         const member = await ctx.supabase.from("Member").select("*").eq("userEmail", ctx.session.email ?? "").maybeSingle()
-        const transaction = await ctx.db.transaction.create({
-            data: {
-                memberId: member.data?.id,
-                dealerId: input.transferToDealer ? customer.connectedDealerId : null,
-                customerId: customer.id,
-                discount: String(input.discount),
-                exchangeRate: String(input.exchangeRate),
-                priceType: priceType,
-                storageId: input.storageId,
-                totalAmount: String(input.totalPayAmount),
-                transactionType: input.saleCancel ? "Cancel" : "Sale",
-                payAmount: String(input.paidAmount),
-                items: { createMany: { data: input.items.map(i => ({ itemId: i.itemId, price: String(i.price), quantity: i.totalAdded, serialNumbers: i.serialNumbers })) } }
-            }
-        })
+        const transaction = await ctx.supabase.from("Transaction").insert({
+            id: createId(),
+            updatedAt: new Date().toUTCString(),
+            memberId: member.data?.id,
+            orgId: ctx.session.orgId,
+            transferredDealerId: input.transferToDealer ? customer.connectedDealerId : null,
+            customerId: customer.id,
+            discount: String(input.discount),
+            exchangeRate: String(input.exchangeRate),
+            priceType: priceType,
+            storageId: input.storageId,
+            totalAmount: String(input.totalPayAmount),
+            transactionType: input.saleCancel ? "Cancel" : "Sale",
+            payAmount: String(input.paidAmount),
+        }).select().single()
 
-        return transaction
+        if (transaction.error) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Failed to create transaction",
+            })
+        }
+        const createdTransactionItemDetails = await Promise.all(input.items.map(async (i) => {
+            const item = await ctx.supabase.from("Item").select("*").eq("id", i.itemId).single()
+            if (item.error) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Failed to get item",
+                })
+            }
+            if (item.error) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Failed to get item",
+                })
+            }
+            const customerPriceType = customer.priceType
+
+            const customerPrice = customerPriceType === "org" ? item.data.singlePrice : item.data[customerPriceType]
+            if (customer.connectedDealerId) {
+                const dealer = await ctx.supabase.from("Org").select("*").eq("id", customer.connectedDealerId).single()
+                if (dealer.error) {
+                    throw new TRPCError({
+                        code: "BAD_REQUEST",
+                        message: "Failed to get dealer price type",
+                    })
+                }
+                const dealerPriceType = dealer.data.priceType
+                const dealerPrice = dealerPriceType === "org" ? null : item.data[dealerPriceType]
+                const { data: transactionItemDetail, error } = await ctx.supabase.from("TransactionItemDetail").insert({
+                    id: createId(),
+                    customerTransactionId: transaction.data.id,
+                    itemId: i.itemId,
+                    customerPrice: String(customerPrice),
+                    dealerPrice: String(dealerPrice),
+                    quantity: i.totalAdded,
+                    serialNumbers: i.serialNumbers,
+                }).select().single()
+                if (error) {
+                    throw new TRPCError({
+                        code: "BAD_REQUEST",
+                        message: "Failed to create transaction item detail",
+                    })
+                }
+                return transactionItemDetail
+            }
+            const { data: transactionItemDetail, error } = await ctx.supabase.from("TransactionItemDetail").insert({
+                id: createId(),
+                customerTransactionId: transaction.data.id,
+                itemId: i.itemId,
+                customerPrice: String(customerPrice),
+                quantity: i.totalAdded,
+                serialNumbers: i.serialNumbers,
+            })
+            if (error) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Failed to create transaction item detail",
+                })
+            }
+            return transactionItemDetail
+        }))
+
+        return createdTransactionItemDetails
     }),
     itemCount: protectedProcedure.input(
         z.object({
@@ -1081,8 +1181,34 @@ export const itemsRouter = createTRPCRouter({
                     message: "You don't have permission to do this!",
                 });
             }
-            await ctx.db.itemStock.deleteMany({ where: { storageId: input.storageId } })
-            return await ctx.db.itemStock.createMany({ data: input.items.map(i => ({ itemId: i.itemId, stock: i.totalAdded, storageId: input.storageId })) })
+            const { data: itemStocks, error } = await ctx.supabase.from("ItemStock").select("*").eq("storageId", input.storageId)
+            if (error) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Failed to get item stocks",
+                });
+            }
+            for (const i of itemStocks) {
+                const item = input.items.find(item => item.itemId === i.itemId);
+                if (item) {
+                    await ctx.supabase.from("ItemStock").update({
+                        stock: i.stock + item.totalAdded,
+                    }).eq("id", i.id)
+                }
+                await ctx.supabase.from("ItemStock").delete().eq("id", i.id)
+            }
+            const { data: currentItemStocks, error: currentStocksError } = await ctx.supabase.from("ItemStock").select("*").eq("storageId", input.storageId)
+            if (currentStocksError) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Failed to get item stocks",
+                });
+            }
+            //filter out currentItemStocks from input.items
+            const items = input.items.filter(item => !currentItemStocks.find(stock => stock.itemId === item.itemId))
+            return await ctx.supabase.from("ItemStock").insert(
+                items.map(i => ({ id: createId(), itemId: i.itemId, stock: i.totalAdded, storageId: input.storageId })),
+            )
         })
 
 });

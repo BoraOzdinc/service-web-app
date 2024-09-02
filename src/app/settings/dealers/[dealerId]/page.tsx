@@ -45,8 +45,6 @@ import {
 import { useDebounce } from "@uidotdev/usehooks";
 import { isValidEmail } from "~/utils";
 import { dealerTransactionsColumns } from "./components/dealerTransactionsColumns";
-import { useQuery } from "@tanstack/react-query";
-import { getItems } from "~/app/items/components/queryFunctions";
 
 const DealerDetails = () => {
   const params = useParams<{ dealerId: string }>();
@@ -63,13 +61,10 @@ const DealerDetails = () => {
   const dealerRoles = api.dealer.getDealerRoles.useQuery(params.dealerId, {
     enabled: session?.permissions.includes(PERMS.view_dealer_role),
   });
-  const { data, isLoading } = useQuery({
-    queryKey: ["getItems"],
-    queryFn: () => getItems(undefined, params.dealerId),
-    enabled:
-      (!!session?.orgId &&
-        session?.permissions.includes(PERMS.dealer_item_view)) ||
-      (!!session?.dealerId && session?.permissions.includes(PERMS.item_view)),
+  const { data, isLoading } = api.items.getItems.useQuery({
+    orgId: session?.orgId ?? undefined,
+    dealerId: params.dealerId,
+    searchInput: debouncedSearchInput,
   });
   const dealerItems = useMemo(() => {
     if (data) {
@@ -105,7 +100,7 @@ const DealerDetails = () => {
   return (
     <div className="w-full">
       <CardHeader>
-        <CardTitle>{dealerMembers.data?.[0]?.dealer?.name}</CardTitle>
+        <CardTitle>{dealerMembers.data?.[0]?.org?.name}</CardTitle>
       </CardHeader>
       <Tabs defaultValue="members" className="w-full">
         <TabsList className="w-full">
@@ -116,13 +111,10 @@ const DealerDetails = () => {
               <TabsTrigger value="members">Üyeler ve Roller</TabsTrigger>
             )
           }
-          {((session?.orgId &&
-            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-            session?.permissions.includes(PERMS.dealer_item_view)) ||
-            (session?.dealerId &&
-              session?.permissions.includes(PERMS.item_view))) && (
-            <TabsTrigger value="items">Ürünler</TabsTrigger>
-          )}
+          {session?.orgId &&
+            session?.permissions.includes(PERMS.dealer_item_view) && (
+              <TabsTrigger value="items">Ürünler</TabsTrigger>
+            )}
           {session?.permissions.includes(PERMS.dealers_view) && (
             <TabsTrigger value="customerHistory">Müşteri Geçmişi</TabsTrigger>
           )}
@@ -222,78 +214,77 @@ const DealerDetails = () => {
             )}
           </div>
         </TabsContent>
-        {((session?.orgId &&
-          // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-          session?.permissions.includes(PERMS.dealer_item_view)) ||
-          (session?.dealerId &&
-            session?.permissions.includes(PERMS.item_view))) && (
-          <TabsContent value="items">
-            <Card>
-              <CardHeader>
-                <CardTitle>Ürünler</CardTitle>
-              </CardHeader>
-              <CardContent className="overflow-x-scroll md:overflow-x-hidden">
-                <DataTable
-                  data={dealerItems}
-                  columns={dealerItemsColumns}
-                  isLoading={isLoading}
-                  columnFilter={[
-                    {
-                      columnToFilter: "itemBrandId",
-                      title: "Marka",
-                      options: [
-                        ...new Set(dealerItems?.flatMap((i) => i.ItemBrand)),
-                      ].map((b) => ({
-                        label: b?.name ?? "",
-                        value: b?.id ?? "",
-                      })),
-                      icon: <TagsIcon className="mr-2 h-5 w-5" />,
-                    },
-                    {
-                      columnToFilter: "itemColorId",
-                      title: "Renk",
-                      options: [
-                        ...new Set(dealerItems?.flatMap((i) => i.ItemColor)),
-                      ].map((b) => ({
-                        label: b?.colorCode ?? "",
-                        value: b?.id ?? "",
-                      })),
-                      icon: <PaletteIcon className="mr-2 h-5 w-5" />,
-                    },
-                    {
-                      columnToFilter: "itemSizeId",
-                      title: "Beden",
-                      options: [
-                        ...new Set(dealerItems?.flatMap((i) => i.ItemSize)),
-                      ].map((b) => ({
-                        label: b?.sizeCode ?? "",
-                        value: b?.id ?? "",
-                      })),
-                      icon: <RulerIcon className="mr-2 h-5 w-5" />,
-                    },
-                    {
-                      columnToFilter: "itemCategoryId",
-                      title: "Kategori",
-                      options: [
-                        ...new Set(dealerItems?.flatMap((i) => i.ItemCategory)),
-                      ].map((b) => ({
-                        label: b?.name ?? "",
-                        value: b?.id ?? "",
-                      })),
-                      icon: <Layers3Icon className="mr-2 h-5 w-5" />,
-                    },
-                  ]}
-                  serverSearch={{
-                    setState: setSearchInput,
-                    state: searchInput,
-                    title: "kod, barkod, isim",
-                  }}
-                  pagination
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        )}
+        {session?.orgId &&
+          session?.permissions.includes(PERMS.dealer_item_view) && (
+            <TabsContent value="items">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Ürünler</CardTitle>
+                </CardHeader>
+                <CardContent className="overflow-x-scroll md:overflow-x-hidden">
+                  <DataTable
+                    data={dealerItems}
+                    columns={dealerItemsColumns}
+                    isLoading={isLoading}
+                    columnFilter={[
+                      {
+                        columnToFilter: "itemBrandId",
+                        title: "Marka",
+                        options: [
+                          ...new Set(dealerItems?.flatMap((i) => i.ItemBrand)),
+                        ].map((b) => ({
+                          label: b?.name ?? "",
+                          value: b?.id ?? "",
+                        })),
+                        icon: <TagsIcon className="mr-2 h-5 w-5" />,
+                      },
+                      {
+                        columnToFilter: "itemColorId",
+                        title: "Renk",
+                        options: [
+                          ...new Set(dealerItems?.flatMap((i) => i.ItemColor)),
+                        ].map((b) => ({
+                          label: b?.colorCode ?? "",
+                          value: b?.id ?? "",
+                        })),
+                        icon: <PaletteIcon className="mr-2 h-5 w-5" />,
+                      },
+                      {
+                        columnToFilter: "itemSizeId",
+                        title: "Beden",
+                        options: [
+                          ...new Set(dealerItems?.flatMap((i) => i.ItemSize)),
+                        ].map((b) => ({
+                          label: b?.sizeCode ?? "",
+                          value: b?.id ?? "",
+                        })),
+                        icon: <RulerIcon className="mr-2 h-5 w-5" />,
+                      },
+                      {
+                        columnToFilter: "itemCategoryId",
+                        title: "Kategori",
+                        options: [
+                          ...new Set(
+                            dealerItems?.flatMap((i) => i.ItemCategory),
+                          ),
+                        ].map((b) => ({
+                          label: b?.name ?? "",
+                          value: b?.id ?? "",
+                        })),
+                        icon: <Layers3Icon className="mr-2 h-5 w-5" />,
+                      },
+                    ]}
+                    serverSearch={{
+                      setState: setSearchInput,
+                      state: searchInput,
+                      title: "kod, barkod, isim",
+                    }}
+                    pagination
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
         {session?.permissions.includes(PERMS.dealers_view) && (
           <TabsContent value={"customerHistory"}>
             <Card>

@@ -23,7 +23,7 @@ import { useAddColor } from "~/utils/useItems";
 import { api } from "~/trpc/server";
 
 const ColorComp = () => {
-  const colors = api.items.getColors.useQuery();
+  const colors = api.items.getColors.useQuery({});
   const [colorCode, setColorCode] = useState<string>("");
   const [color, setColor] = useState<string>("");
   const addColor = useAddColor();

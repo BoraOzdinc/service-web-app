@@ -54,7 +54,7 @@ interface FormInput {
     Type: $Enums.AdressType;
   }[];
 
-  connectedDealerId: string;
+  connectedDealerId: string | undefined;
   priceType: string;
 }
 
@@ -85,6 +85,9 @@ const NewCustomer = () => {
       if (data.adresses[1]?.Adress) {
         data.adresses[1].Type = $Enums.AdressType.Billing;
       }
+    }
+    if (data.connectedDealerId === "empty") {
+      data.connectedDealerId = undefined;
     }
 
     addCustomer.mutate(data);
@@ -207,13 +210,19 @@ const NewCustomer = () => {
                                 <SelectValue placeholder="Bayii Seçiniz" />
                               </SelectTrigger>
                               <SelectContent>
-                                {dealers.data?.map((s) => {
-                                  return (
-                                    <SelectItem key={s.id} value={s.id}>
-                                      {s.name}
-                                    </SelectItem>
-                                  );
-                                })}
+                                {dealers.data?.length ? (
+                                  dealers.data?.map((s) => {
+                                    return (
+                                      <SelectItem key={s.id} value={s.id}>
+                                        {s.name}
+                                      </SelectItem>
+                                    );
+                                  })
+                                ) : (
+                                  <SelectItem value={"empty"}>
+                                    Bayii Bulunamadı
+                                  </SelectItem>
+                                )}
                               </SelectContent>
                             </Select>
                           </FormControl>

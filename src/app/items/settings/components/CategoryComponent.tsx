@@ -23,7 +23,7 @@ import { useAddCategory } from "~/utils/useItems";
 import { api } from "~/trpc/server";
 
 const CategoryComp = () => {
-  const categories = api.items.getCategory.useQuery();
+  const categories = api.items.getCategory.useQuery({});
   const [category, setCategory] = useState<string>("");
   const addCategory = useAddCategory();
 

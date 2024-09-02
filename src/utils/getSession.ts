@@ -16,7 +16,14 @@ export async function getSession() {
             data?.map(p => p.permission_name)
         ),
     ];
-    return { permissions: userPermission, orgId: userMember?.orgId, dealerId: userMember?.dealerId, email: userMember?.userEmail }
+
+    // Check for orgId and redirect if not found
+    if (!userMember?.orgId) {
+        return { permissions: userPermission, orgId: userMember?.orgId, email: userMember?.userEmail, redirect: true };
+    }
+
+
+    return { permissions: userPermission, orgId: userMember?.orgId, email: userMember?.userEmail, redirect: false }
 }
 
 export type SessionType = Awaited<ReturnType<typeof getSession>>

@@ -71,7 +71,7 @@ const ItemCard = ({
   const totalStock = useMemo(() => {
     if (selectedStorageId) {
       return item.item?.ItemStock.find(
-        (s) => s.storage.id === selectedStorageId,
+        (s) => s.Storage?.id === selectedStorageId,
       )?.stock;
     }
   }, [item.item?.ItemStock, selectedStorageId]);
@@ -91,8 +91,8 @@ const ItemCard = ({
             <div className="font-semibold">{item.item.name}</div>
             <div className="text-xs font-semibold">{`Barkod ve Birimi: ${item.barcode} - ${barcode?.unit} / ${barcode?.quantity}`}</div>
             <div className="text-xs font-semibold">{`Ürün Kodu: ${item.item.itemCode}`}</div>
-            <div className="text-xs font-semibold">{`Renk: ${item.item.color.colorText}`}</div>
-            <div className="text-xs font-semibold">{`Beden: ${item.item.size.sizeText}`}</div>
+            <div className="text-xs font-semibold">{`Renk: ${item.item.ItemColor?.colorText}`}</div>
+            <div className="text-xs font-semibold">{`Beden: ${item.item.ItemSize?.sizeText}`}</div>
             <div className="text-xs font-semibold">{`Adet: ${item.quantity}`}</div>
           </div>
         </DialogTrigger>
@@ -104,8 +104,8 @@ const ItemCard = ({
             <div className="font-semibold">{item.item.name}</div>
             <div className=" font-semibold">{`Barkod ve Birimi: ${item.barcode} - ${barcode?.unit} / ${barcode?.quantity}`}</div>
             <div className=" font-semibold">{`Ürün Kodu: ${item.item.itemCode}`}</div>
-            <div className=" font-semibold">{`Renk: ${item.item.color.colorText}`}</div>
-            <div className=" font-semibold">{`Beden: ${item.item.size.sizeText}`}</div>
+            <div className=" font-semibold">{`Renk: ${item.item.ItemColor?.colorText}`}</div>
+            <div className=" font-semibold">{`Beden: ${item.item.ItemSize?.sizeText}`}</div>
             {existingItemTotalAddedStock && totalStock && barcode && (
               <>
                 <div>{`Bu Üründen Toplam Eklenen Miktar: ${existingItemTotalAddedStock}`}</div>

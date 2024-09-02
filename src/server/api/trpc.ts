@@ -91,7 +91,7 @@ export const publicProcedure = t.procedure;
  * @see https://trpc.io/docs/procedures
  */
 export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
-  if (!ctx.session || (!ctx.session.orgId && !ctx.session.dealerId)) {
+  if (!ctx.session?.orgId) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "You don't have permission to do this!" });
   }
 

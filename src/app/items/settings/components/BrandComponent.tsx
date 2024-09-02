@@ -24,7 +24,7 @@ import { api } from "~/trpc/server";
 
 const BrandComp = () => {
   const [brand, setBrand] = useState<string>("");
-  const brands = api.items.getBrands.useQuery();
+  const brands = api.items.getBrands.useQuery({});
   const addBrand = useAddBrand();
 
   return (

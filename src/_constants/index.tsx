@@ -10,3 +10,22 @@ export const AddressTypes = {
   Billing: "Fatura",
   Shipping: "Kargo",
 };
+
+export const historyActions = {
+  create: "Oluşturma",
+  update: "Güncelleme",
+  delete: "Silme",
+};
+
+export const itemHistoryFields = {
+  name: "Ürün İsmi",
+  itemCode: "Ürün Kodu",
+  dealerPrice: "Bayii Fiyatı",
+  mainDealerPrice: "Ana Bayii Fiyatı",
+  multiPrice: "Toptan Fiyatı",
+  singlePrice: "Parakende Fiyatı",
+  isSerialNoRequired: "Seri No. Zorunlu",
+  isServiceItem: "Servis Ürünü",
+  netWeight: "Net Ağırlık (KG)",
+  volume: "Ürün Hacmi (CDM)",
+};

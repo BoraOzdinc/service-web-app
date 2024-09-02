@@ -1,5 +1,6 @@
 export const PERMS = {
     item_view: "ITEM_VIEW",
+    item_history_view: "ITEM_HISTORY_VIEW",
     dealer_item_view: "DEALER_ITEM_VIEW",
     view_org_members: "ORG_MEMBER_VIEW",
     manage_org_members: "ORG_MEMBER_MANAGE",

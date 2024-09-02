@@ -29,7 +29,7 @@ import {
   FormDescription,
 } from "~/app/_components/ui/form";
 import { Input } from "~/app/_components/ui/input";
-import { useUpdateBarcode } from "~/utils/useItems";
+import { useDeleteBarcode, useUpdateBarcode } from "~/utils/useItems";
 
 interface FormType {
   barcode: string;
@@ -51,6 +51,7 @@ const ActionColumn = ({
   };
 }) => {
   const updateBarcode = useUpdateBarcode();
+  const deleteBarcode = useDeleteBarcode();
   const form = useForm<FormType>({ defaultValues: { ...barcode } });
   const onSubmitForm = (data: FormType) => {
     updateBarcode.mutate({
@@ -60,7 +61,9 @@ const ActionColumn = ({
       quantity: String(data.quantity),
       unit: data.unit,
     });
+    form.reset();
   };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -108,7 +111,13 @@ const ActionColumn = ({
             </DialogFooter>
           </DialogContent>
         </Dialog>
-        <Dialog>
+        <Dialog
+          onOpenChange={(open) => {
+            if (open) {
+              form.reset();
+            }
+          }}
+        >
           <DialogTrigger asChild>
             <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
               Düzenle
@@ -204,6 +213,40 @@ const ActionColumn = ({
                 </DialogFooter>
               </form>
             </Form>
+          </DialogContent>
+        </Dialog>
+        <Dialog>
+          <DialogTrigger asChild>
+            <DropdownMenuItem
+              onSelect={(e) => e.preventDefault()}
+              className="text-red-500"
+            >
+              Barkodu Sil
+            </DropdownMenuItem>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Emin misin?</DialogTitle>
+              <DialogDescription>
+                Bu barkod ve bu barkod&apos;u içeren bütün stoklar silinecektir.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant={"outline"}>Vazgeç</Button>
+              </DialogClose>
+              <DialogClose asChild>
+                <Button
+                  onClick={() =>
+                    deleteBarcode.mutate({
+                      barcodeId: barcode.id,
+                    })
+                  }
+                >
+                  Onayla
+                </Button>
+              </DialogClose>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </DropdownMenuContent>

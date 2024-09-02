@@ -14,18 +14,12 @@ export type ItemWithBarcode = RouterOutputs["items"]["getItemWithBarcode"]
 
 export type Storage = RouterOutputs["items"]["getStorages"][number]
 
-export type ItemHistory = RouterOutputs["items"]["getItemWithId"]["ItemHistory"][number]
-
-export type ItemAcceptHistory = RouterOutputs["items"]["getItemAcceptHistory"][number]
-
-export type ItemSellHistory = RouterOutputs["items"]["getItemSellHistory"][number]
-
-
 export const transactionTypes = {
     "Sale": "Satış",
     "Cancel": "İptal",
     "Return": "İade",
-    "Accept": "Kabul"
+    "Accept": "Kabul",
+    "Count": "Sayım"
 }
 
 export const useAddItem = () => {
@@ -101,6 +95,25 @@ export const useUpdateBarcode = () => {
         onError(error) {
             toast.error(String(error.data?.zodError ?? error.message), {
                 id: "item.updateBarcode",
+            });
+        },
+    });
+};
+export const useDeleteBarcode = () => {
+    const utils = api.useUtils();
+    return api.items.deleteBarcode.useMutation({
+        onSuccess: async (_d,) => {
+            toast.success("Barkod Silindi", { id: "item.deleteBarcode" });
+            await utils.items.getItemWithId.invalidate()
+        },
+        onMutate: () => {
+            toast.loading("Barkod Siliniyor...", {
+                id: "item.deleteBarcode",
+            });
+        },
+        onError(error) {
+            toast.error(String(error.data?.zodError ?? error.message), {
+                id: "item.deleteBarcode",
             });
         },
     });
@@ -221,11 +234,9 @@ export const useDeleteStorage = () => {
     });
 };
 export const useItemAccept = () => {
-    const utils = api.useUtils();
     return api.items.itemAccept.useMutation({
         onSuccess: async (_d,) => {
             toast.success("Ürünler Kabul Edildi!", { id: "item.itemAccept" });
-            await utils.items.getItemAcceptHistory.invalidate();
         },
         onMutate: () => {
             toast.loading("Kabul Ediliyor...", {
@@ -240,11 +251,9 @@ export const useItemAccept = () => {
     });
 };
 export const useItemSell = () => {
-    const utils = api.useUtils();
     return api.items.itemSell.useMutation({
         onSuccess: async (_d,) => {
             toast.success("Satış Yapıldı", { id: "item.itemSell" });
-            await utils.items.getItemSellHistory.invalidate();
         },
         onMutate: () => {
             toast.loading("Satış Yapılıyor...", {

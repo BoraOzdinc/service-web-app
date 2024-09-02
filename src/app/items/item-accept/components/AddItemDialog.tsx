@@ -43,8 +43,8 @@ const AddItemDialog = ({
             <div>
               <div>{`Ürün: ${item.name}`} </div>
               <div>{`Ürün Kodu: ${item.itemCode}`} </div>
-              <div>{`Ürün Rengi: ${item.color.colorText}`} </div>
-              <div>{`Ürün Bedeni: ${item.size.sizeText}`} </div>
+              <div>{`Ürün Rengi: ${item.ItemColor?.colorText}`} </div>
+              <div>{`Ürün Bedeni: ${item.ItemSize?.sizeText}`} </div>
             </div>
             <div>
               <div>{`Barkod: ${itemBarcode?.barcode}`}</div>

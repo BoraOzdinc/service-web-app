@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { nonEmptyString } from "./items";
 import QRCode from "qrcode";
+import { createId } from "@paralleldrive/cuid2";
 
 export const StorageRouter = createTRPCRouter({
     addShelf: protectedProcedure
@@ -15,15 +16,15 @@ export const StorageRouter = createTRPCRouter({
                     message: "You Don't Have Permission To Do This!",
                 });
             }
-            const storage = (
+            const { data: storage, error: storageError } = (
                 await ctx.supabase
                     .from("Storage")
-                    .select("orgId,dealerId")
+                    .select("orgId")
                     .eq("id", input.storageId)
-                    .maybeSingle()
-            ).data;
+                    .single()
+            )
 
-            if (!storage) {
+            if (storageError) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Depo Bulunamadı!" });
             }
             if (storage.orgId !== ctx.session.orgId) {
@@ -32,15 +33,17 @@ export const StorageRouter = createTRPCRouter({
                     message: "Bu Depo Size Ait Değil!",
                 });
             }
-            if (storage.dealerId !== ctx.session.dealerId) {
-                throw new TRPCError({
-                    code: "UNAUTHORIZED",
-                    message: "Bu Depo Size Ait Değil!",
-                });
+
+            const { data: shelf, error } = await ctx.supabase.from("Shelf").insert({
+                id: createId(),
+                storageId: input.storageId,
+                name: input.name,
+                updateDate: new Date().toUTCString(),
+            })
+            if (error) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
             }
-            return await ctx.db.shelf.create({
-                data: { storageId: input.storageId, name: input.name },
-            });
+            return shelf;
         }),
     deleteShelf: protectedProcedure
         .input(z.object({ shelfId: nonEmptyString }))
@@ -51,7 +54,21 @@ export const StorageRouter = createTRPCRouter({
                     message: "You Don't Have Permission To Do This!",
                 });
             }
-            return await ctx.db.shelf.delete({ where: { id: shelfId } });
+            const { data: shelf, error } = await ctx.supabase.from("Shelf").select("*,storage:Storage(*)").eq("id", shelfId).single()
+            if (error) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+            }
+            if (shelf.storage?.orgId !== ctx.session.orgId) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "Bu Depo Size Ait Değil!",
+                });
+            }
+            const { error: deleteShelfError } = await ctx.supabase.from("Shelf").delete().eq("id", shelfId)
+            if (deleteShelfError) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: deleteShelfError.message });
+            }
+            return shelf;
         }),
     getStorageLayoutItems: protectedProcedure
         .input(z.object({ storageId: nonEmptyString }))
@@ -68,26 +85,17 @@ export const StorageRouter = createTRPCRouter({
                     message: "Depo Seçilmedi!",
                 });
             }
-            if (ctx.session.orgId) {
-                return (
-                    await ctx.supabase
-                        .from("Shelf")
-                        .select(
-                            "*,ShelfItemDetail(*,Item(*)),ShelfBox(*),Storage(orgId,dealerId)",
-                        )
-                        .eq("storageId", storageId)
-                ).data?.filter((a) => a.Storage?.orgId === ctx.session.orgId);
+            if (!ctx.session.orgId) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this",
+                });
             }
-            if (ctx.session.dealerId) {
-                return (
-                    await ctx.supabase
-                        .from("Shelf")
-                        .select(
-                            "*,ShelfItemDetail(*,Item(*)),ShelfBox(*),Storage(orgId,dealerId)",
-                        )
-                        .eq("storageId", storageId)
-                ).data?.filter((a) => a.Storage?.dealerId === ctx.session.dealerId);
+            const { data: shelf, error } = await ctx.supabase.from("Shelf").select("*,ShelfItemDetail(*,Item(*)),ShelfBox(*),Storage(orgId)").eq("storageId", storageId)
+            if (error) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
             }
+            return shelf.filter((a) => a.Storage?.orgId === ctx.session.orgId)
         }),
     getShelfDetailsWithId: protectedProcedure
         .input(z.object({ shelfId: nonEmptyString }))
@@ -106,34 +114,30 @@ export const StorageRouter = createTRPCRouter({
                     message: "Depo Seçilmedi!",
                 });
             }
-            if (session.orgId) {
-                const data = (
-                    await supabase
-                        .from("Shelf")
-                        .select(
-                            "*,ShelfItemDetail(*,Item(*)),ShelfBox(*,ShelfItemDetail(*)),Storage(id,orgId,dealerId)",
-                        )
-                        .eq("id", shelfId)
-                        .maybeSingle()
-                ).data;
-                if (data?.Storage?.orgId === session.orgId) {
-                    return data;
-                }
+            if (!ctx.session.orgId) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this",
+                });
             }
-            if (session.dealerId) {
-                const data = (
-                    await supabase
-                        .from("Shelf")
-                        .select(
-                            "*,ShelfItemDetail(*,Item(*)),ShelfBox(*,ShelfItemDetail(*)),Storage(id,orgId,dealerId)",
-                        )
-                        .eq("id", shelfId)
-                        .maybeSingle()
-                ).data;
-                if (data?.Storage?.dealerId === session.dealerId) {
-                    return data;
-                }
+            const { data, error } = await supabase
+                .from("Shelf")
+                .select(
+                    "*,ShelfItemDetail(*,Item(*)),ShelfBox(*,ShelfItemDetail(*)),Storage(id,orgId)",
+                )
+                .eq("id", shelfId)
+                .maybeSingle()
+
+            if (error) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
             }
+            if (data?.Storage?.orgId !== session.orgId) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "Bu Depo Size Ait Değil!",
+                });
+            }
+            return data;
         }),
     addBox: protectedProcedure
         .input(
@@ -153,9 +157,17 @@ export const StorageRouter = createTRPCRouter({
             if (!shelfId) {
                 throw new TRPCError({ code: "BAD_REQUEST", message: "Raf Seçilmedi!" });
             }
-            return await ctx.db.shelfBox.create({
-                data: { name, shelfId, storageId },
-            });
+            const { data, error } = await ctx.supabase.from("ShelfBox").insert({
+                id: createId(),
+                shelfId,
+                storageId,
+                name,
+                updateDate: new Date().toUTCString(),
+            })
+            if (error) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+            }
+            return data;
         }),
     generateQrCodes: protectedProcedure
         .input(z.object({ storageId: nonEmptyString, }))
@@ -164,7 +176,7 @@ export const StorageRouter = createTRPCRouter({
                 await ctx.supabase
                     .from("Storage")
                     .select(
-                        "orgId,dealerId,Shelf(*,ShelfItemDetail(*,Item(*)),ShelfBox(*))",
+                        "orgId,Shelf(*,ShelfItemDetail(*,Item(*)),ShelfBox(*))",
                     )
                     .eq("id", storageId)
                     .maybeSingle()
@@ -178,12 +190,7 @@ export const StorageRouter = createTRPCRouter({
                     message: "Bu Depo Size Ait Değil!",
                 });
             }
-            if (storage.dealerId !== ctx.session.dealerId) {
-                throw new TRPCError({
-                    code: "UNAUTHORIZED",
-                    message: "Bu Depo Size Ait Değil!",
-                });
-            }
+
             const mainLink = () => {
                 if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`; // SSR should use vercel url
                 return `http://localhost:${process.env.PORT ?? 3000}`

@@ -23,7 +23,7 @@ import { useAddSize } from "~/utils/useItems";
 import { api } from "~/trpc/server";
 
 const SizeComp = () => {
-  const sizes = api.items.getSizes.useQuery();
+  const sizes = api.items.getSizes.useQuery({});
   const [sizeCode, setSizeCode] = useState<string>("");
   const [size, setSize] = useState<string>("");
   const addSize = useAddSize();

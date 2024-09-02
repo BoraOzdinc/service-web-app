@@ -40,7 +40,7 @@ import { DataTable } from "~/app/_components/tables/generic-table";
 import { type ColumnDef } from "@tanstack/react-table";
 
 const ItemCount = () => {
-  const storages = api.items.getStorages.useQuery();
+  const storages = api.items.getStorages.useQuery({});
   const { data: session } = api.utilRouter.getSession.useQuery();
   const hydrated = useHydrated();
   const [isStorageOpen, setIsStorageOpen] = useState(true);
@@ -61,7 +61,6 @@ const ItemCount = () => {
   const ItemsData = api.items.getItemWithBarcode.useQuery(
     {
       orgId: session?.orgId ?? undefined,
-      dealerId: session?.dealerId ?? undefined,
       barcode: scannedBarcode,
     },
     {
@@ -271,7 +270,16 @@ const ItemCount = () => {
             <div className="flex flex-col gap-2">
               <Select
                 onValueChange={(value) =>
-                  setSelectedStorage(storages.data?.find((s) => s.id === value))
+                  setSelectedStorage(
+                    storages.data?.find((s) => s.id === value) as
+                      | {
+                          id: string;
+                          name: string;
+                          orgId: string | null;
+                          dealerId: string | null;
+                        }
+                      | undefined,
+                  )
                 }
                 disabled={!storages.data}
               >

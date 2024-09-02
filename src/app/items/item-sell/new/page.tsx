@@ -46,20 +46,26 @@ import { Input } from "~/app/_components/ui/input";
 const NewItemSell = () => {
   const hydrated = useHydrated();
   const { data: session } = api.utilRouter.getSession.useQuery();
-  const storages = api.items.getStorages.useQuery(undefined, {
-    enabled: !!session,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchInterval: false,
-    refetchOnMount: false,
-  });
-  const customers = api.customer.getCustomers.useQuery(undefined, {
-    enabled: !!session,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchInterval: false,
-    refetchOnMount: false,
-  });
+  const storages = api.items.getStorages.useQuery(
+    {},
+    {
+      enabled: !!session,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchInterval: false,
+      refetchOnMount: false,
+    },
+  );
+  const customers = api.customer.getCustomers.useQuery(
+    {},
+    {
+      enabled: !!session,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchInterval: false,
+      refetchOnMount: false,
+    },
+  );
   const [selectedStorageId, setSelectedStorageId] = useState<
     string | undefined
   >();
@@ -78,7 +84,7 @@ const NewItemSell = () => {
 
   const dealerPriceType = useMemo(() => {
     const type = customers.data?.find((c) => c.id === selectedCustomerId)
-      ?.connectedDealer?.priceType;
+      ?.dealerPriceType;
     setSelectedPriceType(type);
     return type;
   }, [customers.data, selectedCustomerId]);
@@ -89,7 +95,7 @@ const NewItemSell = () => {
   const [isAddItemOpen, setIsAddItemOpen] = useState(false);
   const [isUpdateItemOpen, setIsUpdateItemOpen] = useState(false);
   const [isTransferToDealerChecked, setIsTransferToDealerChecked] =
-    useState(true);
+    useState(false);
   const [updateQuantity, setUpdateQuantity] = useState(1);
   const [updateSerialNumbers, setUpdateSerialNumbers] = useState<string[]>([]);
   const [data, setData] = useState("");
@@ -106,7 +112,6 @@ const NewItemSell = () => {
   const ItemsData = api.items.getItemWithBarcode.useQuery(
     {
       orgId: session?.orgId ?? undefined,
-      dealerId: session?.dealerId ?? undefined,
       barcode: data,
     },
     {
@@ -234,7 +239,7 @@ const NewItemSell = () => {
   }, [selectedPriceType]);
 
   const totalPayAmount = addedItems.reduce((acc, curVal) => {
-    if (selectedPriceType) {
+    if (selectedPriceType && selectedPriceType !== $Enums.PriceType.org) {
       const price = curVal.item?.[selectedPriceType];
       acc += curVal.totalAdded * Number(price);
     }
@@ -254,7 +259,10 @@ const NewItemSell = () => {
       discount: discount,
       totalPayAmount: totalPayAmount,
       priceToPay: priceToPay ?? 0,
-      selectedPriceType: selectedPriceType,
+      selectedPriceType:
+        selectedPriceType !== $Enums.PriceType.org
+          ? selectedPriceType
+          : undefined,
       exchangeRate: euroPrice.data?.satisEkran,
       transferToDealer: isTransferToDealerChecked,
       paidAmount: paidAmount,
@@ -262,8 +270,9 @@ const NewItemSell = () => {
       items: addedItems.map((i) => ({
         itemId: i.item?.id ?? "",
         price:
-          selectedPriceType &&
-          (Number(i.item?.[selectedPriceType]) ?? undefined),
+          selectedPriceType && selectedPriceType !== $Enums.PriceType.org
+            ? Number(i.item?.[selectedPriceType]) || undefined
+            : undefined,
         barcode: i.barcode,
         totalAdded: i.totalAdded,
         serialNumbers: i.serialNumbers,
@@ -276,6 +285,7 @@ const NewItemSell = () => {
     });
   };
   addedItems;
+  console.log(dealerPriceType);
 
   if (!hydrated) {
     return null;
@@ -314,7 +324,10 @@ const NewItemSell = () => {
                       if (e.currentTarget.value === "*****") {
                         e.currentTarget.value = `${addedItems.reduce(
                           (acc, curVal) => {
-                            if (dealerPriceType) {
+                            if (
+                              dealerPriceType &&
+                              dealerPriceType !== $Enums.PriceType.org
+                            ) {
                               const price = curVal.item?.[dealerPriceType];
                               acc += curVal.totalAdded * Number(price);
                             }
@@ -328,7 +341,10 @@ const NewItemSell = () => {
                     }}
                     value={`${addedItems
                       .reduce((acc, curVal) => {
-                        if (dealerPriceType) {
+                        if (
+                          dealerPriceType &&
+                          dealerPriceType !== $Enums.PriceType.org
+                        ) {
                           const price = curVal.item?.[dealerPriceType];
                           acc += curVal.totalAdded * Number(price);
                         }
@@ -553,15 +569,18 @@ const NewItemSell = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className=" flex flex-row gap-2 rounded border p-3">
-              <Checkbox
-                checked={isTransferToDealerChecked}
-                onCheckedChange={() =>
-                  setIsTransferToDealerChecked(!isTransferToDealerChecked)
-                }
-              />
-              <Label>{"Bayii'ye Komisyonu Aktar"}</Label>
-            </div>
+            {customers.data?.find((c) => c.id === selectedCustomerId)
+              ?.connectedDealerId && (
+              <div className=" flex flex-row gap-2 rounded border p-3">
+                <Checkbox
+                  checked={isTransferToDealerChecked}
+                  onCheckedChange={() =>
+                    setIsTransferToDealerChecked(!isTransferToDealerChecked)
+                  }
+                />
+                <Label>{"Bayii'ye Komisyonu Aktar"}</Label>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <DialogClose asChild>

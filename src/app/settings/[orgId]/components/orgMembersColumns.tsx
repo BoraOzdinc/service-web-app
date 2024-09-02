@@ -167,7 +167,6 @@ export const columns: (
     | {
         permissions: string[];
         orgId: string | null | undefined;
-        dealerId: string | null | undefined;
         email: string | undefined;
       }
     | undefined,
