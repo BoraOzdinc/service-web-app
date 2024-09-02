@@ -159,7 +159,6 @@ const DealerDetails = () => {
                             dealerMemberEmail &&
                             addDealerMember.mutate({
                               email: dealerMemberEmail,
-                              dealerId: params.dealerId,
                             })
                           }
                         >
