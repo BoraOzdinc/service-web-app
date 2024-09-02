@@ -5,9 +5,9 @@ import {
   CardHeader,
   CardTitle,
 } from "~/app/_components/ui/card";
-import { type getStorageLayoutItemsType } from "./queryFunctions";
+import { type RouterOutputs } from "~/trpc/shared";
 
-type ShelfData = NonNullable<getStorageLayoutItemsType>[number];
+type ShelfData = RouterOutputs["storage"]["getStorageLayoutItems"][number];
 
 const Shelf = ({ data }: { data: ShelfData }) => {
   const router = useRouter();

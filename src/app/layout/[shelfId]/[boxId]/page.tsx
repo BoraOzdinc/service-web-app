@@ -1,5 +1,4 @@
 "use client";
-import { useQuery } from "@tanstack/react-query";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useParams } from "next/navigation";
 import Loader from "~/app/_components/loader";
@@ -10,19 +9,18 @@ import {
   CardHeader,
   CardTitle,
 } from "~/app/_components/ui/card";
-import {
-  type BoxDetailsType,
-  getBoxDetailsWithId,
-} from "./components/queryFunctions";
+
 import Link from "next/link";
 import { CircleArrowLeftIcon } from "lucide-react";
+import { api } from "~/trpc/server";
+import { type RouterOutputs } from "~/trpc/shared";
+
+type BoxDetailsType = RouterOutputs["storage"]["getBoxDetailsWithId"];
 
 const BoxDetail = () => {
   const { shelfId, boxId } = useParams<{ shelfId: string; boxId: string }>();
-  const { data: boxDetails, isLoading } = useQuery({
-    queryKey: ["getShelfBox", boxId],
-    queryFn: async () => await getBoxDetailsWithId(boxId),
-  });
+  const { data: boxDetails, isLoading } =
+    api.storage.getBoxDetailsWithId.useQuery({ boxId: boxId });
 
   if (isLoading) {
     return <Loader />;

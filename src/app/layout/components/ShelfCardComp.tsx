@@ -6,7 +6,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/app/_components/ui/select";
-import { type getStoragesType } from "./queryFunctions";
 import { Loader2, Trash2Icon } from "lucide-react";
 import {
   Card,
@@ -36,9 +35,9 @@ import {
 import { useSearchParams } from "next/navigation";
 import jsPDF from "jspdf";
 
-const ShelfCard = ({ storages }: { storages: getStoragesType }) => {
+const ShelfCard = () => {
   const searchParams = useSearchParams();
-
+  const storages = api.items.getStorages.useQuery({});
   const search = searchParams.get("q");
   const [selectedStorageID, setSelectedStorageID] = useState("");
   const [shelfName, setShelfName] = useState("");
@@ -52,7 +51,7 @@ const ShelfCard = ({ storages }: { storages: getStoragesType }) => {
   const addShelf = useCreateShelf();
   const deleteShelf = useDeleteShelf();
   useEffect(() => {
-    if (storages.storages) {
+    if (storages) {
       setSelectedStorageID(search ?? "");
     }
   }, [search, storages]);
@@ -71,7 +70,7 @@ const ShelfCard = ({ storages }: { storages: getStoragesType }) => {
                 <SelectValue placeholder="Depo Seçin..." />
               </SelectTrigger>
               <SelectContent>
-                {storages.storages?.map((s) => (
+                {storages.data?.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
                     {s.name}
                   </SelectItem>

@@ -139,6 +139,57 @@ export const StorageRouter = createTRPCRouter({
             }
             return data;
         }),
+    getBoxDetailsWithId: protectedProcedure
+        .input(z.object({ boxId: nonEmptyString }))
+        .query(async ({ ctx, input: { boxId } }) => {
+            const supabase = ctx.supabase;
+            const session = ctx.session;
+            if (!session.permissions.includes(PERMS.manage_storage)) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this",
+                });
+            }
+            if (!boxId) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Depo Seçilmedi!",
+                });
+            }
+            if (!ctx.session.orgId) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You don't have permission to do this",
+                });
+            }
+            const { data, error } = await supabase
+                .from("ShelfBox")
+                .select(
+                    "*,ShelfItemDetail(quantity,Item(name)),Shelf(Storage(orgId))",
+                )
+                .eq("id", boxId)
+                .single();
+
+            if (error) {
+                throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+            }
+
+            if (!data) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "Box Bulunamadı!",
+                });
+            }
+
+            if (data.Shelf?.Storage?.orgId !== session.orgId) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "Bu Depo Size Ait Değil!",
+                });
+            }
+
+            return data;
+        }),
     addBox: protectedProcedure
         .input(
             z.object({
