@@ -5,7 +5,7 @@ import { TRPCError } from "@trpc/server";
 import { nonEmptyString } from "./items";
 import { $Enums } from "@prisma/client";
 import { createAdminClient } from "~/utils/supabase/server";
-import { isAuthorised as isMemberAuthorised } from "~/utils";
+import { isAuthorised, isAuthorised as isMemberAuthorised } from "~/utils";
 import { createId } from "@paralleldrive/cuid2";
 
 export const organizationRouter = createTRPCRouter({
@@ -45,7 +45,7 @@ export const organizationRouter = createTRPCRouter({
             throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid Payload!" })
         }
         const userPerms = ctx.session.permissions
-        if (!userPerms.includes(PERMS.view_org_role)) {
+        if (!userPerms.includes(PERMS.view_org_members)) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "You don't have permission to do this!",
@@ -316,7 +316,33 @@ export const organizationRouter = createTRPCRouter({
                 });
             }
             const userPerms = ctx.session.permissions
-            if (!userPerms.includes(PERMS.manage_dealer_role || PERMS.manage_org_role)) {
+            const { data: role, error } = await ctx.supabase.from("MemberRole").select("*").eq("id", input.roleId).single()
+            if (error) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Failed to get role:" + error.message,
+                })
+            }
+            if (role.orgId !== ctx.session.orgId) {
+                const isUserAuthorised = await isAuthorised(ctx.supabase, ctx.session.orgId ?? "", role.orgId ?? "")
+                if (!isUserAuthorised) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
+                if (!userPerms.includes(PERMS.manage_org_role)) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "You don't have permission to do this!",
+                    });
+                }
+                return await ctx.db.memberRole.update({
+                    where: { id: input.roleId },
+                    data: { permissions: { set: input.permIds.map(r => ({ id: r })) }, name: input.roleName }
+                })
+            }
+            if (!userPerms.includes(PERMS.manage_org_role)) {
                 throw new TRPCError({
                     code: "UNAUTHORIZED",
                     message: "You don't have permission to do this!",

@@ -174,11 +174,7 @@ export const columns: (
   {
     id: "action",
     cell({ row: { original } }) {
-      if (
-        session?.permissions.includes(
-          PERMS.manage_org_members && PERMS.view_org_role,
-        )
-      ) {
+      if (session?.permissions.includes(PERMS.manage_org_members)) {
         return <ActionColumn member={original} roles={orgRoles ?? []} />;
       }
       return null;

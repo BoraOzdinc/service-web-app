@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { Box, Menu, Power } from "lucide-react";
+import { Box, Menu, Power, HousePlus } from "lucide-react";
 import { type navConfig } from "~/app/config/navbarRoutes";
 import { type SessionType } from "~/utils/getSession";
 import Link from "next/link";
@@ -95,6 +95,16 @@ export function SidebarWithBurgerMenu({
               );
             }
           })}
+          {!session.orgId ? (
+            <Link href={"/new-org"}>
+              <SheetClose asChild>
+                <div className="mt-3 flex w-full cursor-pointer flex-row items-center gap-3 rounded-md p-3 hover:bg-accent">
+                  <HousePlus />
+                  <p className="text-lg font-semibold">Create Organization</p>
+                </div>
+              </SheetClose>
+            </Link>
+          ) : null}
           {session.email ? (
             <SheetClose asChild>
               <div
@@ -102,7 +112,7 @@ export function SidebarWithBurgerMenu({
                 onClick={() => signOut()}
               >
                 <Power />
-                <p className="text-lg font-semibold">Çıkış Yap</p>
+                <p className="text-lg font-semibold">Sign Out</p>
               </div>
             </SheetClose>
           ) : (
@@ -110,7 +120,7 @@ export function SidebarWithBurgerMenu({
               <SheetClose asChild>
                 <div className="mt-3 flex w-full cursor-pointer flex-row items-center gap-3 rounded-md p-3 hover:bg-accent">
                   <Power />
-                  <p className="text-lg font-semibold">Giriş Yap</p>
+                  <p className="text-lg font-semibold">Sign in</p>
                 </div>
               </SheetClose>
             </Link>

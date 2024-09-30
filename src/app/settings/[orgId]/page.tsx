@@ -51,6 +51,9 @@ const OrganizationSettings = () => {
   const memberColumns = useMemo(() => {
     return orgMemberColumns(orgRoles, session);
   }, [orgRoles, session]);
+  const rolesColumns = useMemo(() => {
+    return orgRolesColumns(session);
+  }, [session]);
 
   if (isOrgLoading) {
     return <Loader />;
@@ -125,20 +128,22 @@ const OrganizationSettings = () => {
                 <Loader2Icon className="h-5 w-5 animate-spin" />
               )}
             </div>
-
-            <RoleCreateOrUpdateModal
-              orgId={params.orgId}
-              mode="create"
-              permissions={[]}
-              roleId=""
-              roleName=""
-            />
+            {session?.permissions.includes(PERMS.manage_org_role) ? (
+              <RoleCreateOrUpdateModal
+                orgId={params.orgId}
+                mode="create"
+                permissions={[]}
+                roleId=""
+                roleName=""
+              />
+            ) : null}
           </CardHeader>
           <CardContent className="overflow-x-scroll md:overflow-x-hidden">
             <DataTable
               data={orgRoles}
               isLoading={isOrgRolesLoading}
-              columns={orgRolesColumns}
+              columns={rolesColumns}
+              pagination
             />
           </CardContent>
         </Card>
