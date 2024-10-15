@@ -12,6 +12,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 import { SidebarWithBurgerMenu } from "./_components/SideBar";
 import { getSession } from "~/utils/getSession";
+import { SessionProvider } from "~/utils/SessionProvider";
 
 const inter = Poppins({
   weight: "400",
@@ -40,27 +41,28 @@ export default async function RootLayout({
       <head>
         <link rel="manifest" href="/manifest.json" />
       </head>
-      <body className={`font-sans ${inter.className}`}>
-        <Toaster />
-        <TRPCReactProvider>
-          <div className="p-3">
-            <div className="z-10">
-              {session && (
-                <SidebarWithBurgerMenu
-                  navbarRoutes={NavbarRoutes(session)}
-                  session={session}
-                />
-              )}
+      <SessionProvider session={session}>
+        <body className={`font-sans ${inter.className}`}>
+          <Toaster />
+          <TRPCReactProvider>
+            <div className="p-3">
+              <div className="z-10">
+                {session && (
+                  <SidebarWithBurgerMenu
+                    navbarRoutes={NavbarRoutes(session)}
+                    session={session}
+                  />
+                )}
+              </div>
+              <div className="flex items-center justify-center p-3">
+                {children}
+              </div>
             </div>
-            <div className="flex items-center justify-center p-3">
-              {children}
-            </div>
-          </div>
-        </TRPCReactProvider>
-
-        <Analytics />
-        <SpeedInsights />
-      </body>
+          </TRPCReactProvider>
+          <Analytics />
+          <SpeedInsights />
+        </body>
+      </SessionProvider>
     </html>
   );
 }

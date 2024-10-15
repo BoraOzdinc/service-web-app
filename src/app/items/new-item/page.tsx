@@ -55,11 +55,7 @@ export interface FormInput {
 const NewItem = () => {
   const [Open, setOpen] = useState(false);
   const addItem = useAddItem();
-  const storages = api.items.getStorages.useQuery({});
-  const colors = api.items.getColors.useQuery({});
-  const sizes = api.items.getSizes.useQuery({});
-  const categories = api.items.getCategory.useQuery({});
-  const brands = api.items.getBrands.useQuery({});
+  const { data, isLoading } = api.items.getItemSettingsDetails.useQuery();
   const form = useForm<FormInput>({
     defaultValues: {
       isSerialNoRequired: false,
@@ -151,7 +147,7 @@ const NewItem = () => {
                       <FormLabel>Ürün Rengi*</FormLabel>
                       <FormControl>
                         <ComboBox
-                          data={colors.data?.map((d) => ({
+                          data={data?.colors.map((d) => ({
                             label: `${d.colorCode} ${d.colorText}`,
                             value: d.id,
                           }))}
@@ -174,7 +170,7 @@ const NewItem = () => {
                       <FormLabel>Ürün Bedeni*</FormLabel>
                       <FormControl>
                         <ComboBox
-                          data={sizes.data?.map((d) => ({
+                          data={data?.sizes.map((d) => ({
                             label: `${d.sizeCode} ${d.sizeText}`,
                             value: d.id,
                           }))}
@@ -197,7 +193,7 @@ const NewItem = () => {
                       <FormLabel>Ürün Kategorisi*</FormLabel>
                       <FormControl>
                         <ComboBox
-                          data={categories.data?.map((d) => ({
+                          data={data?.categories.map((d) => ({
                             label: d.name,
                             value: d.id,
                           }))}
@@ -220,7 +216,7 @@ const NewItem = () => {
                       <FormLabel>Ürün Markası*</FormLabel>
                       <FormControl>
                         <ComboBox
-                          data={brands.data?.map((d) => ({
+                          data={data?.brands.map((d) => ({
                             label: d.name,
                             value: d.id,
                           }))}
@@ -246,7 +242,7 @@ const NewItem = () => {
                             onValueChange={field.onChange}
                             name={field.name}
                             value={field.value}
-                            disabled={storages.isLoading}
+                            disabled={isLoading}
                           >
                             <SelectTrigger
                               onBlur={field.onBlur}
@@ -258,7 +254,7 @@ const NewItem = () => {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value={"empty"}>Seçin</SelectItem>
-                              {storages.data?.map((s) => {
+                              {data?.storages.map((s) => {
                                 return (
                                   <SelectItem key={s.id} value={s.id}>
                                     {s.name}

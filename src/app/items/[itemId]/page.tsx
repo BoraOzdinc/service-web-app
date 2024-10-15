@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 import { useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -40,21 +41,72 @@ import {
   DialogTrigger,
 } from "~/app/_components/ui/dialog";
 import { useState } from "react";
+import { createClient } from "~/utils/supabase/client";
+import toast from "react-hot-toast";
+import cuid2 from "@paralleldrive/cuid2";
+import { PERMS } from "~/_constants/perms";
+import { useSession } from "~/utils/SessionProvider";
+import { type SessionType } from "~/utils/getSession";
+import { PhotoProvider, PhotoView } from "react-photo-view";
+import "react-photo-view/dist/react-photo-view.css";
+import { DialogDescription } from "@radix-ui/react-dialog";
+import OrderComponent from "~/app/_components/OrderComponent";
+import { CircleX, Pencil } from "lucide-react";
 
 const ItemDetail = () => {
+  const supabase = createClient();
   const params = useParams<{ itemId: string }>();
   const itemId = params.itemId.replace(/%.*$/, "");
   const update = useUpdateItem();
   const addBarcode = useAddBarcode();
-
+  const session = useSession();
   const [barcode, setBarcode] = useState<string>("");
   const [unit, setUnit] = useState<string>("");
   const [quantity, setQuantity] = useState<string>("");
   const [isMaster, setIsMaster] = useState<boolean>(false);
+  const [editMode, setEditMode] = useState<boolean>(false);
 
+  const [uploadedFile, setuploadedFile] = useState<File | undefined>(undefined);
+  const utils = api.useUtils();
   const { data: itemData, isLoading: isItemLoading } =
     api.items.getItemWithId.useQuery(itemId);
+  const handleFileUpload = async (): Promise<void> => {
+    if (itemData?.itemDetails.isServiceItem) {
+      toast.error("Bu ürün servis ürünüdür!");
+      return;
+    }
+    if (!uploadedFile) {
+      toast.error("Yüklemek için bir dosya seçmelisiniz!");
+      return;
+    }
+    const { data: itemImage, error: imageError } = await supabase.storage
+      .from("images")
+      .upload(
+        `private/${itemData?.itemDetails.orgId}/${cuid2.createId()}`,
+        uploadedFile,
+      );
+    if (imageError) {
+      toast.error("Failed to upload image:" + imageError.message);
+      return;
+    }
+    const { data: itemImagePath } = supabase.storage
+      .from("images")
+      .getPublicUrl(itemImage.path);
 
+    const { error: updateItemError } = await supabase
+      .from("Item")
+      .update({ image: itemImagePath.publicUrl })
+      .eq("id", itemId)
+      .select()
+      .single();
+
+    if (updateItemError) {
+      toast.error("Failed to update item:" + updateItemError.message);
+      return;
+    }
+    await utils.items.getItemWithId.invalidate();
+    setuploadedFile(undefined);
+  };
   async function onSubmitForm(data: FormInput) {
     update.mutate({ itemId: itemId, ...data });
   }
@@ -92,87 +144,89 @@ const ItemDetail = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Barkodlar</CardTitle>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button>Barkod Ekle</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Yeni Barkod</DialogTitle>
-                </DialogHeader>
-                <div>
-                  <Label>Barkod</Label>
-                  <Input
-                    value={barcode}
-                    onChange={(a) => {
-                      setBarcode(a.target.value);
-                    }}
-                  />
-                </div>
-                <div>
-                  <Label>Birim</Label>
-                  <Input
-                    value={unit}
-                    onChange={(a) => {
-                      setUnit(a.target.value);
-                    }}
-                  />
-                </div>
-                <div>
-                  <Label>Bir Birimdeki Adet</Label>
-                  <Input
-                    value={quantity}
-                    type="number"
-                    onChange={(a) => {
-                      setQuantity(a.target.value);
-                    }}
-                  />
-                </div>
-                <div className="items-top flex space-x-2">
-                  <Checkbox
-                    id="isMaster"
-                    onClick={() => {
-                      setIsMaster(!isMaster);
-                    }}
-                    checked={isMaster}
-                  />
-                  <div className="grid gap-1.5 leading-none">
-                    <label
-                      htmlFor="isMaster"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Ana Barkod
-                    </label>
-                    <p className="text-sm text-muted-foreground">
-                      Ana Barkod olarak seçtiğinizde ürün listesinde bu barkod
-                      görünür.
-                    </p>
+            {session?.permissions.includes(PERMS.manage_items) && (
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button>Barkod Ekle</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Yeni Barkod</DialogTitle>
+                  </DialogHeader>
+                  <div>
+                    <Label>Barkod</Label>
+                    <Input
+                      value={barcode}
+                      onChange={(a) => {
+                        setBarcode(a.target.value);
+                      }}
+                    />
                   </div>
-                </div>
-                <DialogClose asChild>
-                  <Button
-                    isLoading={addBarcode.isLoading}
-                    disabled={
-                      barcode.length < 1 ||
-                      quantity.length < 1 ||
-                      unit.length < 1
-                    }
-                    onClick={() => {
-                      addBarcode.mutate({
-                        orgId: itemData?.itemDetails?.orgId ?? "",
-                        barcode: barcode,
-                        quantity: quantity,
-                        unit: unit,
-                        isMaster: isMaster,
-                        itemId: itemId,
-                      });
-                    }}
-                  >
-                    Onayla
-                  </Button>
-                </DialogClose>
-              </DialogContent>
-            </Dialog>
+                  <div>
+                    <Label>Birim</Label>
+                    <Input
+                      value={unit}
+                      onChange={(a) => {
+                        setUnit(a.target.value);
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <Label>Bir Birimdeki Adet</Label>
+                    <Input
+                      value={quantity}
+                      type="number"
+                      onChange={(a) => {
+                        setQuantity(a.target.value);
+                      }}
+                    />
+                  </div>
+                  <div className="items-top flex space-x-2">
+                    <Checkbox
+                      id="isMaster"
+                      onClick={() => {
+                        setIsMaster(!isMaster);
+                      }}
+                      checked={isMaster}
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                      <label
+                        htmlFor="isMaster"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Ana Barkod
+                      </label>
+                      <p className="text-sm text-muted-foreground">
+                        Ana Barkod olarak seçtiğinizde ürün listesinde bu barkod
+                        görünür.
+                      </p>
+                    </div>
+                  </div>
+                  <DialogClose asChild>
+                    <Button
+                      isLoading={addBarcode.isLoading}
+                      disabled={
+                        barcode.length < 1 ||
+                        quantity.length < 1 ||
+                        unit.length < 1
+                      }
+                      onClick={() => {
+                        addBarcode.mutate({
+                          orgId: itemData?.itemDetails?.orgId ?? "",
+                          barcode: barcode,
+                          quantity: quantity,
+                          unit: unit,
+                          isMaster: isMaster,
+                          itemId: itemId,
+                        });
+                      }}
+                    >
+                      Onayla
+                    </Button>
+                  </DialogClose>
+                </DialogContent>
+              </Dialog>
+            )}
           </CardHeader>
           <CardContent className="overflow-scroll sm:overflow-hidden">
             <DataTable
@@ -184,7 +238,99 @@ const ItemDetail = () => {
         </Card>
       </div>
       {itemData && !update.isLoading && (
-        <ItemDetailForm itemData={itemData} onSubmitForm={onSubmitForm} />
+        <>
+          {!itemData.itemDetails.isServiceItem &&
+            session?.permissions.includes(PERMS.manage_items) && (
+              <div className="flex flex-col gap-3">
+                {itemData.itemDetails.image && (
+                  <PhotoProvider>
+                    <PhotoView src={itemData.itemDetails.image}>
+                      <img
+                        src={itemData.itemDetails.image}
+                        className="h-40 w-40"
+                        alt=""
+                      />
+                    </PhotoView>
+                  </PhotoProvider>
+                )}
+                <div className="flex w-full gap-3">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button>Görsel Yükle/Güncelle</Button>
+                    </DialogTrigger>
+                    <DialogContent onEscapeKeyDown={(e) => e.preventDefault()}>
+                      <DialogHeader>
+                        <DialogTitle>Görsel Yükle/Güncelle</DialogTitle>
+                      </DialogHeader>
+
+                      <Input
+                        id="picture"
+                        type="File"
+                        onChange={(e) => {
+                          if (e.target.files) {
+                            setuploadedFile(e.target.files?.[0]);
+                          }
+                        }}
+                      />
+                      <Button
+                        disabled={!uploadedFile}
+                        onClick={async () => {
+                          if (uploadedFile) {
+                            await toast.promise(handleFileUpload(), {
+                              error: "Bir Hata Oluştu!",
+                              loading: "Yükleniyor",
+                              success: "Başarılı!",
+                            });
+                          }
+                        }}
+                      >
+                        Onayla
+                      </Button>
+                    </DialogContent>
+                  </Dialog>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button>Servis Ürünlerini Görüntüle</Button>
+                    </DialogTrigger>
+                    <DialogContent className="flex w-full min-w-min flex-col overflow-x-auto">
+                      <DialogHeader>
+                        <DialogTitle>Servis Ürünleri</DialogTitle>
+                        <DialogDescription className="flex items-center gap-3">
+                          Detayını Görmek İstediğiniz Ürüne Tıklayın
+                          {editMode ? (
+                            <CircleX
+                              className="h-4 w-4"
+                              onClick={() => {
+                                setEditMode(!editMode);
+                              }}
+                            />
+                          ) : (
+                            <Pencil
+                              className="h-4 w-4"
+                              onClick={() => {
+                                setEditMode(!editMode);
+                              }}
+                            />
+                          )}
+                        </DialogDescription>
+                      </DialogHeader>
+                      <OrderComponent
+                        data={itemData?.serviceItems}
+                        editMode={editMode}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </div>
+            )}
+          {session && (
+            <ItemDetailForm
+              itemData={itemData}
+              onSubmitForm={onSubmitForm}
+              session={session}
+            />
+          )}
+        </>
       )}
     </div>
   );
@@ -193,13 +339,15 @@ const ItemDetail = () => {
 const ItemDetailForm = ({
   itemData,
   onSubmitForm,
+  session,
 }: {
   itemData: ItemWithId;
   onSubmitForm: (data: FormInput) => void;
+  session: SessionType;
 }) => {
   const form = useForm<FormInput>({
     defaultValues: {
-      itemBrandId: itemData.itemDetails?.ItemBrand?.id,
+      itemBrandId: itemData.itemDetails?.itemBrandId,
       productName: itemData.itemDetails?.name,
       dealerPrice: Number(itemData.itemDetails?.dealerPrice) ?? undefined,
       mainDealerPrice:
@@ -215,8 +363,8 @@ const ItemDetailForm = ({
       isSerialNoRequired: itemData.itemDetails?.isSerialNoRequired,
       isServiceItem: itemData.itemDetails?.isServiceItem,
     },
+    disabled: !session.permissions.includes(PERMS.manage_items),
   });
-  itemData;
 
   return (
     <Form {...form}>
@@ -268,6 +416,7 @@ const ItemDetailForm = ({
                       onChange={field.onChange}
                       value={field.value}
                       onBlur={field.onBlur}
+                      disabled={field.disabled}
                     />
                   </FormControl>
                   <FormMessage />
@@ -291,6 +440,7 @@ const ItemDetailForm = ({
                       onChange={field.onChange}
                       value={field.value}
                       onBlur={field.onBlur}
+                      disabled={field.disabled}
                     />
                   </FormControl>
                   <FormMessage />
@@ -314,6 +464,7 @@ const ItemDetailForm = ({
                       onChange={field.onChange}
                       value={field.value}
                       onBlur={field.onBlur}
+                      disabled={field.disabled}
                     />
                   </FormControl>
                   <FormMessage />
@@ -337,6 +488,7 @@ const ItemDetailForm = ({
                       onChange={field.onChange}
                       value={field.value}
                       onBlur={field.onBlur}
+                      disabled={field.disabled}
                     />
                   </FormControl>
                   <FormMessage />
@@ -476,6 +628,7 @@ const ItemDetailForm = ({
                     <Checkbox
                       checked={field.value}
                       onCheckedChange={field.onChange}
+                      disabled={field.disabled}
                     />
                   </FormControl>
                   <div className="space-y-1 leading-none">
@@ -493,6 +646,7 @@ const ItemDetailForm = ({
                     <Checkbox
                       checked={field.value}
                       onCheckedChange={field.onChange}
+                      disabled={field.disabled}
                     />
                   </FormControl>
                   <div className="space-y-1 leading-none">
@@ -505,12 +659,14 @@ const ItemDetailForm = ({
               )}
             />
           </div>
-          <Button
-            disabled={!form.formState.isDirty || !form.formState.isValid}
-            type="submit"
-          >
-            Kaydet
-          </Button>
+          {session.permissions.includes(PERMS.manage_items) && (
+            <Button
+              disabled={!form.formState.isDirty || !form.formState.isValid}
+              type="submit"
+            >
+              Kaydet
+            </Button>
+          )}
         </div>
       </form>
     </Form>

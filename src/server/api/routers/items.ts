@@ -75,7 +75,7 @@ export const itemsRouter = createTRPCRouter({
 
                 const { data } = await ctx.supabase
                     .from("Item")
-                    .select("*,ItemColor(*),ItemSize(*),ItemCategory(*),ItemBrand(*),ItemStock(*,Storage(*)),itemBarcode(*)")
+                    .select("id,name,itemCode,mainDealerPrice,multiPrice,dealerPrice,singlePrice,ItemColor(colorCode,colorText),ItemSize(sizeCode,sizeText),ItemCategory(name),ItemBrand(name),ItemStock(stock,Storage(id,name)),itemBarcode(id,barcode,isMaster)")
                     .eq("orgId", input.dealerId)
 
                 if (data) {
@@ -104,7 +104,7 @@ export const itemsRouter = createTRPCRouter({
                 if (ctx.session.orgId === input.orgId) {
                     const { data } = await ctx.supabase
                         .from("Item")
-                        .select("*,ItemColor(*),ItemSize(*),ItemCategory(*),ItemBrand(*),ItemStock(*,Storage(*)),itemBarcode(*)")
+                        .select("id,name,itemCode,mainDealerPrice,multiPrice,dealerPrice,singlePrice,ItemColor(colorCode,colorText),ItemSize(sizeCode,sizeText),ItemCategory(name),ItemBrand(name),ItemStock(stock,Storage(id,name)),itemBarcode(id,barcode,isMaster)")
                         .eq("orgId", input.orgId)
 
                     if (data) {
@@ -192,12 +192,17 @@ export const itemsRouter = createTRPCRouter({
 
 
             if (userPerms.includes(PERMS.item_view)) {
-                const { data: itemDetails } = await ctx.supabase
+                const { data: itemDetails, error: itemDetailsError } = await ctx.supabase
                     .from("Item")
-                    .select("*,ItemColor(*),ItemSize(*),ItemCategory(*),ItemBrand(*),ItemStock(*,Storage(*)),itemBarcode(*)")
+                    .select("name,itemBrandId,itemCode,mainDealerPrice,multiPrice,dealerPrice,singlePrice,isSerialNoRequired,isServiceItem,itemColorId,itemSizeId,itemCategoryId,itemBrandId,orgId,netWeight,volume,image,serviceItemList,ItemStock(*,Storage(*)),itemBarcode(*)")
                     .eq("id", input)
                     .maybeSingle()
-
+                if (itemDetailsError) {
+                    throw new TRPCError({
+                        code: "BAD_REQUEST",
+                        message: "Failed to get item details",
+                    });
+                }
                 if (!itemDetails?.orgId) {
                     throw new TRPCError({
                         code: "NOT_FOUND",
@@ -205,18 +210,22 @@ export const itemsRouter = createTRPCRouter({
                     });
                 }
                 if (itemDetails.orgId === ctx.session.orgId ?? "") {
-                    const colors = (await ctx.supabase.from("ItemColor").select("*").eq("orgId", itemDetails.orgId)).data
-                    const sizes = (await ctx.supabase.from("ItemSize").select("*").eq("orgId", itemDetails.orgId)).data
-                    const categories = (await ctx.supabase.from("ItemCategory").select("*").eq("orgId", itemDetails.orgId)).data
-                    const brands = (await ctx.supabase.from("ItemBrand").select("*").eq("orgId", itemDetails.orgId)).data
-                    return { itemDetails, colors, sizes, categories, brands }
+                    const colors = (await ctx.supabase.from("ItemColor").select("id,colorCode,colorText").eq("orgId", itemDetails.orgId)).data
+                    const sizes = (await ctx.supabase.from("ItemSize").select("id,sizeCode,sizeText").eq("orgId", itemDetails.orgId)).data
+                    const categories = (await ctx.supabase.from("ItemCategory").select("id,name").eq("orgId", itemDetails.orgId)).data
+                    const brands = (await ctx.supabase.from("ItemBrand").select("id,name").eq("orgId", itemDetails.orgId)).data
+                    const serviceItemsList = (await ctx.supabase.from("Item").select("id,name").in("id", itemDetails.serviceItemList ?? [])).data
+                    const serviceItems = itemDetails.serviceItemList ? serviceItemsList?.sort((a, b) => {
+                        return (itemDetails.serviceItemList?.indexOf(a.id) ?? -1) - (itemDetails.serviceItemList?.indexOf(b.id) ?? -1);
+                    }) : [];
+                    return { itemDetails, colors, sizes, categories, brands, serviceItems }
                 }
 
             }
             if (userPerms.includes(PERMS.dealer_item_view)) {
                 const { data } = await ctx.supabase
                     .from("Item")
-                    .select("*,ItemColor(*),ItemSize(*),ItemCategory(*),ItemBrand(*),ItemStock(*,Storage(*)),itemBarcode(*)")
+                    .select("name,itemBrandId,itemCode,mainDealerPrice,multiPrice,dealerPrice,singlePrice,isSerialNoRequired,isServiceItem,itemColorId,itemSizeId,itemCategoryId,itemBrandId,orgId,netWeight,volume,image,serviceItemList,ItemStock(*,Storage(*)),itemBarcode(*)")
                     .eq("id", input)
                     .maybeSingle()
                 if (!data?.orgId) {
@@ -232,11 +241,16 @@ export const itemsRouter = createTRPCRouter({
                         message: "You don't have permission to do this! authorisation",
                     });
                 }
-                const colors = (await ctx.supabase.from("ItemColor").select("*").eq("orgId", data.orgId)).data
-                const sizes = (await ctx.supabase.from("ItemSize").select("*").eq("orgId", data.orgId)).data
-                const categories = (await ctx.supabase.from("ItemCategory").select("*").eq("orgId", data.orgId)).data
-                const brands = (await ctx.supabase.from("ItemBrand").select("*").eq("orgId", data.orgId)).data
-                return { itemDetails: data, colors, sizes, categories, brands }
+                const colors = (await ctx.supabase.from("ItemColor").select("id,colorCode,colorText").eq("orgId", data.orgId)).data
+                const sizes = (await ctx.supabase.from("ItemSize").select("id,sizeCode,sizeText").eq("orgId", data.orgId)).data
+                const categories = (await ctx.supabase.from("ItemCategory").select("id,name").eq("orgId", data.orgId)).data
+                const brands = (await ctx.supabase.from("ItemBrand").select("id,name").eq("orgId", data.orgId)).data
+
+                const serviceItemsList = (await ctx.supabase.from("Item").select("id,name").in("id", data.serviceItemList ?? [])).data
+                const serviceItems = data.serviceItemList ? serviceItemsList?.sort((a, b) => {
+                    return (data.serviceItemList?.indexOf(a.id) ?? -1) - (data.serviceItemList?.indexOf(b.id) ?? -1);
+                }) : [];
+                return { itemDetails: data, colors, sizes, categories, brands, serviceItems }
             }
             throw new TRPCError({
                 code: "UNAUTHORIZED",
@@ -269,7 +283,7 @@ export const itemsRouter = createTRPCRouter({
                 });
             }
             if (item.orgId === ctx.session.orgId) {
-                const { data, error } = await ctx.supabase.from("Storage").select("*").eq("orgId", item.orgId)
+                const { data, error } = await ctx.supabase.from("Storage").select("id,name").eq("orgId", item.orgId)
                 if (error) {
                     throw new TRPCError({
                         code: "BAD_REQUEST",
@@ -286,7 +300,7 @@ export const itemsRouter = createTRPCRouter({
                 });
             }
 
-            const { data: dealerStorages, error: dealerStoragesError } = await ctx.supabase.from("Storage").select("*").eq("orgId", item.orgId ?? "")
+            const { data: dealerStorages, error: dealerStoragesError } = await ctx.supabase.from("Storage").select("id,name").eq("orgId", item.orgId ?? "")
             if (dealerStoragesError) {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
@@ -295,7 +309,7 @@ export const itemsRouter = createTRPCRouter({
             }
             return dealerStorages
         }
-        const { data: orgStorages, error: orgStoragesError } = await ctx.supabase.from("Storage").select("*").eq("orgId", ctx.session.orgId)
+        const { data: orgStorages, error: orgStoragesError } = await ctx.supabase.from("Storage").select("id,name").eq("orgId", ctx.session.orgId)
         if (orgStoragesError) {
             throw new TRPCError({
                 code: "BAD_REQUEST",
@@ -500,13 +514,70 @@ export const itemsRouter = createTRPCRouter({
                     itemCategoryId: input.itemCategoryId,
                 }).eq("id", input.itemId)
             }
-
-
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "You don't have permission to do this!",
             });
         }),
+    getItemSettingsDetails: protectedProcedure.query(async ({ ctx }) => {
+        const userPerms = ctx.session.permissions
+
+        if (!userPerms.includes(PERMS.manage_items)) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
+        }
+        if (!ctx.session.orgId) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
+        }
+        const { data: colors, error: colorsError } = await ctx.supabase.from("ItemColor").select("id,colorCode,colorText").eq("orgId", ctx.session.orgId)
+        if (colorsError) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Failed to get item colors",
+            });
+        }
+        const { data: sizes, error: sizesError } = await ctx.supabase.from("ItemSize").select("id,sizeCode,sizeText").eq("orgId", ctx.session.orgId)
+        if (sizesError) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Failed to get item sizes",
+            });
+        }
+        const { data: categories, error: categoriesError } = await ctx.supabase.from("ItemCategory").select("id,name").eq("orgId", ctx.session.orgId)
+        if (categoriesError) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Failed to get item categories",
+            });
+        }
+        const { data: brands, error: brandsError } = await ctx.supabase.from("ItemBrand").select("id,name").eq("orgId", ctx.session.orgId)
+        if (brandsError) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Failed to get item brands",
+            });
+        }
+        const { data: storages, error: storagesError } = await ctx.supabase.from("Storage").select("id,name").eq("orgId", ctx.session.orgId)
+        if (storagesError) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Failed to get storages",
+            });
+        }
+        return {
+            colors,
+            sizes,
+            categories,
+            brands,
+            storages
+        }
+
+    }),
     getColors: protectedProcedure.input(z.object({ itemId: z.string().optional() })).query(async ({ ctx, input: { itemId } }) => {
         const userPerms = ctx.session.permissions
 

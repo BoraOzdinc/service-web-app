@@ -224,6 +224,7 @@ model Item {
   shelfId                       String?
   netWeight                     Float?
   volume                        Float?
+  serviceItemList               String[]
   DealerView                    DealerView[]
   brand                         ItemBrand               @relation(fields: [itemBrandId], references: [id])
   category                      ItemCategory            @relation(fields: [itemCategoryId], references: [id])
@@ -231,6 +232,8 @@ model Item {
   size                          ItemSize                @relation(fields: [itemSizeId], references: [id])
   Org                           Org                     @relation(fields: [orgId], references: [id], onDelete: Cascade)
   ItemAcceptDetail              ItemAcceptDetail[]
+  parentItemRelation            ItemRelation[]          @relation("itemRelation_parent")
+  serviceItemRelation           ItemRelation[]          @relation("itemRelation_service")
   ItemStock                     ItemStock[]
   ShelfItemDetail               ShelfItemDetail[]
   CustomerTransactionItemDetail TransactionItemDetail[]
@@ -243,6 +246,14 @@ model Item {
   @@index([itemBrandId])
   @@index([shelfBoxId])
   @@index([shelfId])
+}
+
+model ItemRelation {
+  id            String  @id @default(cuid())
+  parentItemId  String?
+  serviceItemId String?
+  parentItem    Item?   @relation("itemRelation_parent", fields: [parentItemId], references: [id])
+  serviceItem   Item?   @relation("itemRelation_service", fields: [serviceItemId], references: [id])
 }
 
 model ItemAcceptHistory {
@@ -282,7 +293,7 @@ model ItemAcceptDetail {
 
 model ItemHistory {
   id                 String        @id @default(cuid())
-  itemId             String?
+  updatedItemId      String?
   name               String
   itemCode           String
   isSerialNoRequired Boolean
@@ -304,6 +315,7 @@ model ItemHistory {
   changeDate         DateTime      @default(now())
   action             audit_actions
   updatedBy          String?       @default("System")
+  serviceItemList    String[]
 }
 
 model Shelf {

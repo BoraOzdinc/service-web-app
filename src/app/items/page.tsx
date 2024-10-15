@@ -16,14 +16,16 @@ const Items = async () => {
   return (
     <Card className="flex w-full flex-col overflow-x-auto">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Ürün Listesi</CardTitle>
+        <CardTitle>List of Products</CardTitle>
         <div className=" flex gap-3">
           {session?.permissions.includes(PERMS.manage_storage) && (
             <StorageDialog />
           )}
-          <Link href={"/items/new-item"}>
-            <Button>Yeni ürün ekle</Button>
-          </Link>
+          {session.permissions.includes(PERMS.manage_items) && (
+            <Link href={"/items/new-item"}>
+              <Button>Add New Item</Button>
+            </Link>
+          )}
         </div>
       </CardHeader>
       <CardContent className=" w-full">

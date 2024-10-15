@@ -1,6 +1,7 @@
 import { type ColumnDef } from "@tanstack/react-table";
 import { CheckCircle2Icon, EllipsisVertical, XCircleIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
+import { PERMS } from "~/_constants/perms";
 import { Button } from "~/app/_components/ui/button";
 import { Checkbox } from "~/app/_components/ui/checkbox";
 import {
@@ -29,6 +30,7 @@ import {
   FormDescription,
 } from "~/app/_components/ui/form";
 import { Input } from "~/app/_components/ui/input";
+import { useSession } from "~/utils/SessionProvider";
 import { useDeleteBarcode, useUpdateBarcode } from "~/utils/useItems";
 
 interface FormType {
@@ -52,6 +54,8 @@ const ActionColumn = ({
 }) => {
   const updateBarcode = useUpdateBarcode();
   const deleteBarcode = useDeleteBarcode();
+  const session = useSession();
+
   const form = useForm<FormType>({ defaultValues: { ...barcode } });
   const onSubmitForm = (data: FormType) => {
     updateBarcode.mutate({
@@ -63,7 +67,9 @@ const ActionColumn = ({
     });
     form.reset();
   };
-
+  if (!session?.permissions.includes(PERMS.manage_items)) {
+    return null;
+  }
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

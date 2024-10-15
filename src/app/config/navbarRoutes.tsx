@@ -31,7 +31,7 @@ const NavbarRoutes = (session: SessionType): navConfig => {
         {
           title: "Counter",
           path: "/items/counter",
-          permissions: PERMS.manage_items,
+          permissions: PERMS.manage_storage,
         },
         {
           title: "Product Accept",

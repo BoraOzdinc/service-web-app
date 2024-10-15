@@ -42,6 +42,26 @@ export const useAddItem = () => {
         },
     });
 };
+export const useUploadItem = () => {
+    const utils = api.useUtils();
+    return api.service.addImageToItem.useMutation({
+        onSuccess: async (_d,) => {
+            toast.success("Resim Eklendi!", { id: "item.addImage" });
+            await utils.items.getItems.invalidate()
+            await utils.items.getItemWithId.invalidate()
+        },
+        onMutate: () => {
+            toast.loading("Resim Ekleniyor...", {
+                id: "item.addImage",
+            });
+        },
+        onError(error) {
+            toast.error(String(error.data?.zodError ?? error.message), {
+                id: "item.addImage",
+            });
+        },
+    });
+};
 export const useAddColor = () => {
     const utils = api.useUtils();
     return api.items.addColor.useMutation({

@@ -20,6 +20,7 @@ interface Props {
   value: string;
   onChange: (...event: unknown[]) => void;
   onBlur?: Noop;
+  disabled?: boolean;
 }
 export default function ComboBox({
   data,
@@ -27,6 +28,7 @@ export default function ComboBox({
   onChange,
   value,
   onBlur,
+  disabled,
 }: Props) {
   const [open, setOpen] = React.useState(false);
 
@@ -38,7 +40,7 @@ export default function ComboBox({
           role="combobox"
           aria-expanded={open}
           className="w-full justify-between"
-          disabled={!data}
+          disabled={!data || disabled}
           name={name}
         >
           {value ? data?.find((d) => d.value === value)?.label : "Seçin"}
