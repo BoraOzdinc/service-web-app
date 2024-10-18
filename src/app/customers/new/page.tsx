@@ -30,6 +30,7 @@ import {
 import { Separator } from "~/app/_components/ui/separator";
 import { Textarea } from "~/app/_components/ui/textarea";
 import { api } from "~/trpc/server";
+import { useSession } from "~/utils/SessionProvider";
 import { useCreateCustomer } from "~/utils/useCustomers";
 
 interface FormInput {
@@ -59,7 +60,7 @@ interface FormInput {
 }
 
 const NewCustomer = () => {
-  const { data: session } = api.utilRouter.getSession.useQuery();
+  const session = useSession();
   const [useAsBill, setUseAsBill] = useState<boolean>(true);
   const form = useForm<FormInput>({
     defaultValues: { adresses: undefined },

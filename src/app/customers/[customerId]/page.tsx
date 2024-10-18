@@ -53,6 +53,7 @@ import {
   type customerById,
 } from "~/utils/useCustomers";
 import { customerTransactionColumns } from "./components/customerTransactionColumns";
+import { useSession } from "~/utils/SessionProvider";
 
 interface FormInput {
   companyName: string;
@@ -84,7 +85,7 @@ const CustomerDetail = () => {
     api.customer.getCustomerWithId.useQuery(customerId);
   const { data: customerTransactions } =
     api.customer.getCustomerTransactions.useQuery(customerId);
-  const { data: session } = api.utilRouter.getSession.useQuery();
+  const session = useSession();
 
   const updateCustomer = useUpdateCustomer();
 
@@ -110,7 +111,7 @@ const CustomerDetail = () => {
         <TabsContent value="details">
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             <Card className="sm:col-span-2">
-              {customer && !updateCustomer.isLoading ? (
+              {session && customer && !updateCustomer.isLoading ? (
                 <CustomerDetailForm
                   customer={customer}
                   onSubmitForm={onSubmitForm}
