@@ -7,6 +7,7 @@ import {
   UsersIcon,
 } from "lucide-react";
 import { useState } from "react";
+import { PERMS } from "~/_constants/perms";
 import { Button } from "~/app/_components/ui/button";
 import { Checkbox } from "~/app/_components/ui/checkbox";
 import {
@@ -217,7 +218,15 @@ export const RoleCreateOrUpdateModal = ({
     </Dialog>
   );
 };
-export const columns: ColumnDef<orgRolesType>[] = [
+export const columns: (
+  session:
+    | {
+        permissions: string[];
+        orgId: string | null | undefined;
+        email: string | undefined;
+      }
+    | undefined,
+) => ColumnDef<orgRolesType>[] = (session) => [
   {
     id: "action",
     cell({
@@ -225,15 +234,18 @@ export const columns: ColumnDef<orgRolesType>[] = [
         original: { permissions, id, name },
       },
     }) {
-      return (
-        <RoleCreateOrUpdateModal
-          permissions={permissions}
-          roleId={id}
-          roleName={name}
-          mode="update"
-          orgId=""
-        />
-      );
+      if(session?.permissions.includes(PERMS.manage_org_role)) {
+        return (
+          <RoleCreateOrUpdateModal
+            permissions={permissions}
+            roleId={id}
+            roleName={name}
+            mode="update"
+            orgId=""
+          />
+        );
+      }
+      return null;
     },
   },
   {
@@ -290,7 +302,7 @@ export const columns: ColumnDef<orgRolesType>[] = [
             </DialogHeader>
             <ul className="list-disc p-3">
               {members.map((p) => (
-                <li key={p.user?.id}>{p.user?.email}</li>
+                <li key={p.id}>{p.userEmail}</li>
               ))}
             </ul>
           </DialogContent>

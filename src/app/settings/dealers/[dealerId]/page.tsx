@@ -41,14 +41,16 @@ import {
   PaletteIcon,
   RulerIcon,
   TagsIcon,
+  WarehouseIcon,
 } from "lucide-react";
 import { useDebounce } from "@uidotdev/usehooks";
 import { isValidEmail } from "~/utils";
 import { dealerTransactionsColumns } from "./components/dealerTransactionsColumns";
+import { useSession } from "~/utils/SessionProvider";
 
 const DealerDetails = () => {
   const params = useParams<{ dealerId: string }>();
-  const { data: session } = api.utilRouter.getSession.useQuery();
+  const session = useSession();
   const addDealerMember = useCreateDealerMember();
   const [dealerMemberEmail, setDealerMemberEmail] = useState<
     string | undefined
@@ -230,10 +232,12 @@ const DealerDetails = () => {
                         columnToFilter: "itemBrandId",
                         title: "Marka",
                         options: [
-                          ...new Set(dealerItems?.flatMap((i) => i.ItemBrand)),
+                          ...new Set(
+                            dealerItems?.flatMap((i) => i.ItemBrand?.name),
+                          ),
                         ].map((b) => ({
-                          label: b?.name ?? "",
-                          value: b?.id ?? "",
+                          label: b ?? "",
+                          value: b ?? "",
                         })),
                         icon: <TagsIcon className="mr-2 h-5 w-5" />,
                       },
@@ -241,10 +245,12 @@ const DealerDetails = () => {
                         columnToFilter: "itemColorId",
                         title: "Renk",
                         options: [
-                          ...new Set(dealerItems?.flatMap((i) => i.ItemColor)),
+                          ...new Set(
+                            dealerItems?.flatMap((i) => i.ItemColor?.colorCode),
+                          ),
                         ].map((b) => ({
-                          label: b?.colorCode ?? "",
-                          value: b?.id ?? "",
+                          label: b ?? "",
+                          value: b ?? "",
                         })),
                         icon: <PaletteIcon className="mr-2 h-5 w-5" />,
                       },
@@ -252,10 +258,12 @@ const DealerDetails = () => {
                         columnToFilter: "itemSizeId",
                         title: "Beden",
                         options: [
-                          ...new Set(dealerItems?.flatMap((i) => i.ItemSize)),
+                          ...new Set(
+                            dealerItems?.flatMap((i) => i.ItemSize?.sizeCode),
+                          ),
                         ].map((b) => ({
-                          label: b?.sizeCode ?? "",
-                          value: b?.id ?? "",
+                          label: b ?? "",
+                          value: b ?? "",
                         })),
                         icon: <RulerIcon className="mr-2 h-5 w-5" />,
                       },
@@ -264,13 +272,32 @@ const DealerDetails = () => {
                         title: "Kategori",
                         options: [
                           ...new Set(
-                            dealerItems?.flatMap((i) => i.ItemCategory),
+                            dealerItems?.flatMap((i) => i.ItemCategory?.name),
                           ),
                         ].map((b) => ({
-                          label: b?.name ?? "",
-                          value: b?.id ?? "",
+                          label: b ?? "",
+                          value: b ?? "",
                         })),
                         icon: <Layers3Icon className="mr-2 h-5 w-5" />,
+                      },
+                      {
+                        columnToFilter: "totalStock",
+                        title: "Depo",
+                        options: [
+                          ...new Map(
+                            dealerItems
+                              ?.flatMap((item) =>
+                                item.ItemStock.flatMap(
+                                  (stock) => stock.Storage,
+                                ).filter(Boolean),
+                              )
+                              .map((storage) => [storage?.id, storage]),
+                          ).values(),
+                        ].map((c) => ({
+                          label: c?.name ?? "",
+                          value: c?.id ?? "",
+                        })),
+                        icon: <WarehouseIcon className="mr-2 h-5 w-5" />,
                       },
                     ]}
                     serverSearch={{

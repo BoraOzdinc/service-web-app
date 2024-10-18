@@ -37,7 +37,6 @@ export const api = createTRPCNext<AppRouter>({
           queries: {
             retry: false,
             onError(err) {
-              console.error(err);
               const e = err as TRPCError;
               if (e.data?.code === "INTERNAL_SERVER_ERROR")
                 toast.error(e.message, { id: e.data.path });

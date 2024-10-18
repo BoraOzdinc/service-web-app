@@ -21,9 +21,12 @@ import { Input } from "~/app/_components/ui/input";
 import { useState } from "react";
 import { useAddSize } from "~/utils/useItems";
 import { api } from "~/trpc/server";
+import { useSession } from "~/utils/SessionProvider";
+import { PERMS } from "~/_constants/perms";
 
 const SizeComp = () => {
   const sizes = api.items.getSizes.useQuery({});
+  const session = useSession();
   const [sizeCode, setSizeCode] = useState<string>("");
   const [size, setSize] = useState<string>("");
   const addSize = useAddSize();
@@ -35,12 +38,14 @@ const SizeComp = () => {
 
         <Dialog>
           <DialogTrigger asChild>
-            <Button
-              disabled={sizes.isLoading || addSize.isLoading}
-              isLoading={addSize.isLoading}
-            >
-              Beden Ekle
-            </Button>
+            {session?.permissions.includes(PERMS.manage_item_setting) && (
+              <Button
+                disabled={sizes.isLoading || addSize.isLoading}
+                isLoading={addSize.isLoading}
+              >
+                Beden Ekle
+              </Button>
+            )}
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>

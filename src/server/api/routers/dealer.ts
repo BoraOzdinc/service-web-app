@@ -219,7 +219,6 @@ export const dealerRouter = createTRPCRouter({
                 },
                 include: { parentRelations: { include: { dealer: { include: { members: true } } } } }
             })
-            console.log(Org);
 
             if (!Org) {
                 throw new TRPCError({

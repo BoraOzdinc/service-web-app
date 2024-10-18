@@ -21,9 +21,12 @@ import { Input } from "~/app/_components/ui/input";
 import { useState } from "react";
 import { useAddCategory } from "~/utils/useItems";
 import { api } from "~/trpc/server";
+import { useSession } from "~/utils/SessionProvider";
+import { PERMS } from "~/_constants/perms";
 
 const CategoryComp = () => {
   const categories = api.items.getCategory.useQuery({});
+  const session = useSession()
   const [category, setCategory] = useState<string>("");
   const addCategory = useAddCategory();
 
@@ -34,12 +37,14 @@ const CategoryComp = () => {
 
         <Dialog>
           <DialogTrigger asChild>
-            <Button
-              disabled={categories.isLoading || addCategory.isLoading}
-              isLoading={addCategory.isLoading}
-            >
-              Kategori Ekle
-            </Button>
+            {session?.permissions.includes(PERMS.manage_item_setting) && (
+              <Button
+                disabled={categories.isLoading || addCategory.isLoading}
+                isLoading={addCategory.isLoading}
+              >
+                Kategori Ekle
+              </Button>
+            )}
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>

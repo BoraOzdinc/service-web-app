@@ -14,61 +14,61 @@ export type navConfig = {
 const NavbarRoutes = (session: SessionType): navConfig => {
   return [
     {
-      title: "Depo Yönetimi",
+      title: "Storage",
       permissions: PERMS.item_view,
       icon: <BoxesIcon />,
       children: [
         {
-          title: "Ürün Listesi",
+          title: "Products",
           path: "/items",
           permissions: PERMS.item_view,
         },
         {
-          title: "Ürün Özellikleri",
+          title: "Products Settings",
           path: "/items/settings",
           permissions: PERMS.item_setting_view,
         },
         {
-          title: "Ürün Sayımı",
+          title: "Counter",
           path: "/items/counter",
-          permissions: PERMS.manage_items,
+          permissions: PERMS.manage_storage,
         },
         {
-          title: "Ürün Kabul",
+          title: "Product Accept",
           path: "/items/item-accept/new",
           permissions: PERMS.item_accept,
         },
         {
-          title: "Ürün Satış",
+          title: "Product Sale",
           path: "/items/item-sell/new",
           permissions: PERMS.item_sell,
         },
       ],
     },
     {
-      title: "Müşteri Yönetimi",
+      title: "Customer",
       permissions: PERMS.customers_view,
       icon: <UsersIcon />,
       children: [
         {
-          title: "Müşteri Listesi",
+          title: "Customers",
           path: "/customers",
           permissions: PERMS.customers_view,
         },
       ],
     },
     {
-      title: "Ayarlar",
+      title: "Settings",
       permissions: "",
       icon: <CogIcon />,
       children: [
         {
-          title: "Bayiiler",
+          title: "Dealers",
           path: "/settings/dealers",
           permissions: PERMS.dealers_view,
         },
         {
-          title: "Organizasyonum",
+          title: "My Organization",
           path: `/settings/${session.orgId}`,
           permissions: PERMS.view_org_members,
         },

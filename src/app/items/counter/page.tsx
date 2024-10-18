@@ -38,10 +38,11 @@ import ItemCard from "../item-accept/components/ItemCard";
 import { ScrollArea } from "~/app/_components/ui/scroll-area";
 import { DataTable } from "~/app/_components/tables/generic-table";
 import { type ColumnDef } from "@tanstack/react-table";
+import { useSession } from "~/utils/SessionProvider";
 
 const ItemCount = () => {
   const storages = api.items.getStorages.useQuery({});
-  const { data: session } = api.utilRouter.getSession.useQuery();
+  const session = useSession();
   const hydrated = useHydrated();
   const [isStorageOpen, setIsStorageOpen] = useState(true);
   const [isBarcodeOpen, setIsBarcodeOpen] = useState(false);

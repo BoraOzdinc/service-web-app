@@ -27,9 +27,10 @@ import { type RouterOutputs } from "~/trpc/shared";
 import { useDeleteOrgMember, useUpdateOrgMember } from "~/utils/useOrg";
 
 export type orgMemberType =
-  RouterOutputs["organization"]["getOrgMembers"][number];
+  RouterOutputs["organization"]["getOrgMembers"]["members"][number];
 
-export type orgRolesType = RouterOutputs["organization"]["getOrgRoles"];
+export type orgRolesType =
+  RouterOutputs["organization"]["getOrgMembers"]["roleList"];
 
 const ActionColumn = ({
   member,
@@ -174,11 +175,7 @@ export const columns: (
   {
     id: "action",
     cell({ row: { original } }) {
-      if (
-        session?.permissions.includes(
-          PERMS.manage_org_members && PERMS.view_org_role,
-        )
-      ) {
+      if (session?.permissions.includes(PERMS.manage_org_members)) {
         return <ActionColumn member={original} roles={orgRoles ?? []} />;
       }
       return null;

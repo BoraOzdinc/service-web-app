@@ -15,8 +15,6 @@ const Shelf = ({ data }: { data: ShelfData }) => {
     <Card
       className="cursor-pointer transition-colors hover:bg-accent hover:text-accent-foreground"
       onClick={() => {
-        console.log("click");
-
         router.push(`/layout/${data.id}`);
       }}
     >

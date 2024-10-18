@@ -434,6 +434,7 @@ export type Database = {
           name: string
           netWeight: number | null
           orgId: string
+          serviceItemList: string[] | null
           shelfBoxId: string | null
           shelfId: string | null
           singlePrice: number | null
@@ -457,6 +458,7 @@ export type Database = {
           name: string
           netWeight?: number | null
           orgId: string
+          serviceItemList?: string[] | null
           shelfBoxId?: string | null
           shelfId?: string | null
           singlePrice?: number | null
@@ -480,6 +482,7 @@ export type Database = {
           name?: string
           netWeight?: number | null
           orgId?: string
+          serviceItemList?: string[] | null
           shelfBoxId?: string | null
           shelfId?: string | null
           singlePrice?: number | null
@@ -887,17 +890,18 @@ export type Database = {
           itemCategoryId: string
           itemCode: string
           itemColorId: string
-          itemId: string | null
           itemSizeId: string
           mainDealerPrice: number | null
           multiPrice: number | null
           name: string
           netWeight: number | null
           orgId: string
+          serviceItemList: string[] | null
           shelfBoxId: string | null
           shelfId: string | null
           singlePrice: number | null
           updatedBy: string | null
+          updatedItemId: string | null
           volume: number | null
         }
         Insert: {
@@ -912,17 +916,18 @@ export type Database = {
           itemCategoryId: string
           itemCode: string
           itemColorId: string
-          itemId?: string | null
           itemSizeId: string
           mainDealerPrice?: number | null
           multiPrice?: number | null
           name: string
           netWeight?: number | null
           orgId: string
+          serviceItemList?: string[] | null
           shelfBoxId?: string | null
           shelfId?: string | null
           singlePrice?: number | null
           updatedBy?: string | null
+          updatedItemId?: string | null
           volume?: number | null
         }
         Update: {
@@ -937,20 +942,54 @@ export type Database = {
           itemCategoryId?: string
           itemCode?: string
           itemColorId?: string
-          itemId?: string | null
           itemSizeId?: string
           mainDealerPrice?: number | null
           multiPrice?: number | null
           name?: string
           netWeight?: number | null
           orgId?: string
+          serviceItemList?: string[] | null
           shelfBoxId?: string | null
           shelfId?: string | null
           singlePrice?: number | null
           updatedBy?: string | null
+          updatedItemId?: string | null
           volume?: number | null
         }
         Relationships: []
+      }
+      ItemRelation: {
+        Row: {
+          id: string
+          parentItemId: string | null
+          serviceItemId: string | null
+        }
+        Insert: {
+          id: string
+          parentItemId?: string | null
+          serviceItemId?: string | null
+        }
+        Update: {
+          id?: string
+          parentItemId?: string | null
+          serviceItemId?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ItemRelation_parentItemId_fkey"
+            columns: ["parentItemId"]
+            isOneToOne: false
+            referencedRelation: "Item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ItemRelation_serviceItemId_fkey"
+            columns: ["serviceItemId"]
+            isOneToOne: false
+            referencedRelation: "Item"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ItemSize: {
         Row: {
@@ -1191,6 +1230,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      MemberRoleHistory: {
+        Row: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changedate: string
+          id: number
+          memberPermissions: string[] | null
+          name: string
+          orgId: string | null
+          updatedBy: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["audit_actions"]
+          changedate?: string
+          id?: number
+          memberPermissions?: string[] | null
+          name: string
+          orgId?: string | null
+          updatedBy?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["audit_actions"]
+          changedate?: string
+          id?: number
+          memberPermissions?: string[] | null
+          name?: string
+          orgId?: string | null
+          updatedBy?: string | null
+        }
+        Relationships: []
       }
       Org: {
         Row: {
