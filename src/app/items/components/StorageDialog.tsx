@@ -1,13 +1,7 @@
 "use client";
-import { Columns, EllipsisVertical, TrashIcon } from "lucide-react";
+import { EllipsisVertical } from "lucide-react";
 import { useState } from "react";
 import { Button } from "~/app/_components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "~/app/_components/ui/card";
 import {
   Dialog,
   DialogClose,
