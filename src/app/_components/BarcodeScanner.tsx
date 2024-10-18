@@ -43,17 +43,12 @@ const BarcodeScanner = ({
             facingMode: "environment",
           }}
           onUpdate={(err, result) => {
-            console.log(result?.toString().replace(/\D/g, ""));
-
             if (result) {
               setData(result.getText().replace(/\D/g, ""));
               setOpen(!open);
             }
           }}
           delay={100}
-          onError={(err) => {
-            console.log(err);
-          }}
         />
         <Input
           type="number"

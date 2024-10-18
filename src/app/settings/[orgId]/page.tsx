@@ -31,10 +31,11 @@ import {
   RoleCreateOrUpdateModal,
   columns as orgRolesColumns,
 } from "./components/orgRolesColumns";
+import { useSession } from "~/utils/SessionProvider";
 
 const OrganizationSettings = () => {
   const params = useParams<{ orgId: string }>();
-  const { data: session } = api.utilRouter.getSession.useQuery();
+  const session = useSession();
   const [orgMemberEmail, setOrgMemberEmail] = useState<string | undefined>();
   const addOrgMember = useCreateOrgMember();
   const { data: org, isLoading: isOrgLoading } =
@@ -42,18 +43,28 @@ const OrganizationSettings = () => {
       orgId: params.orgId,
     });
   const { data: orgMembers, isLoading: isOrgMembersLoading } =
-    api.organization.getOrgMembers.useQuery({ orgId: params.orgId });
+    api.organization.getOrgMembers.useQuery(
+      { orgId: params.orgId },
+      { enabled: session?.permissions.includes(PERMS.view_org_members) },
+    );
 
   const { data: orgRoles, isLoading: isOrgRolesLoading } =
-    api.organization.getOrgRoles.useQuery({
-      orgId: params.orgId,
-    });
+    api.organization.getOrgRoles.useQuery(
+      {
+        orgId: params.orgId,
+      },
+      { enabled: session?.permissions.includes(PERMS.view_org_role) },
+    );
+
+  const safeSession = session ?? undefined;
+
   const memberColumns = useMemo(() => {
-    return orgMemberColumns(orgRoles, session);
-  }, [orgRoles, session]);
+    return orgMemberColumns(orgMembers?.roleList, safeSession);
+  }, [orgMembers?.roleList, safeSession]);
+
   const rolesColumns = useMemo(() => {
-    return orgRolesColumns(session);
-  }, [session]);
+    return orgRolesColumns(safeSession);
+  }, [safeSession]);
 
   if (isOrgLoading) {
     return <Loader />;
@@ -64,89 +75,93 @@ const OrganizationSettings = () => {
       <CardHeader>
         <CardTitle>{org?.name}</CardTitle>
       </CardHeader>
-      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div className=" flex flex-row gap-3">
-              <CardTitle>Organizasyon Üyeleri</CardTitle>
-              {isOrgMembersLoading && (
-                <Loader2Icon className="h-5 w-5 animate-spin" />
-              )}
-            </div>
-            {session?.permissions.includes(PERMS.manage_org_members) ? (
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button>Üye Ekle</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Yeni üye</DialogTitle>
-                  </DialogHeader>
-                  <Label>E-Mail</Label>
-                  <Input
-                    placeholder="E-Mail"
-                    inputMode="email"
-                    value={orgMemberEmail}
-                    onChange={(e) => {
-                      setOrgMemberEmail(e.target.value);
-                    }}
-                  />
-                  <Button
-                    disabled={isValidEmail(orgMemberEmail) || !orgMemberEmail}
-                    onClick={() =>
-                      orgMemberEmail &&
-                      addOrgMember.mutate({
-                        email: orgMemberEmail,
-                        orgId: params.orgId,
-                      })
-                    }
-                  >
-                    Üyeyi Ekle
-                  </Button>
-                  <DialogDescription>
-                    Not: Üyenin eklenebilmesi için daha önce sisteme giriş
-                    yapmış olması gerekmektedir.
-                  </DialogDescription>
-                </DialogContent>
-              </Dialog>
-            ) : null}
-          </CardHeader>
-          <CardContent className="overflow-x-scroll md:overflow-x-hidden">
-            <DataTable
-              data={orgMembers}
-              isLoading={isOrgMembersLoading}
-              columns={memberColumns}
-              pagination
-            />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div className=" flex flex-row gap-3">
-              <CardTitle>Organizasyon Rolleri</CardTitle>
-              {isOrgRolesLoading && (
-                <Loader2Icon className="h-5 w-5 animate-spin" />
-              )}
-            </div>
-            {session?.permissions.includes(PERMS.manage_org_role) ? (
-              <RoleCreateOrUpdateModal
-                orgId={params.orgId}
-                mode="create"
-                permissions={[]}
-                roleId=""
-                roleName=""
+      <div className="flex w-full flex-row gap-3">
+        {safeSession?.permissions.includes(PERMS.view_org_members) && (
+          <Card className="flex w-full flex-col">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div className=" flex flex-row gap-3">
+                <CardTitle>Organizasyon Üyeleri</CardTitle>
+                {isOrgMembersLoading && (
+                  <Loader2Icon className="h-5 w-5 animate-spin" />
+                )}
+              </div>
+              {session?.permissions.includes(PERMS.manage_org_members) ? (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button>Üye Ekle</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Yeni üye</DialogTitle>
+                    </DialogHeader>
+                    <Label>E-Mail</Label>
+                    <Input
+                      placeholder="E-Mail"
+                      inputMode="email"
+                      value={orgMemberEmail}
+                      onChange={(e) => {
+                        setOrgMemberEmail(e.target.value);
+                      }}
+                    />
+                    <Button
+                      disabled={isValidEmail(orgMemberEmail) || !orgMemberEmail}
+                      onClick={() =>
+                        orgMemberEmail &&
+                        addOrgMember.mutate({
+                          email: orgMemberEmail,
+                          orgId: params.orgId,
+                        })
+                      }
+                    >
+                      Üyeyi Ekle
+                    </Button>
+                    <DialogDescription>
+                      Not: Üyenin eklenebilmesi için daha önce sisteme giriş
+                      yapmış olması gerekmektedir.
+                    </DialogDescription>
+                  </DialogContent>
+                </Dialog>
+              ) : null}
+            </CardHeader>
+            <CardContent className="overflow-x-scroll md:overflow-x-hidden">
+              <DataTable
+                data={orgMembers?.members}
+                isLoading={isOrgMembersLoading}
+                columns={memberColumns}
+                pagination
               />
-            ) : null}
-          </CardHeader>
-          <CardContent className="overflow-x-scroll md:overflow-x-hidden">
-            <DataTable
-              data={orgRoles}
-              isLoading={isOrgRolesLoading}
-              columns={rolesColumns}
-              pagination
-            />
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
+        {safeSession?.permissions.includes(PERMS.view_org_role) && (
+          <Card className="flex w-full flex-col">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div className=" flex flex-row gap-3">
+                <CardTitle>Organizasyon Rolleri</CardTitle>
+                {isOrgRolesLoading && (
+                  <Loader2Icon className="h-5 w-5 animate-spin" />
+                )}
+              </div>
+              {session?.permissions.includes(PERMS.manage_org_role) ? (
+                <RoleCreateOrUpdateModal
+                  orgId={params.orgId}
+                  mode="create"
+                  permissions={[]}
+                  roleId=""
+                  roleName=""
+                />
+              ) : null}
+            </CardHeader>
+            <CardContent className="overflow-x-scroll md:overflow-x-hidden">
+              <DataTable
+                data={orgRoles}
+                isLoading={isOrgRolesLoading}
+                columns={rolesColumns}
+                pagination
+              />
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

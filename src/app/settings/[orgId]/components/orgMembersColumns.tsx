@@ -27,9 +27,10 @@ import { type RouterOutputs } from "~/trpc/shared";
 import { useDeleteOrgMember, useUpdateOrgMember } from "~/utils/useOrg";
 
 export type orgMemberType =
-  RouterOutputs["organization"]["getOrgMembers"][number];
+  RouterOutputs["organization"]["getOrgMembers"]["members"][number];
 
-export type orgRolesType = RouterOutputs["organization"]["getOrgRoles"];
+export type orgRolesType =
+  RouterOutputs["organization"]["getOrgMembers"]["roleList"];
 
 const ActionColumn = ({
   member,

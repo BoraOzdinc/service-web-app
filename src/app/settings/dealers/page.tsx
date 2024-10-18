@@ -31,9 +31,10 @@ import {
 } from "~/app/_components/ui/select";
 import { useCreateDealer } from "~/utils/useDealer";
 import { PriceTypes } from "~/_constants";
+import { useSession } from "~/utils/SessionProvider";
 
 const Dealers = () => {
-  const { data: session } = api.utilRouter.getSession.useQuery();
+  const session = useSession();
   const { data: dealers, isLoading: dealersLoading } =
     api.dealer.getDealers.useQuery(undefined, { retry: false });
   const createDealer = useCreateDealer();

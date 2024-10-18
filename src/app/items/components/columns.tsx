@@ -49,7 +49,7 @@ export const columns: ColumnDef<SingleItemType>[] = [
         original: { ItemColor },
       },
     }) => {
-      return `${ItemColor?.colorCode} ${ItemColor?.colorText}`;
+      return ItemColor?.colorCode;
     },
   },
   {

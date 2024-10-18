@@ -46,10 +46,11 @@ import {
 import { useDebounce } from "@uidotdev/usehooks";
 import { isValidEmail } from "~/utils";
 import { dealerTransactionsColumns } from "./components/dealerTransactionsColumns";
+import { useSession } from "~/utils/SessionProvider";
 
 const DealerDetails = () => {
   const params = useParams<{ dealerId: string }>();
-  const { data: session } = api.utilRouter.getSession.useQuery();
+  const session = useSession();
   const addDealerMember = useCreateDealerMember();
   const [dealerMemberEmail, setDealerMemberEmail] = useState<
     string | undefined

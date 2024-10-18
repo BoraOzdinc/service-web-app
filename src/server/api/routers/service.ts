@@ -10,7 +10,6 @@ export const serviceRouter = createTRPCRouter({
     addImageToItem: protectedProcedure.input(z.object({
         itemId: nonEmptyString, image: nonEmptyString
     })).mutation(async ({ ctx, input }) => {
-        console.log(input);
 
         if (!input.image) {
             throw new TRPCError({
@@ -33,17 +32,14 @@ export const serviceRouter = createTRPCRouter({
         }
         const { data: itemImage, error: imageError } = await ctx.supabase.storage.from("images").upload(`private/${item.orgId}/${cuid2.createId()}`, input.image)
         if (imageError) {
-            console.log(imageError);
 
             throw new TRPCError({
                 code: "BAD_REQUEST",
                 message: "Failed to upload image:" + imageError.message,
             })
         }
-        console.log(input.image);
 
         const { data: updateItem, error: updateItemError } = await ctx.supabase.from("Item").update({ image: itemImage.path }).eq("id", input.itemId).select().single()
-        console.log(updateItemError);
 
         if (updateItemError) {
             throw new TRPCError({

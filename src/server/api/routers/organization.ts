@@ -45,7 +45,7 @@ export const organizationRouter = createTRPCRouter({
             throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid Payload!" })
         }
         const userPerms = ctx.session.permissions
-        if (!userPerms.includes(PERMS.view_org_members)) {
+        if (!userPerms.includes(PERMS.view_org_role)) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "You don't have permission to do this!",
@@ -107,7 +107,6 @@ export const organizationRouter = createTRPCRouter({
                 .eq('A', input.orgMemberId); // Assuming A is the member ID
 
             if (fetchError) {
-                console.error('Error fetching current roles:', fetchError);
                 return;
             }
 
@@ -141,17 +140,14 @@ export const organizationRouter = createTRPCRouter({
             const addError = addResults.find(result => result.error);
             const removeError = removeResults.find(result => result.error);
 
-            if (addError) {
-                console.error('Error adding roles:', addError);
-            } else {
-                console.log('Roles added successfully:', addResults);
+            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+            if (addError || removeError) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Failed to update member roles",
+                });
             }
 
-            if (removeError) {
-                console.error('Error removing roles:', removeError);
-            } else {
-                console.log('Roles removed successfully:', removeResults);
-            }
             return "success"
         }),
     deleteOrgMember: protectedProcedure.input(z.object({ memberId: nonEmptyString }))
@@ -197,10 +193,18 @@ export const organizationRouter = createTRPCRouter({
                 message: "You don't have permission to do this!",
             });
         }
-        return await ctx.db.member.findMany({
+        const members = await ctx.db.member.findMany({
             where: { orgId: input.orgId },
             include: { roles: true }
         })
+        if (userPerms.includes(PERMS.manage_org_members)) {
+            const memberRoles = await ctx.db.memberRole.findMany({
+                where: { orgId: input.orgId },
+                include: { permissions: true, members: true }
+            })
+            return { members, roleList: memberRoles }
+        }
+        return { members, roleList: [] }
     }),
     addMember: protectedProcedure.input(z.object({ orgId: z.string().optional(), email: nonEmptyString }))
         .mutation(async ({ ctx, input }) => {
@@ -216,7 +220,6 @@ export const organizationRouter = createTRPCRouter({
                 page: 1,
                 perPage: 9999999
             })
-            console.log(authUsers);
 
             const invitedUser = authUsers.find(u => u.email === input.email)
             if (!invitedUser) {
@@ -265,43 +268,46 @@ export const organizationRouter = createTRPCRouter({
                 message: "Invalid Payload",
             });
         }
-        if (ctx.session.orgId) {
+        if (!ctx.session.orgId) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
+        }
+        if (!userPerms.includes(PERMS.create_dealer)) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
+        }
 
-            if (!userPerms.includes(PERMS.create_dealer)) {
-                throw new TRPCError({
-                    code: "UNAUTHORIZED",
-                    message: "You don't have permission to do this!",
-                });
-            }
-            const { data: dealer, error: dealerError } = await ctx.supabase.from("Org").insert({
-                id: createId(),
+
+        const dealer = await ctx.db.org.create({
+            data: {
                 name: input.name,
                 type: "Dealer",
                 priceType: priceType,
-                orgId: ctx.session.orgId,
-                updateDate: new Date().toUTCString(),
-            }).select().single()
-            if (dealerError) {
-                throw new TRPCError({
-                    code: "BAD_REQUEST",
-                    message: "Failed to create dealer:" + dealerError.message,
-                })
+                dealerRelations: { create: { parentOrgId: ctx.session.orgId } }
             }
-            const { data: permissions, error: permError } = await ctx.supabase.from("MemberPermission").select("*").eq("assignableTo", "Dealer")
-            if (permError) {
-                throw new TRPCError({
-                    code: "BAD_REQUEST",
-                    message: "Failed to create dealer:" + permError.message,
-                })
-            }
-            return await ctx.db.memberRole.create({
-                data: { name: "Bayii Yöneticisi", orgId: dealer.id, permissions: { connect: permissions.map(p => ({ id: p.id })) } }
+        })
+
+        if (!dealer) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Failed to create dealer",
             })
         }
-        throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "You don't have permission to do this!",
-        });
+        const permissions = await ctx.db.memberPermission.findMany({ where: { assignableTo: { has: "Dealer" } } })
+        if (!permissions) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Failed to create dealer",
+            })
+        }
+        return await ctx.db.memberRole.create({
+            data: { name: "Bayii Yöneticisi", orgId: dealer.id, permissions: { connect: permissions.map(p => ({ id: p.id })) } }
+        })
+
     }),
     getOrgPerms: protectedProcedure.query(async ({ ctx }) => {
         return await ctx.db.memberPermission.findMany({ where: { assignableTo: { has: "Organization" } } })

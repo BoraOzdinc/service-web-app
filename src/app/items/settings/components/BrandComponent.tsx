@@ -21,9 +21,12 @@ import { Input } from "~/app/_components/ui/input";
 import { useState } from "react";
 import { useAddBrand } from "~/utils/useItems";
 import { api } from "~/trpc/server";
+import { useSession } from "~/utils/SessionProvider";
+import { PERMS } from "~/_constants/perms";
 
 const BrandComp = () => {
   const [brand, setBrand] = useState<string>("");
+  const session = useSession()
   const brands = api.items.getBrands.useQuery({});
   const addBrand = useAddBrand();
 
@@ -34,12 +37,14 @@ const BrandComp = () => {
 
         <Dialog>
           <DialogTrigger asChild>
-            <Button
-              disabled={brands.isLoading || addBrand.isLoading}
-              isLoading={addBrand.isLoading}
-            >
-              Marka Ekle
-            </Button>
+            {session?.permissions.includes(PERMS.manage_item_setting) && (
+              <Button
+                disabled={brands.isLoading || addBrand.isLoading}
+                isLoading={addBrand.isLoading}
+              >
+                Marka Ekle
+              </Button>
+            )}
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>

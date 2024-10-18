@@ -256,7 +256,7 @@ export function DataTable<TData, TValue>({
             </TableBody>
           </Table>
           {pagination && (
-            <div className=" flex items-center justify-between p-3">
+            <div className=" flex items-center justify-between gap-3 p-3">
               <div className="flex flex-row items-center justify-start gap-2">
                 <Label>Items per Page</Label>
                 <Select
@@ -264,12 +264,13 @@ export function DataTable<TData, TValue>({
                     table.setPageSize(Number(value));
                     setPageSize(Number(value));
                   }}
-                  defaultValue="10"
+                  defaultValue="5"
                 >
                   <SelectTrigger className="max-w-min">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
                     <SelectItem value="10">10</SelectItem>
                     <SelectItem value="20">20</SelectItem>
                     <SelectItem value="100">100</SelectItem>

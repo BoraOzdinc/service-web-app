@@ -8,7 +8,6 @@ import { createClient } from '../../utils/supabase/server'
 export async function login({ email, password }: { email: string, password: string }) {
     const supabase = createClient()
 
-    console.log("env vals", process.env);
     const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
@@ -36,9 +35,7 @@ export async function loginWithGoogle() {
     })
 
     if (error) {
-        console.log(error.message);
         redirect(`/login?msg=${error.message}`)
-
     }
 
     revalidatePath('/', 'layout')

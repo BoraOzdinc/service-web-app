@@ -34,10 +34,11 @@ import toast from "react-hot-toast";
 import AddItemDialog from "../components/AddItemDialog";
 import UpdateItemDialog from "../components/UpdateItemDialog";
 import ItemCard from "../components/ItemCard";
+import { useSession } from "~/utils/SessionProvider";
 
 const NewItemAccept = () => {
   const hydrated = useHydrated();
-  const { data: session } = api.utilRouter.getSession.useQuery();
+  const session = useSession();
   const [selectedStorageId, setSelectedStorageId] = useState<
     string | undefined
   >();
@@ -50,8 +51,7 @@ const NewItemAccept = () => {
   const [updateQuantity, setUpdateQuantity] = useState(1);
   const itemAccept = useItemAccept();
   const [data, setData] = useState("");
-  const storages = api.items.getStorages.useQuery({});
-  const customers = api.customer.getCustomers.useQuery({});
+  const itemAcceptDetails = api.itemAccept.getStorageNCustomer.useQuery();
   const [addedItems, setAddedItem] = useState<
     { item: ItemWithBarcode; barcode: string; quantity: number }[]
   >([]);
@@ -190,18 +190,18 @@ const NewItemAccept = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center gap-2 sm:flex-row">
-            {storages.isLoading && (
+            {itemAcceptDetails.isLoading && (
               <Loader2 className="h-10 w-10 animate-spin" />
             )}
             <Select
               onValueChange={(value) => setSelectedStorageId(value)}
-              disabled={!storages.data}
+              disabled={!itemAcceptDetails.data}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Depo" />
               </SelectTrigger>
               <SelectContent>
-                {storages.data?.map((s) => (
+                {itemAcceptDetails.data?.storages.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
                     {s.name}
                   </SelectItem>
@@ -209,7 +209,7 @@ const NewItemAccept = () => {
               </SelectContent>
             </Select>
             <ComboBox
-              data={customers.data?.map((d) => {
+              data={itemAcceptDetails.data?.customers.map((d) => {
                 const label = d.companyName
                   ? `${d.companyName} ${d.name} ${d.surname}`
                   : `${d.name} ${d.surname}`;

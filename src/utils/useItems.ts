@@ -254,7 +254,7 @@ export const useDeleteStorage = () => {
     });
 };
 export const useItemAccept = () => {
-    return api.items.itemAccept.useMutation({
+    return api.itemAccept.itemAccept.useMutation({
         onSuccess: async (_d,) => {
             toast.success("Ürünler Kabul Edildi!", { id: "item.itemAccept" });
         },
@@ -271,7 +271,7 @@ export const useItemAccept = () => {
     });
 };
 export const useItemSell = () => {
-    return api.items.itemSell.useMutation({
+    return api.itemSell.itemSell.useMutation({
         onSuccess: async (_d,) => {
             toast.success("Satış Yapıldı", { id: "item.itemSell" });
         },

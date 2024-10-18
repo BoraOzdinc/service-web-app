@@ -363,7 +363,6 @@ export const customerRouter = createTRPCRouter({
         Number(transaction.totalAmount) -
         (Number(transaction.totalAmount) * Number(transaction.discount)) / 100 -
         Number(transaction.payAmount);
-      console.log(((Number(transaction.totalAmount) ?? 0) < (Number(discountedAmount.toFixed(2)) + paidAmount)));
 
       if (paidAmount > Number(discountedAmount.toFixed(2)) || ((Number(transaction.totalAmount) ?? 0) < (Number(discountedAmount.toFixed(2)) + paidAmount))) {
         throw new TRPCError({

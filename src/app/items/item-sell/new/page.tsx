@@ -42,30 +42,18 @@ import { Label } from "~/app/_components/ui/label";
 import { DataTable } from "~/app/_components/tables/generic-table";
 import { columns as summaryColumns } from "./components/columns";
 import { Input } from "~/app/_components/ui/input";
+import { useSession } from "~/utils/SessionProvider";
 
 const NewItemSell = () => {
   const hydrated = useHydrated();
-  const { data: session } = api.utilRouter.getSession.useQuery();
-  const storages = api.items.getStorages.useQuery(
-    {},
-    {
-      enabled: !!session,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-      refetchInterval: false,
-      refetchOnMount: false,
-    },
-  );
-  const customers = api.customer.getCustomers.useQuery(
-    {},
-    {
-      enabled: !!session,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-      refetchInterval: false,
-      refetchOnMount: false,
-    },
-  );
+  const session = useSession();
+  const itemSellDetails = api.itemSell.getStorageNCustomer.useQuery(undefined, {
+    enabled: !!session,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchInterval: false,
+    refetchOnMount: false,
+  });
   const [selectedStorageId, setSelectedStorageId] = useState<
     string | undefined
   >();
@@ -77,17 +65,19 @@ const NewItemSell = () => {
     refetchInterval: 30000,
   });
   useEffect(() => {
-    const type = customers.data?.find((c) => c.id === selectedCustomerId)
-      ?.priceType;
+    const type = itemSellDetails.data?.customers.find(
+      (c) => c.id === selectedCustomerId,
+    )?.priceType;
     setSelectedPriceType(type);
-  }, [customers.data, selectedCustomerId]);
+  }, [itemSellDetails.data?.customers, selectedCustomerId]);
 
   const dealerPriceType = useMemo(() => {
-    const type = customers.data?.find((c) => c.id === selectedCustomerId)
-      ?.dealerPriceType;
+    const type = itemSellDetails.data?.customers.find(
+      (c) => c.id === selectedCustomerId,
+    )?.dealerPriceType;
     setSelectedPriceType(type);
     return type;
-  }, [customers.data, selectedCustomerId]);
+  }, [itemSellDetails.data?.customers, selectedCustomerId]);
 
   const debouncedStorageId = useDebounce(selectedStorageId, 100);
   const [isBarcodeOpen, setIsBarcodeOpen] = useState(false);
@@ -214,25 +204,6 @@ const NewItemSell = () => {
     setIsUpdateItemOpen(false);
     setIsAddItemOpen(false);
   };
-  /* 
-  const uniqueItems = useMemo(() => {
-    const itemMap = new Map<string, (typeof addedItems)[0]>();
-
-    addedItems.forEach((curVal) => {
-      const masterBarcode = curVal.item?.itemBarcode.find((b) => b.isMaster)
-        ?.barcode;
-      if (curVal.item?.id && !!masterBarcode) {
-        const existingItem = itemMap.get(curVal.item?.id);
-        if (!existingItem) {
-          itemMap.set(curVal.item?.id, { ...curVal, barcode: masterBarcode });
-        } else {
-          existingItem.totalAdded += curVal.totalAdded;
-        }
-      }
-    });
-
-    return Array.from(itemMap.values());
-  }, [addedItems]); */
 
   const columns = useMemo(() => {
     return summaryColumns(selectedPriceType);
@@ -263,7 +234,7 @@ const NewItemSell = () => {
         selectedPriceType !== $Enums.PriceType.org
           ? selectedPriceType
           : undefined,
-      exchangeRate: euroPrice.data?.satisEkran,
+      exchangeRate: euroPrice.data,
       transferToDealer: isTransferToDealerChecked,
       paidAmount: paidAmount,
       saleCancel: saleCancel,
@@ -284,8 +255,6 @@ const NewItemSell = () => {
       },
     });
   };
-  addedItems;
-  console.log(dealerPriceType);
 
   if (!hydrated) {
     return null;
@@ -374,7 +343,7 @@ const NewItemSell = () => {
                         setPriceToPayTr(
                           (totalPayAmount -
                             (totalPayAmount * Number(e.target.value)) / 100) *
-                            (euroPrice.data?.satisEkran ?? 1),
+                            (euroPrice.data ?? 1),
                         );
                       }
                     }}
@@ -385,7 +354,7 @@ const NewItemSell = () => {
               </div>
               <div>
                 <Label className="">Euro Satış Kuru</Label>
-                <Input disabled value={euroPrice.data?.satisEkran} />
+                <Input disabled value={euroPrice.data} />
               </div>
               <div>
                 <Label>Ödenecek Miktar (€)</Label>
@@ -396,8 +365,7 @@ const NewItemSell = () => {
                     setPriceToPayTr(
                       Number(
                         (
-                          Number(e.target.value) *
-                          Number(euroPrice.data?.satisEkran)
+                          Number(e.target.value) * Number(euroPrice.data)
                         ).toFixed(2),
                       ),
                     );
@@ -417,24 +385,20 @@ const NewItemSell = () => {
                 <Input
                   value={
                     priceToPayTr?.toFixed(2) ??
-                    (
-                      totalPayAmount * Number(euroPrice.data?.satisEkran)
-                    ).toFixed(2)
+                    (totalPayAmount * Number(euroPrice.data)).toFixed(2)
                   }
                   onChange={(e) => {
                     setPriceToPayTr(Number(Number(e.target.value).toFixed(2)));
                     setPriceToPay(
                       Number(
                         (
-                          Number(e.target.value) /
-                          Number(euroPrice.data?.satisEkran)
+                          Number(e.target.value) / Number(euroPrice.data)
                         ).toFixed(2),
                       ),
                     );
                     setDiscount(
                       -(
-                        ((Number(e.target.value) /
-                          Number(euroPrice.data?.satisEkran) -
+                        ((Number(e.target.value) / Number(euroPrice.data) -
                           totalPayAmount) *
                           100) /
                         totalPayAmount
@@ -457,8 +421,7 @@ const NewItemSell = () => {
                     setPaidAmountTr(
                       Number(
                         (
-                          Number(e.target.value) *
-                          (euroPrice.data?.satisEkran ?? 1)
+                          Number(e.target.value) * (euroPrice.data ?? 1)
                         ).toFixed(2),
                       ),
                     );
@@ -475,8 +438,7 @@ const NewItemSell = () => {
                     setPaidAmount(
                       Number(
                         (
-                          Number(e.target.value) /
-                          (euroPrice.data?.satisEkran ?? 1)
+                          Number(e.target.value) / (euroPrice.data ?? 1)
                         ).toFixed(2),
                       ),
                     );
@@ -515,18 +477,18 @@ const NewItemSell = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-2">
-            {storages.isLoading && (
+            {itemSellDetails.isLoading && (
               <Loader2 className="h-10 w-10 animate-spin" />
             )}
             <Select
               onValueChange={(value) => setSelectedStorageId(value)}
-              disabled={!storages.data}
+              disabled={!itemSellDetails.data?.storages}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Depo" />
               </SelectTrigger>
               <SelectContent>
-                {storages.data?.map((s) => (
+                {itemSellDetails.data?.storages.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
                     {s.name}
                   </SelectItem>
@@ -535,7 +497,7 @@ const NewItemSell = () => {
             </Select>
             <div className="flex flex-row gap-2">
               <ComboBox
-                data={customers.data?.map((d) => {
+                data={itemSellDetails.data?.customers.map((d) => {
                   const label = d.companyName
                     ? `${d.companyName} ${d.name} ${d.surname}`
                     : `${d.name} ${d.surname}`;
@@ -569,8 +531,9 @@ const NewItemSell = () => {
                 </SelectContent>
               </Select>
             </div>
-            {customers.data?.find((c) => c.id === selectedCustomerId)
-              ?.connectedDealerId && (
+            {itemSellDetails.data?.customers.find(
+              (c) => c.id === selectedCustomerId,
+            )?.connectedDealerId && (
               <div className=" flex flex-row gap-2 rounded border p-3">
                 <Checkbox
                   checked={isTransferToDealerChecked}

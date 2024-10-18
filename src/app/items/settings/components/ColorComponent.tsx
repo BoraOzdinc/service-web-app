@@ -21,9 +21,12 @@ import { Input } from "~/app/_components/ui/input";
 import { useState } from "react";
 import { useAddColor } from "~/utils/useItems";
 import { api } from "~/trpc/server";
+import { useSession } from "~/utils/SessionProvider";
+import { PERMS } from "~/_constants/perms";
 
 const ColorComp = () => {
   const colors = api.items.getColors.useQuery({});
+  const session = useSession();
   const [colorCode, setColorCode] = useState<string>("");
   const [color, setColor] = useState<string>("");
   const addColor = useAddColor();
@@ -36,12 +39,14 @@ const ColorComp = () => {
         </div>
         <Dialog>
           <DialogTrigger asChild>
-            <Button
-              disabled={colors.isLoading || addColor.isLoading}
-              isLoading={addColor.isLoading}
-            >
-              Renk Ekle
-            </Button>
+            {session?.permissions.includes(PERMS.manage_item_setting) && (
+              <Button
+                disabled={colors.isLoading || addColor.isLoading}
+                isLoading={addColor.isLoading}
+              >
+                Renk Ekle
+              </Button>
+            )}
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
