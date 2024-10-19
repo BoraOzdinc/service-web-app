@@ -85,7 +85,7 @@ export const columns: ColumnDef<SingleItemType>[] = [
         original: { mainDealerPrice },
       },
     }) => {
-      return `€ ${mainDealerPrice}`;
+      return mainDealerPrice ? `€ ${mainDealerPrice}` : "-";
     },
   },
   {
@@ -96,7 +96,7 @@ export const columns: ColumnDef<SingleItemType>[] = [
         original: { multiPrice },
       },
     }) => {
-      return `€ ${multiPrice}`;
+      return multiPrice ? `€ ${multiPrice}` : "-";
     },
   },
   {
@@ -107,7 +107,7 @@ export const columns: ColumnDef<SingleItemType>[] = [
         original: { dealerPrice },
       },
     }) => {
-      return `€ ${dealerPrice}`;
+      return dealerPrice ? `€ ${dealerPrice}` : "-";
     },
   },
   {
@@ -118,7 +118,7 @@ export const columns: ColumnDef<SingleItemType>[] = [
         original: { singlePrice },
       },
     }) => {
-      return `€ ${singlePrice}`;
+      return singlePrice ? `€ ${singlePrice}` : "-";
     },
   },
   { accessorKey: "totalStock", header: "Toplam Stok" },

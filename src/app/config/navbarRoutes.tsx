@@ -15,7 +15,7 @@ const NavbarRoutes = (session: SessionType): navConfig => {
   return [
     {
       title: "Storage",
-      permissions: PERMS.item_view,
+      permissions: "",
       icon: <BoxesIcon />,
       children: [
         {
@@ -47,7 +47,7 @@ const NavbarRoutes = (session: SessionType): navConfig => {
     },
     {
       title: "Customer",
-      permissions: PERMS.customers_view,
+      permissions: "",
       icon: <UsersIcon />,
       children: [
         {

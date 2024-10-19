@@ -46,6 +46,15 @@ export function SidebarWithBurgerMenu({
         </SheetHeader>
         <div>
           {navbarRoutes.map((route, index) => {
+            const routeVisible = route.children?.some((child) => {
+              if (session.permissions.includes(child.permissions)) {
+                return true;
+              }
+              return false;
+            });
+            if (!routeVisible) {
+              return null;
+            }
             if (
               route.children &&
               (session.permissions.includes(route.permissions) ||
