@@ -1,4 +1,10 @@
-import { BoxesIcon, CogIcon, UsersIcon, type LucideIcon } from "lucide-react";
+import {
+  BoxesIcon,
+  CogIcon,
+  LayoutIcon,
+  UsersIcon,
+  type LucideIcon,
+} from "lucide-react";
 import React from "react";
 import { PERMS } from "~/_constants/perms";
 import { type SessionType } from "~/utils/getSession";
@@ -54,6 +60,18 @@ const NavbarRoutes = (session: SessionType): navConfig => {
           title: "Customers",
           path: "/customers",
           permissions: PERMS.customers_view,
+        },
+      ],
+    },
+    {
+      title: "Layout",
+      permissions: "",
+      icon: <LayoutIcon />,
+      children: [
+        {
+          title: "Layout",
+          path: "/layout",
+          permissions: PERMS.manage_layout,
         },
       ],
     },

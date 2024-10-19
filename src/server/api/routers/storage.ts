@@ -7,6 +7,30 @@ import QRCode from "qrcode";
 import { createId } from "@paralleldrive/cuid2";
 
 export const StorageRouter = createTRPCRouter({
+    getStorages: protectedProcedure.query(async ({ ctx }) => {
+        const userPerms = ctx.session.permissions
+        if (!userPerms.includes(PERMS.manage_layout)) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
+        }
+        if (!ctx.session.orgId) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
+        }
+        const { data: storages, error: storagesError } = await ctx.supabase.from("Storage").select("id,name").eq("orgId", ctx.session.orgId)
+        if (storagesError) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Failed to get storages",
+            });
+        }
+        return storages
+    }),
+
     addShelf: protectedProcedure
         .input(z.object({ storageId: nonEmptyString, name: nonEmptyString }))
         .mutation(async ({ ctx, input }) => {

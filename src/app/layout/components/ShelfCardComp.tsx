@@ -32,13 +32,14 @@ import {
   useCreateShelf,
   useDeleteShelf,
 } from "~/utils/useStorage";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import jsPDF from "jspdf";
 
 const ShelfCard = () => {
   const searchParams = useSearchParams();
-  const storages = api.items.getStorages.useQuery({});
+  const storages = api.storage.getStorages.useQuery();
   const search = searchParams.get("q");
+  const router = useRouter();
   const [selectedStorageID, setSelectedStorageID] = useState("");
   const [shelfName, setShelfName] = useState("");
 
@@ -51,7 +52,7 @@ const ShelfCard = () => {
   const addShelf = useCreateShelf();
   const deleteShelf = useDeleteShelf();
   useEffect(() => {
-    if (storages) {
+    if (storages && search) {
       setSelectedStorageID(search ?? "");
     }
   }, [search, storages]);
@@ -62,7 +63,10 @@ const ShelfCard = () => {
           <CardTitle>Depo Düzeni</CardTitle>
           <div className="flex items-center gap-2">
             <Select
-              onValueChange={setSelectedStorageID}
+              onValueChange={(e) => {
+                router.push(`/layout?q=${e}`);
+                setSelectedStorageID(e);
+              }}
               value={selectedStorageID}
               disabled={storages.isLoading}
             >
