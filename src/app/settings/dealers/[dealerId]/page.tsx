@@ -160,6 +160,7 @@ const DealerDetails = () => {
                           onClick={() =>
                             dealerMemberEmail &&
                             addDealerMember.mutate({
+                              orgId: params.dealerId,
                               email: dealerMemberEmail,
                             })
                           }
