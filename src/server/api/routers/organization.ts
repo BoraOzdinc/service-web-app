@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { PERMS } from "../../../_constants/perms";
 import { TRPCError } from "@trpc/server";
 import { nonEmptyString } from "./items";
@@ -9,7 +9,49 @@ import { isAuthorised, isAuthorised as isMemberAuthorised } from "~/utils";
 import { createId } from "@paralleldrive/cuid2";
 
 export const organizationRouter = createTRPCRouter({
-
+    createOrg: publicProcedure.input(z.object({ name: nonEmptyString })).mutation(async ({ ctx, input }) => {
+        const { data: { user } } = await ctx.supabase.auth.getUser()
+        if (!user?.email || !user?.id) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You don't have permission to do this!",
+            });
+        }
+        const org = await ctx.db.org.create({
+            data: {
+                name: input.name,
+                priceType: "org",
+                type: "Org", members:
+                {
+                    create: {
+                        userEmail: user?.email,
+                        uid: user?.id,
+                    }
+                }
+            },
+            include: { members: true }
+        })
+        const orgPermissions = await ctx.db.memberPermission.findMany({ where: { assignableTo: { has: "Organization" } } })
+        if (!orgPermissions) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Failed to create org",
+            })
+        }
+        await ctx.db.memberRole.create({
+            data: {
+                name: "Yönetici",
+                orgId: org.id,
+                permissions: { connect: orgPermissions.map(p => ({ id: p.id })) },
+                members: {
+                    connect: {
+                        id: org.members[0]?.id
+                    }
+                }
+            }
+        })
+        return org
+    }),
     getOrgById: protectedProcedure
         .input(z.object({ orgId: nonEmptyString }))
         .query(async ({ ctx, input }) => {

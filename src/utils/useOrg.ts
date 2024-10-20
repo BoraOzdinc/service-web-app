@@ -20,6 +20,23 @@ export const useCreateOrgMember = () => {
         },
     });
 };
+export const useCreateOrg = () => {
+    return api.organization.createOrg.useMutation({
+        onSuccess: async (_d,) => {
+            toast.success("Organizasyon Oluşturuldu", { id: "org.createOrg" });
+        },
+        onMutate: () => {
+            toast.loading("Organizasyon Oluşturuluyor...", {
+                id: "org.createOrg",
+            });
+        },
+        onError(error) {
+            toast.error(String(error.data?.zodError ?? error.message), {
+                id: "org.createOrg",
+            });
+        },
+    });
+};
 export const useUpdateOrgMember = () => {
     const utils = api.useUtils();
     return api.organization.updateOrgMember.useMutation({

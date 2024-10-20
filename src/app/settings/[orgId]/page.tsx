@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2Icon } from "lucide-react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import Loader from "~/app/_components/loader";
 import { Button } from "~/app/_components/ui/button";
@@ -34,6 +34,7 @@ import {
 import { useSession } from "~/utils/SessionProvider";
 
 const OrganizationSettings = () => {
+  const router = useRouter();
   const params = useParams<{ orgId: string }>();
   const session = useSession();
   const [orgMemberEmail, setOrgMemberEmail] = useState<string | undefined>();
@@ -69,7 +70,9 @@ const OrganizationSettings = () => {
   if (isOrgLoading) {
     return <Loader />;
   }
-
+  if (!session) {
+    router.refresh();
+  }
   return (
     <div className="w-full">
       <CardHeader>
